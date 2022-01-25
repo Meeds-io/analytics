@@ -743,6 +743,91 @@
                 <show-info-bar>false</show-info-bar>
             </portlet-application>
         </container>
+        <container cssClass="analyticsPageRow" template="system:/groovy/portal/webui/container/UIContainer.gtmpl">
+          <access-permissions>Everyone</access-permissions>
+          <portlet-application>
+            <portlet>
+              <application-ref>analytics</application-ref>
+              <portlet-ref>AnalyticsPortlet</portlet-ref>
+              <preferences>
+                <preference>
+                  <name>settings</name>
+                  <value>{
+                    "offset": 0,
+                    "filters": [
+                      {
+                        "field": "isMobile",
+                        "type": "NOT_NULL",
+                        "valueString": "",
+                        "range": null
+                      }
+                    ],
+                    "lang": null,
+                    "aggregations": [
+                      {
+                        "field": "deviceType.keyword",
+                        "type": "TERMS",
+                        "offset": null,
+                        "interval": null,
+                        "useBounds": false,
+                        "minBound": 0,
+                        "maxBound": 0,
+                        "sortDirection": "desc",
+                        "limit": 0
+                      },
+                      {
+                        "field": "deviceType.keyword",
+                        "type": "COUNT",
+                        "offset": null,
+                        "interval": null,
+                        "useBounds": false,
+                        "minBound": 0,
+                        "maxBound": 0,
+                        "sortDirection": "desc",
+                        "limit": 0
+                      }
+                    ],
+                    "yAxisAggregation": {
+                      "field": "deviceType.keyword",
+                      "type": "COUNT",
+                      "offset": null,
+                      "interval": null,
+                      "useBounds": false,
+                      "minBound": 0,
+                      "maxBound": 0,
+                      "sortDirection": "desc",
+                      "limit": 0
+                    },
+                    "multipleChartsAggregation": null,
+                    "xAxisAggregations": [
+                      {
+                        "field": "deviceType.keyword",
+                        "type": "TERMS",
+                        "offset": null,
+                        "interval": null,
+                        "useBounds": false,
+                        "minBound": 0,
+                        "maxBound": 0,
+                        "sortDirection": "desc",
+                        "limit": 0
+                      }
+                    ],
+                    "multipleCharts": false,
+                    "chartType": "pie",
+                    "colors": null,
+                    "multipleChartsField": null,
+                    "limit": 0,
+                    "timeZone": null,
+                    "title": "Display page per device"
+                  }</value>
+                </preference>
+              </preferences>
+            </portlet>
+            <title>test pie chart</title>
+            <access-permissions>Everyone</access-permissions>
+            <show-info-bar>false</show-info-bar>
+          </portlet-application>
+        </container>
     </container>
 </page>
 </page-set>
