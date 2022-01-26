@@ -49,7 +49,7 @@ export default {
   }),
   computed: {
     multipleCharts() {
-      return this.settings && this.settings.multipleChartsField;
+      return this.settings && (this.settings.multipleChartsField || this.settings.chartType === 'pie');
     },
     chartColors() {
       if (this.multipleCharts) {
