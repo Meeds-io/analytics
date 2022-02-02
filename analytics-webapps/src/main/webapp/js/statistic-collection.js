@@ -368,6 +368,7 @@ function() {
                 applicationNames: eXo.env.portal.applicationNames,
                 isMobile,
                 deviceType: deviceType,
+                connectedWith: connectedWith,
               },
             });
           }, 500);
@@ -431,6 +432,7 @@ function() {
                 applicationName: appName,
                 isMobile,
                 deviceType: deviceType,
+                connectedWith: connectedWith,
                 startLoadingTime: startLoadingTime,
                 endLoadingTime: endLoadingTime,
               },
