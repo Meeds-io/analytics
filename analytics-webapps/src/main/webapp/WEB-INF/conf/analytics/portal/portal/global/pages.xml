@@ -827,7 +827,82 @@
                 </preference>
               </preferences>
             </portlet>
-            <title>test pie chart</title>
+            <title>device type statistics</title>
+            <access-permissions>Everyone</access-permissions>
+            <show-info-bar>false</show-info-bar>
+          </portlet-application>
+          <portlet-application>
+            <portlet>
+              <application-ref>analytics</application-ref>
+              <portlet-ref>AnalyticsPortlet</portlet-ref>
+              <preferences>
+                <preference>
+                  <name>settings</name>
+                  <value>{
+                    "offset": 0,
+                    "filters": [],
+                    "lang": null,
+                    "aggregations": [
+                      {
+                        "field": "connectedWith.keyword",
+                        "type": "TERMS",
+                        "offset": null,
+                        "interval": null,
+                        "useBounds": false,
+                        "minBound": 0,
+                        "maxBound": 0,
+                        "sortDirection": "desc",
+                        "limit": 0
+                      },
+                      {
+                        "field": "connectedWith.keyword",
+                        "type": "COUNT",
+                        "offset": null,
+                        "interval": null,
+                        "useBounds": false,
+                        "minBound": 0,
+                        "maxBound": 0,
+                        "sortDirection": "desc",
+                        "limit": 0
+                      }
+                    ],
+                    "yAxisAggregation": {
+                      "field": "connectedWith.keyword",
+                      "type": "COUNT",
+                      "offset": null,
+                      "interval": null,
+                      "useBounds": false,
+                      "minBound": 0,
+                      "maxBound": 0,
+                      "sortDirection": "desc",
+                      "limit": 0
+                    },
+                    "multipleChartsAggregation": null,
+                    "xAxisAggregations": [
+                      {
+                        "field": "connectedWith.keyword",
+                        "type": "TERMS",
+                        "offset": null,
+                        "interval": null,
+                        "useBounds": false,
+                        "minBound": 0,
+                        "maxBound": 0,
+                        "sortDirection": "desc",
+                        "limit": 0
+                      }
+                    ],
+                    "multipleCharts": false,
+                    "chartType": "bar",
+                    "colors": null,
+                    "multipleChartsField": null,
+                    "limit": 0,
+                    "timeZone": null,
+                    "title": "Display page per App and browsers"
+                  }</value>
+                </preference>
+              </preferences>
+            </portlet>
+            <title>browser and app type statistics</title>
             <access-permissions>Everyone</access-permissions>
             <show-info-bar>false</show-info-bar>
           </portlet-application>
