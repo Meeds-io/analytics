@@ -197,22 +197,65 @@ function() {
     },
     
   };
-  function checkDeviceType(userAgent){
-    let mobile = navigator.userAgentData && navigator.userAgentData.mobile || (navigator.userAgent && /mobi/i.test(navigator.userAgent.toLowerCase())) || false;
-    let tablet = false ;
-    tablet = /(ipad|tablet|(android(?!.*mobile))|(windows(?!.*phone)(.*touch))|kindle|playbook|silk|(puffin(?!.*(IP|AP|WP))))/.test(userAgent.toLowerCase());
-    if(tablet)
-      return "tablet" ;  
-    if(mobile)
-      return "mobile" ;
-    return "desktop"  ;   
+  function checkDeviceType(userAgentLowerCase){
+    let isMobileDevice = isIosApp(userAgentLowerCase) || isAndroidApp(userAgentLowerCase) || (navigator.userAgentData && navigator.userAgentData.mobile || (userAgentLowerCase && /mobi/i.test(userAgentLowerCase)) || false);
+    if(isTablet(userAgentLowerCase))
+      return "Tablet";
+    if(isMobileDevice)
+      return "Mobile";
+    return "Desktop";   
+  }
+  function isTablet(userAgentLowerCase){
+    if((/exo\/6.2/).test(userAgentLowerCase)){
+      let realScreenWidth = (screen.width > screen.height) ? screen.height : screen.width;
+      if(realScreenWidth >= 481 && realScreenWidth < 1026)
+        return true; 
+      return false;
+    }
+    return /(ipad|tablet|(android(?!.*mobile))|(windows(?!.*phone)(.*touch))|kindle|playbook|silk|(puffin(?!.*(IP|AP|WP))))/.test(userAgentLowerCase);
+  }
+  function checkBrowserType(userAgentLowerCase){
+    if(/edge|edga|edg/.test(userAgentLowerCase) )
+      return "Edge";
+    else if(/firefox|fxios/i.test(userAgentLowerCase))
+      return "Firefox";
+    else if(/opera|opr\//.test(userAgentLowerCase))
+      return "Opera";
+    else if(navigator.brave !== undefined)
+      return "Brave";
+    else if(/safari/i.test(userAgentLowerCase) && /chrome|chromium|crios/i.test(userAgentLowerCase))
+      return "Chrome";
+    else if(/safari/i.test(userAgentLowerCase))
+      return "Safari";
+    else
+      return "others";
+  }
+  function checkconnectedWith(userAgentLowerCase){
+    let browserType = checkBrowserType(userAgentLowerCase);
+    if(isIosApp(userAgentLowerCase))
+      return "eXo-iOS";
+    if(isAndroidApp(userAgentLowerCase))
+      return "eXo-Android";
+    if((checkDeviceType(userAgentLowerCase)!=="Desktop"))
+      return browserType + "-mobile"; 
+    return browserType;   
+  }
+  function isExoApp(userAgentLowerCase){
+    return /exo/.test(userAgentLowerCase); 
+  }
+  function isIosApp(userAgentLowerCase){
+    return  isExoApp(userAgentLowerCase) && /iphone|ipad|ipad/.test(userAgentLowerCase) && !/safari/.test(userAgentLowerCase); 
+  }
+  function isAndroidApp(userAgentLowerCase){
+      return isExoApp(userAgentLowerCase) && /android/.test(userAgentLowerCase); 
   }
   require(['SHARED/vue'], () => {
     if (eXo.env.portal.requestStartTime) {
       eXo.env.portal.loadingAppsStartTime = {};
       const fullyLoadedCallbackIdle = 1000;
       const isMobile = navigator.userAgentData && navigator.userAgentData.mobile || (navigator.userAgent && /mobi/i.test(navigator.userAgent.toLowerCase())) || false;
-      const deviceType = checkDeviceType(navigator.userAgent);
+      const deviceType = checkDeviceType(navigator.userAgent.toLowerCase());
+      const connectedWith = checkconnectedWith(navigator.userAgent.toLowerCase());
       function pageFullyLoadedCallback() {
         if (document.readyState === 'complete'
             && !eXo.env.portal.loadingAppsFinished
@@ -244,6 +287,7 @@ function() {
               applicationNames: eXo.env.portal.applicationNames,
               isMobile,
               deviceType: deviceType,
+              connectedWith: connectedWith,
             },
           });
         }
@@ -297,6 +341,7 @@ function() {
                 applicationNames: eXo.env.portal.applicationNames,
                 isMobile,
                 deviceType: deviceType,
+                connectedWith: connectedWith,
               },
             });
           }, 500);
@@ -360,6 +405,7 @@ function() {
                 applicationName: appName,
                 isMobile,
                 deviceType: deviceType,
+                connectedWith: connectedWith,
                 startLoadingTime: startLoadingTime,
                 endLoadingTime: endLoadingTime,
               },
