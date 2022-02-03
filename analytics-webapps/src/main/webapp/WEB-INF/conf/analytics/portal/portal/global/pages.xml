@@ -903,6 +903,91 @@
             <show-info-bar>false</show-info-bar>
           </portlet-application>
         </container>
+        <container cssClass="analyticsPageRow" template="system:/groovy/portal/webui/container/UIContainer.gtmpl">
+          <access-permissions>Everyone</access-permissions>
+          <portlet-application>
+            <portlet>
+              <application-ref>analytics</application-ref>
+              <portlet-ref>AnalyticsPortlet</portlet-ref>
+              <preferences>
+                <preference>
+                  <name>settings</name>
+                  <value>{
+                    "offset": 0,
+                    "filters": [
+                      {
+                        "field": "deviceType",
+                        "type": "IN_SET",
+                        "valueString": "Mobile,Tablet",
+                        "range": null
+                      }
+                    ],
+                    "limit": 0,
+                    "multipleCharts": false,
+                    "chartType": "pie",
+                    "colors": null,
+                    "multipleChartsField": null,
+                    "lang": null,
+                    "aggregations": [
+                      {
+                        "field": "pageTitle.keyword",
+                        "type": "TERMS",
+                        "offset": null,
+                        "interval": null,
+                        "limit": 0,
+                        "useBounds": false,
+                        "minBound": 0,
+                        "maxBound": 0,
+                        "sortDirection": "desc"
+                      },
+                      {
+                        "field": "pageTitle.keyword",
+                        "type": "COUNT",
+                        "offset": null,
+                        "interval": null,
+                        "limit": 0,
+                        "useBounds": false,
+                        "minBound": 0,
+                        "maxBound": 0,
+                        "sortDirection": "desc"
+                      }
+                    ],
+                    "yAxisAggregation": {
+                      "field": "pageTitle.keyword",
+                      "type": "COUNT",
+                      "offset": null,
+                      "interval": null,
+                      "limit": 0,
+                      "useBounds": false,
+                      "minBound": 0,
+                      "maxBound": 0,
+                      "sortDirection": "desc"
+                    },
+                    "multipleChartsAggregation": null,
+                    "xAxisAggregations": [
+                      {
+                        "field": "pageTitle.keyword",
+                        "type": "TERMS",
+                        "offset": null,
+                        "interval": null,
+                        "limit": 0,
+                        "useBounds": false,
+                        "minBound": 0,
+                        "maxBound": 0,
+                        "sortDirection": "desc"
+                      }
+                    ],
+                    "timeZone": null,
+                    "title": "App use in Mobile"
+                  }</value>
+                </preference>
+              </preferences>
+            </portlet>
+            <title>modules visited on mobiles</title>
+            <access-permissions>Everyone</access-permissions>
+            <show-info-bar>false</show-info-bar>
+          </portlet-application>
+        </container>
     </container>
 </page>
 </page-set>
