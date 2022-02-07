@@ -36,18 +36,18 @@ function() {
         // First time init, install listener
         document.addEventListener('exo-statistic-message', event => this.sendMessage(event && event.detail));
         document.addEventListener('search-connector-selected', event => this.addStatisticSearchFilter(event && event.detail));
-        document.addEventListener('favorite-added', event => this.addStatisticFavorite(event && event.detail));
-        document.addEventListener('search-tag', event => this.addStatisticSearchByTag());
-        document.addEventListener('search-favorites-selected', () => this.sendMessage(
-            {
-              'module': 'portal',
-              'subModule': 'ui',
-              'userId': eXo.env.portal.userIdentityId,
-              'userName': eXo.env.portal.userName,
-              'operation': 'click',
-              'name': 'search by favorite',
-              'timestamp': Date.now()
-            }));
+        document.addEventListener('favorite-added', event => this.addStatisticFavorite(true, event && event.detail));
+        document.addEventListener('favorite-removed', event => this.addStatisticFavorite(false, event && event.detail));
+        document.addEventListener('search-tag', () => this.addStatisticSearchByTag());
+        document.addEventListener('search-favorites-selected', () => this.sendMessage({
+          'module': 'portal',
+          'subModule': 'ui',
+          'userId': eXo.env.portal.userIdentityId,
+          'userName': eXo.env.portal.userName,
+          'operation': 'click',
+          'name': 'search by favorite',
+          'timestamp': Date.now()
+        }));
       }
 
       this.cometdSubscription = cCometd.subscribe(this.settings.cometdChannel, null, event => {}, null, (subscribeReply) => {
@@ -55,29 +55,7 @@ function() {
       });
     },
     addStatisticSearchFilter: function (connectorName) {
-      let uiInteraction;
-      switch (connectorName) {
-        case 'activity':
-          uiInteraction = 'searchActivities';
-          break;
-        case 'news':
-          uiInteraction = 'searchNews';
-          break;
-        case 'wiki':
-          uiInteraction = 'searchNotes';
-          break;
-        case 'people':
-          uiInteraction = 'searchPeople';
-          break;
-        case 'perkstore':
-          uiInteraction = 'searchProducts';
-          break;
-        case 'agenda':
-          uiInteraction = 'searchEvents';
-          break;
-        default:
-          uiInteraction = `search${connectorName.charAt(0).toUpperCase()}${connectorName.slice(1)}s`;
-      }
+      let uiInteraction = `search${connectorName.charAt(0).toUpperCase()}${connectorName.slice(1)}`;
       const connectorAnalytics = {
         'module': 'portal',
         'subModule': 'ui',
@@ -89,55 +67,21 @@ function() {
       };
       this.sendMessage(connectorAnalytics);
     },
-
-    addStatisticFavorite: function (eventDetail) {
-      let favorite;
-      if (!eventDetail.templateParams) {
-          favorite = {
-              'module': 'portal',
-              'subModule': 'ui',
-              'userId': eXo.env.portal.userIdentityId,
-              'userName': eXo.env.portal.userName,
-              'parameters': {
-                  'type': 'Documents',
-                  'spaceId': eventDetail.spaceId,
-                  'contentId': eventDetail.id,
-              },
-              'operation': 'Bookmark',
-              'timestamp': Date.now()
-          };
-      } else if (eventDetail.templateParams.newsId) {
-          favorite = {
-              'module': 'portal',
-              'subModule': 'ui',
-              'userId': eXo.env.portal.userIdentityId,
-              'userName': eXo.env.portal.userName,
-              'parameters': {
-                  'type': 'News',
-                  'contentId': eventDetail.templateParams.newsId,
-                  'spaceId': eventDetail.spaceId ? eventDetail.spaceId : eventDetail.templateParams.spaceId,
-              },
-              'operation': 'Bookmark',
-              'timestamp': Date.now()
-          };
-      } else if (eventDetail.templateParams.page_id) {
-          return;
-      } else {
-          favorite = {
-              'module': 'portal',
-              'subModule': 'ui',
-              'userId': eXo.env.portal.userIdentityId,
-              'userName': eXo.env.portal.userName,
-              'parameters': {
-                  'type': eventDetail.type,
-                  'activityId': eventDetail.id,
-                  'spaceId': eventDetail.spaceId,
-              },
-              'operation': 'Bookmark',
-              'timestamp': Date.now()
-          };
-      }
-      this.sendMessage(favorite);
+    addStatisticFavorite: function (bookmark, eventDetail) {
+      this.sendMessage({
+        'module': 'portal',
+        'subModule': 'ui',
+        'userId': eXo.env.portal.userIdentityId,
+        'userName': eXo.env.portal.userName,
+        'name': 'favorite',
+        'operation': bookmark && 'Bookmark' || 'UnBookmark',
+        'timestamp': Date.now(),
+        'parameters': {
+          'type': eventDetail.typeLabel || eventDetail.type,
+          'contentId': eventDetail.id,
+          'spaceId': eventDetail.spaceId,
+        },
+      });
     },
     addStatisticSearchByTag: function () {
       const tagSearch = {
@@ -220,22 +164,65 @@ function() {
     },
     
   };
-  function checkDeviceType(userAgent){
-    let mobile = navigator.userAgentData && navigator.userAgentData.mobile || (navigator.userAgent && /mobi/i.test(navigator.userAgent.toLowerCase())) || false;
-    let tablet = false ;
-    tablet = /(ipad|tablet|(android(?!.*mobile))|(windows(?!.*phone)(.*touch))|kindle|playbook|silk|(puffin(?!.*(IP|AP|WP))))/.test(userAgent.toLowerCase());
-    if(tablet)
-      return "tablet" ;  
-    if(mobile)
-      return "mobile" ;
-    return "desktop"  ;   
+  function checkDeviceType(userAgentLowerCase){
+    let isMobileDevice = isIosApp(userAgentLowerCase) || isAndroidApp(userAgentLowerCase) || (navigator.userAgentData && navigator.userAgentData.mobile || (userAgentLowerCase && /mobi/i.test(userAgentLowerCase)) || false);
+    if(isTablet(userAgentLowerCase))
+      return "Tablet";
+    if(isMobileDevice)
+      return "Mobile";
+    return "Desktop";
+  }
+  function isTablet(userAgentLowerCase){
+    if((/exo\/6.2/).test(userAgentLowerCase)){
+      let realScreenWidth = (screen.width > screen.height) ? screen.height : screen.width;
+      if(realScreenWidth >= 481 && realScreenWidth < 1026)
+        return true;
+      return false;
+    }
+    return /(ipad|tablet|(android(?!.*mobile))|(windows(?!.*phone)(.*touch))|kindle|playbook|silk|(puffin(?!.*(IP|AP|WP))))/.test(userAgentLowerCase);
+  }
+  function checkBrowserType(userAgentLowerCase){
+    if(/edge|edga|edg/.test(userAgentLowerCase) )
+      return "Edge";
+    else if(/firefox|fxios/i.test(userAgentLowerCase))
+      return "Firefox";
+    else if(/opera|opr\//.test(userAgentLowerCase))
+      return "Opera";
+    else if(navigator.brave !== undefined)
+      return "Brave";
+    else if(/safari/i.test(userAgentLowerCase) && /chrome|chromium|crios/i.test(userAgentLowerCase))
+      return "Chrome";
+    else if(/safari/i.test(userAgentLowerCase))
+      return "Safari";
+    else
+      return "others";
+  }
+  function checkconnectedWith(userAgentLowerCase){
+    let browserType = checkBrowserType(userAgentLowerCase);
+    if(isIosApp(userAgentLowerCase))
+      return "eXo-iOS";
+    if(isAndroidApp(userAgentLowerCase))
+      return "eXo-Android";
+    if((checkDeviceType(userAgentLowerCase)!=="Desktop"))
+      return browserType + "-mobile";
+    return browserType;
+  }
+  function isExoApp(userAgentLowerCase){
+    return /exo/.test(userAgentLowerCase);
+  }
+  function isIosApp(userAgentLowerCase){
+    return  isExoApp(userAgentLowerCase) && /iphone|ipad|ipad/.test(userAgentLowerCase) && !/safari/.test(userAgentLowerCase);
+  }
+  function isAndroidApp(userAgentLowerCase){
+      return isExoApp(userAgentLowerCase) && /android/.test(userAgentLowerCase);
   }
   require(['SHARED/vue'], () => {
     if (eXo.env.portal.requestStartTime) {
       eXo.env.portal.loadingAppsStartTime = {};
       const fullyLoadedCallbackIdle = 1000;
       const isMobile = navigator.userAgentData && navigator.userAgentData.mobile || (navigator.userAgent && /mobi/i.test(navigator.userAgent.toLowerCase())) || false;
-      const deviceType = checkDeviceType(navigator.userAgent);
+      const deviceType = checkDeviceType(navigator.userAgent.toLowerCase());
+      const connectedWith = checkconnectedWith(navigator.userAgent.toLowerCase());
       function pageFullyLoadedCallback() {
         if (document.readyState === 'complete'
             && !eXo.env.portal.loadingAppsFinished
@@ -267,6 +254,7 @@ function() {
               applicationNames: eXo.env.portal.applicationNames,
               isMobile,
               deviceType: deviceType,
+              connectedWith: connectedWith,
             },
           });
         }
@@ -320,6 +308,7 @@ function() {
                 applicationNames: eXo.env.portal.applicationNames,
                 isMobile,
                 deviceType: deviceType,
+                connectedWith: connectedWith,
               },
             });
           }, 500);
@@ -383,6 +372,7 @@ function() {
                 applicationName: appName,
                 isMobile,
                 deviceType: deviceType,
+                connectedWith: connectedWith,
                 startLoadingTime: startLoadingTime,
                 endLoadingTime: endLoadingTime,
               },

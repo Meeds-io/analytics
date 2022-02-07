@@ -363,7 +363,7 @@
                     {
                       "field": "operation",
                       "type": "IN_SET",
-                      "valueString": "fileCreated,fileUpdated,fileMovedToTrash,noteCreated,noteUpdated,taskCreated,taskUpdated,taskCommented,taskCompleted,taskStatusChanged,createActivity,createComment,likeActivity,likeComment,sendKudos,eventCreated,eventUpdated,contactSection,experienceSection,avatar,eventResponse,sendChatMessage,callJoined,documentUploadedNewApp,documentUploadedOldApp",
+                      "valueString": "noteCreated,noteUpdated,taskCreated,taskUpdated,taskCommented,taskCompleted,taskStatusChanged,createActivity,createComment,likeActivity,likeComment,sendKudos,contactSection,experienceSection,avatar",
                       "range": null
                     }
                   ],
@@ -510,7 +510,7 @@
                          "valueAggregation":{
                             "filters":[
                                {
-                                  "valueString":"fileCreated,fileUpdated,fileMovedToTrash,noteCreated,noteUpdated,taskCreated,taskUpdated,taskCommented,taskCompleted,taskStatusChanged,createActivity,createComment,likeActivity,likeComment,sendKudos,eventCreated,eventUpdated,contactSection,experienceSection,avatar,eventResponse,sendChatMessage,callJoined",
+                                  "valueString":"noteCreated,noteUpdated,taskCreated,taskUpdated,taskCommented,taskCompleted,taskStatusChanged,createActivity,createComment,likeActivity,likeComment,sendKudos,contactSection,experienceSection,avatar",
                                   "field":"operation",
                                   "type":"IN_SET"
                                }
@@ -530,7 +530,7 @@
                          "valueAggregation":{
                             "filters":[
                                {
-                                  "valueString":"fileCreated,fileUpdated,fileMovedToTrash,noteCreated,noteUpdated,taskCreated,taskUpdated,taskCommented,taskCompleted,taskStatusChanged,createActivity,createComment,likeActivity,likeComment,sendKudos,eventCreated,eventUpdated,contactSection,experienceSection,avatar,eventResponse,sendChatMessage,callJoined",
+                                  "valueString":"noteCreated,noteUpdated,taskCreated,taskUpdated,taskCommented,taskCompleted,taskStatusChanged,createActivity,createComment,likeActivity,likeComment,sendKudos,contactSection,experienceSection,avatar",
                                   "field":"operation",
                                   "type":"IN_SET"
                                }
@@ -648,7 +648,7 @@
                                   "type":"GREATER"
                                },
                                {
-                                  "valueString":"fileCreated,fileUpdated,fileMovedToTrash,noteCreated,noteUpdated,taskCreated,taskUpdated,taskCommented,taskCompleted,taskStatusChanged,createActivity,createComment,likeActivity,likeComment,sendKudos,eventCreated,eventUpdated,contactSection,experienceSection,avatar,eventResponse,sendChatMessage,callJoined",
+                                  "valueString":"noteCreated,noteUpdated,taskCreated,taskUpdated,taskCommented,taskCompleted,taskStatusChanged,createActivity,createComment,likeActivity,likeComment,sendKudos,contactSection,experienceSection,avatar",
                                   "field":"operation",
                                   "type":"IN_SET"
                                }
@@ -675,7 +675,7 @@
                          "valueAggregation":{
                             "filters":[
                                {
-                                  "valueString":"fileCreated,fileUpdated,fileMovedToTrash,noteCreated,noteUpdated,taskCreated,taskUpdated,taskCommented,taskCompleted,taskStatusChanged,createActivity,createComment,likeActivity,likeComment,sendKudos,eventCreated,eventUpdated,contactSection,experienceSection,avatar,eventResponse,sendChatMessage,callJoined",
+                                  "valueString":"noteCreated,noteUpdated,taskCreated,taskUpdated,taskCommented,taskCompleted,taskStatusChanged,createActivity,createComment,likeActivity,likeComment,sendKudos,contactSection,experienceSection,avatar",
                                   "field":"operation",
                                   "type":"IN_SET"
                                },
@@ -698,7 +698,7 @@
                          "valueAggregation":{
                             "filters":[
                                {
-                                  "valueString":"fileCreated,fileUpdated,fileMovedToTrash,noteCreated,noteUpdated,taskCreated,taskUpdated,taskCommented,taskCompleted,taskStatusChanged,createActivity,createComment,likeActivity,likeComment,sendKudos,eventCreated,eventUpdated,contactSection,experienceSection,avatar,eventResponse,sendChatMessage,callJoined",
+                                  "valueString":"noteCreated,noteUpdated,taskCreated,taskUpdated,taskCommented,taskCompleted,taskStatusChanged,createActivity,createComment,likeActivity,likeComment,sendKudos,contactSection,experienceSection,avatar",
                                   "field":"operation",
                                   "type":"IN_SET"
                                }
@@ -725,315 +725,6 @@
     </container>
   </page>
 
-    <page>
-        <name>analytics-contents</name>
-        <title>Analytics</title>
-        <access-permissions>*:/platform/analytics;*:/platform/administrators</access-permissions>
-        <edit-permission>manager:/platform/analytics</edit-permission>
-        <container
-                id="topAnalyticsPage"
-                template="system:/groovy/portal/webui/container/UIContainer.gtmpl"
-                cssClass="singlePageApplication border-box-sizing">
-            <access-permissions>Everyone</access-permissions>
-            <container id="breadcrumbAnalytics" template="system:/groovy/portal/webui/container/UIContainer.gtmpl">
-                <access-permissions>Everyone</access-permissions>
-                <portlet-application>
-                    <portlet>
-                        <application-ref>analytics</application-ref>
-                        <portlet-ref>AnalyticsDashboardBreadcrumb</portlet-ref>
-                    </portlet>
-                    <title>Breadcrumb Analytics</title>
-                    <access-permissions>Everyone</access-permissions>
-                    <show-info-bar>false</show-info-bar>
-                </portlet-application>
-            </container>
-            <container template="system:/groovy/portal/webui/container/UIContainer.gtmpl">
-                <access-permissions>Everyone</access-permissions>
-                <portlet-application>
-                    <portlet>
-                        <application-ref>analytics</application-ref>
-                        <portlet-ref>AnalyticsTablePortlet</portlet-ref>
-                        <preferences>
-                            <preference>
-                                <name>settings</name>
-                                <value>{
-                                    "pageSize":20,
-                                    "title":"",
-                                    "mainColumn":{
-                                       "title":"analytics.title",
-                                       "valueAggregation":{
-                                          "aggregation":{
-                                            "field":"contentId.keyword",
-                                            "type":"TERMS",
-                                            "dataType":"text"
-                                          },
-                                          "filters":[
-                                            {
-                                               "valueString":"1",
-                                               "field":"contentId",
-                                               "type":"GREATER"
-                                            }
-                                          ]
-                                       }
-                                    },
-                                    "columns":[
-                                       {
-                                          "title":"analytics.applications",
-                                          "previousPeriod":false,
-                                          "valueAggregation":{
-                                             "periodIndependent":false,
-                                             "aggregation":{
-                                                "sortDirection":"desc",
-                                                "field":"contentType.keyword",
-                                                "type":"TERMS",
-                                             }
-                                          },
-                                          "sortable":false,
-                                          "dataType":"text"
-                                       },
-                                       {
-                                         "title":"analytics.lastUpdated",
-                                         "previousPeriod":false,
-                                         "valueAggregation":{
-                                            "aggregation":{
-                                               "sortDirection":"desc",
-                                               "field":"contentUpdatedDate",
-                                               "type":"MAX",
-                                            },
-                                           "periodIndependent":false
-                                         },
-                                         "sortable":true,
-                                         "dataType":"date"
-                                        },
-                                       {
-                                         "title":"analytics.viewsPeriod",
-                                         "previousPeriod":true,
-                                         "valueAggregation":{
-                                             "filters":[
-                                               {
-                                                  "valueString":"viewContent",
-                                                  "field":"operation",
-                                                  "type":"EQUAL"
-                                               }
-                                            ],
-                                            "periodIndependent":false,
-                                            "aggregation":{
-                                               "sortDirection":"desc",
-                                               "type":"COUNT",
-                                           }
-                                        },
-                                        "sortable":true,
-                                        "dataType":"long"
-                                     },
-                                     {
-                                        "title":"analytics.reactionsPeriod",
-                                        "previousPeriod":true,
-                                        "valueAggregation":{
-                                            "filters":[
-                                              {
-                                                "valueString":"shareContent,likeContent,commentContent",
-                                                "field":"operation",
-                                                "type":"IN_SET"
-                                              }
-                                            ],
-                                            "periodIndependent":false,
-                                            "aggregation":{
-                                                "sortDirection":"desc",
-                                                "type":"COUNT",
-                                            }
-                                        },
-                                        "sortable":true,
-                                        "dataType":"long"
-                                      },
-                                     {
-                                        "title":"analytics.allViews",
-                                        "previousPeriod":false,
-                                        "valueAggregation":{
-                                            "filters":[
-                                                {
-                                                "valueString":"viewContent",
-                                                "field":"operation",
-                                                "type":"EQUAL"
-                                                }
-                                             ],
-                                            "periodIndependent":true,
-                                            "aggregation":{
-                                                "sortDirection":"desc",
-                                                "type":"COUNT",
-                                            }
-                                       },
-                                        "sortable":true,
-                                        "dataType":"long"
-                                     },
-                                     {
-                                        "title":"analytics.spaces",
-                                        "previousPeriod":false,
-                                        "valueAggregation":{
-                                            "periodIndependent":false,
-                                            "aggregation":{
-                                                "sortDirection":"desc",
-                                                "field":"spaceId",
-                                                "type":"TERMS",
-                                           }
-                                        },
-                                        "sortable":false,
-                                        "dataType":"long"
-                                      }
-                                    ]
-                                  }
-                                </value>
-                            </preference>
-                        </preferences>
-                    </portlet>
-                    <title>Content Analytics</title>
-                    <access-permissions>Everyone</access-permissions>
-                    <show-info-bar>false</show-info-bar>
-                </portlet-application>
-            </container>
-        </container>
-    </page>
-
-  <page>
-      <name>analytics-documents</name>
-      <title>Analytics</title>
-      <access-permissions>*:/platform/analytics;*:/platform/administrators</access-permissions>
-      <edit-permission>manager:/platform/analytics</edit-permission>
-      <container
-              id="topAnalyticsPage"
-              template="system:/groovy/portal/webui/container/UIContainer.gtmpl"
-              cssClass="singlePageApplication border-box-sizing">
-          <access-permissions>Everyone</access-permissions>
-          <container id="breadcrumbAnalytics" template="system:/groovy/portal/webui/container/UIContainer.gtmpl">
-              <access-permissions>Everyone</access-permissions>
-              <portlet-application>
-                  <portlet>
-                      <application-ref>analytics</application-ref>
-                      <portlet-ref>AnalyticsDashboardBreadcrumb</portlet-ref>
-                  </portlet>
-                  <title>Breadcrumb Analytics</title>
-                  <access-permissions>Everyone</access-permissions>
-                  <show-info-bar>false</show-info-bar>
-              </portlet-application>
-          </container>
-          <container template="system:/groovy/portal/webui/container/UIContainer.gtmpl">
-              <access-permissions>Everyone</access-permissions>
-              <portlet-application>
-                  <portlet>
-                      <application-ref>analytics</application-ref>
-                      <portlet-ref>AnalyticsTablePortlet</portlet-ref>
-                      <preferences>
-                          <preference>
-                              <name>settings</name>
-                              <value>
-                                {
-                                  "pageSize":20,
-                                  "title":"",
-                                  "sortBy":"3",
-                                  "sortDirection":"desc",
-                                  "mainColumn":{
-                                     "title":"analytics.title",
-                                     "align": "left",
-                                     "width": "30vw",
-                                     "sortable":false,
-                                     "valueAggregation":{
-                                        "aggregation":{
-                                          "field":"documentId.keyword",
-                                          "type":"TERMS",
-                                          "dataType":"text"
-                                        },
-                                        "filters":[
-                                          {
-                                             "field":"subModule",
-                                             "type":"EQUAL",
-                                             "valueString":"attachment-drawer"
-                                          }
-                                        ]
-                                     }
-                                  },
-                                  "columns":[
-                                     {
-                                        "title":"analytics.type",
-                                        "previousPeriod":false,
-                                        "valueAggregation":{
-                                           "periodIndependent":true,
-                                           "aggregation":{
-                                              "sortDirection":"desc",
-                                              "field":"documentExtension.keyword",
-                                              "type":"TERMS"
-                                           }
-                                        },
-                                        "sortable":false,
-                                        "dataType":"text"
-                                     },
-                                     {
-                                       "title":"analytics.author",
-                                       "previousPeriod":false,
-                                       "valueAggregation":{
-                                          "aggregation":{
-                                             "sortDirection":"desc",
-                                             "field":"userId",
-                                             "type":"TERMS"
-                                          },
-                                         "periodIndependent":true
-                                       },
-                                      "sortable":false,
-                                      "dataType":"text"
-                                      },
-                                     {
-                                       "title":"analytics.creationDate",
-                                       "previousPeriod":false,
-                                       "valueAggregation":{
-                                          "periodIndependent":true,
-                                          "aggregation":{
-                                            "sortDirection":"desc",
-                                            "field":"timestamp",
-                                            "type":"MAX"
-                                          }
-                                      },
-                                      "sortable":true,
-                                      "dataType":"date"
-                                   },
-                                   {
-                                      "title":"analytics.size",
-                                      "previousPeriod":false,
-                                      "valueAggregation":{
-                                          "periodIndependent":true,
-                                          "aggregation":{
-                                            "sortDirection":"desc",
-                                            "field":"documentSize",
-                                            "type":"MAX"
-                                          }
-                                      },
-                                      "sortable":true,
-                                      "dataType":"long"
-                                    },
-                                   {
-                                      "title":"analytics.origin",
-                                      "previousPeriod":false,
-                                      "valueAggregation":{
-                                      "periodIndependent":true,
-                                      "aggregation":{
-                                        "sortDirection":"desc",
-                                        "field":"origin.keyword",
-                                        "type":"TERMS"
-                                      }
-                                     },
-                                      "sortable":false,
-                                      "dataType":"text"
-                                   }
-                                  ]
-                                }
-                              </value>
-                          </preference>
-                      </preferences>
-                  </portlet>
-                  <title>File Management Analytics</title>
-                  <access-permissions>Everyone</access-permissions>
-                  <show-info-bar>false</show-info-bar>
-              </portlet-application>
-          </container>
-      </container>
-  </page>
   <page>
     <name>analytics-mobile</name>
     <title>Analytics</title>
@@ -1136,7 +827,167 @@
                 </preference>
               </preferences>
             </portlet>
-            <title>test pie chart</title>
+            <title>device type statistics</title>
+            <access-permissions>Everyone</access-permissions>
+            <show-info-bar>false</show-info-bar>
+          </portlet-application>
+          <portlet-application>
+            <portlet>
+              <application-ref>analytics</application-ref>
+              <portlet-ref>AnalyticsPortlet</portlet-ref>
+              <preferences>
+                <preference>
+                  <name>settings</name>
+                  <value>{
+                    "offset": 0,
+                    "filters": [],
+                    "lang": null,
+                    "aggregations": [
+                      {
+                        "field": "connectedWith.keyword",
+                        "type": "TERMS",
+                        "offset": null,
+                        "interval": null,
+                        "useBounds": false,
+                        "minBound": 0,
+                        "maxBound": 0,
+                        "sortDirection": "desc",
+                        "limit": 0
+                      },
+                      {
+                        "field": "connectedWith.keyword",
+                        "type": "COUNT",
+                        "offset": null,
+                        "interval": null,
+                        "useBounds": false,
+                        "minBound": 0,
+                        "maxBound": 0,
+                        "sortDirection": "desc",
+                        "limit": 0
+                      }
+                    ],
+                    "yAxisAggregation": {
+                      "field": "connectedWith.keyword",
+                      "type": "COUNT",
+                      "offset": null,
+                      "interval": null,
+                      "useBounds": false,
+                      "minBound": 0,
+                      "maxBound": 0,
+                      "sortDirection": "desc",
+                      "limit": 0
+                    },
+                    "multipleChartsAggregation": null,
+                    "xAxisAggregations": [
+                      {
+                        "field": "connectedWith.keyword",
+                        "type": "TERMS",
+                        "offset": null,
+                        "interval": null,
+                        "useBounds": false,
+                        "minBound": 0,
+                        "maxBound": 0,
+                        "sortDirection": "desc",
+                        "limit": 0
+                      }
+                    ],
+                    "multipleCharts": false,
+                    "chartType": "bar",
+                    "colors": null,
+                    "multipleChartsField": null,
+                    "limit": 0,
+                    "timeZone": null,
+                    "title": "Display page per App and browsers"
+                  }</value>
+                </preference>
+              </preferences>
+            </portlet>
+            <title>browser and app type statistics</title>
+            <access-permissions>Everyone</access-permissions>
+            <show-info-bar>false</show-info-bar>
+          </portlet-application>
+        </container>
+        <container cssClass="analyticsPageRow" template="system:/groovy/portal/webui/container/UIContainer.gtmpl">
+          <access-permissions>Everyone</access-permissions>
+          <portlet-application>
+            <portlet>
+              <application-ref>analytics</application-ref>
+              <portlet-ref>AnalyticsPortlet</portlet-ref>
+              <preferences>
+                <preference>
+                  <name>settings</name>
+                  <value>{
+                    "offset": 0,
+                    "filters": [
+                      {
+                        "field": "deviceType",
+                        "type": "IN_SET",
+                        "valueString": "Mobile,Tablet",
+                        "range": null
+                      }
+                    ],
+                    "limit": 0,
+                    "multipleCharts": false,
+                    "chartType": "pie",
+                    "colors": null,
+                    "multipleChartsField": null,
+                    "lang": null,
+                    "aggregations": [
+                      {
+                        "field": "pageTitle.keyword",
+                        "type": "TERMS",
+                        "offset": null,
+                        "interval": null,
+                        "limit": 0,
+                        "useBounds": false,
+                        "minBound": 0,
+                        "maxBound": 0,
+                        "sortDirection": "desc"
+                      },
+                      {
+                        "field": "pageTitle.keyword",
+                        "type": "COUNT",
+                        "offset": null,
+                        "interval": null,
+                        "limit": 0,
+                        "useBounds": false,
+                        "minBound": 0,
+                        "maxBound": 0,
+                        "sortDirection": "desc"
+                      }
+                    ],
+                    "yAxisAggregation": {
+                      "field": "pageTitle.keyword",
+                      "type": "COUNT",
+                      "offset": null,
+                      "interval": null,
+                      "limit": 0,
+                      "useBounds": false,
+                      "minBound": 0,
+                      "maxBound": 0,
+                      "sortDirection": "desc"
+                    },
+                    "multipleChartsAggregation": null,
+                    "xAxisAggregations": [
+                      {
+                        "field": "pageTitle.keyword",
+                        "type": "TERMS",
+                        "offset": null,
+                        "interval": null,
+                        "limit": 0,
+                        "useBounds": false,
+                        "minBound": 0,
+                        "maxBound": 0,
+                        "sortDirection": "desc"
+                      }
+                    ],
+                    "timeZone": null,
+                    "title": "App use in Mobile"
+                  }</value>
+                </preference>
+              </preferences>
+            </portlet>
+            <title>modules visited on mobiles</title>
             <access-permissions>Everyone</access-permissions>
             <show-info-bar>false</show-info-bar>
           </portlet-application>
