@@ -24,6 +24,9 @@
         <module>eXoVueI18n</module>
       </depends>
       <depends>
+        <module>extensionRegistry</module>
+      </depends>
+      <depends>
         <module>commonAnalyticsVueComponents</module>
       </depends>
       <depends>
@@ -62,10 +65,10 @@
         <module>eXoVueI18n</module>
       </depends>
       <depends>
-        <module>commonAnalyticsVueComponents</module>
+        <module>extensionRegistry</module>
       </depends>
       <depends>
-        <module>documentPreview</module>
+        <module>commonAnalyticsVueComponents</module>
       </depends>
       <depends>
         <module>jquery</module>
@@ -101,6 +104,9 @@
       </depends>
       <depends>
         <module>eXoVueI18n</module>
+      </depends>
+      <depends>
+        <module>extensionRegistry</module>
       </depends>
       <depends>
         <module>commonAnalyticsVueComponents</module>
@@ -185,6 +191,9 @@
     </depends>
     <depends>
       <module>eXoVueI18n</module>
+    </depends>
+    <depends>
+      <module>extensionRegistry</module>
     </depends>
     <depends>
       <module>jquery</module>

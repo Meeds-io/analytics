@@ -17,6 +17,7 @@
           :value="cellItemSingleValue.value"
           :item="cellItem"
           :original-value="$analyticsUtils.toFixed(cellItem.value)"
+          :cell-value-extension="cellValueExtension"
           :threshold="$analyticsUtils.toFixed(cellItem.threshold)"
           :field="columnField"
           :data-type="columnDataType"
@@ -37,6 +38,7 @@
           :item="cellItem"
           :value="previousValue.percentage"
           :previous-value="percentage && `${previousValue.value}%` || previousValue.value"
+          :cell-value-extension="cellValueExtension"
           :field="columnField"
           :aggregation-type="columnAggregationType"
           :data-type="columnDataType"
@@ -68,6 +70,12 @@ export default {
       },
     },
     item: {
+      type: Object,
+      default: function() {
+        return null;
+      },
+    },
+    cellValueExtensions: {
       type: Object,
       default: function() {
         return null;
@@ -136,6 +144,14 @@ export default {
       } else {
         return this.formatValues(this.cellItem.value, this.cellItem.threshold);
       }
+    },
+    cellValueExtension() {
+      if (this.cellValueExtensions) {
+        return Object.values(this.cellValueExtensions)
+          .sort((ext1, ext2) => (ext1.rank || 0) - (ext2.rank || 0))
+          .find(extension => extension.match && extension.match(this.columnField, this.columnAggregationType, this.columnDataType, this.cellItem)) || null;
+      }
+      return null;
     },
     cellItemPreviousValues() {
       if (this.previousPeriod && this.cellItem && this.cellItem.key) {

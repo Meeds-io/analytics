@@ -18,6 +18,7 @@
         :key="header.value"
         :header="header"
         :labels="labels"
+        :cell-value-extensions="cellValueExtensions"
         :item="item" />
     </template>
     <template v-if="hasMore" slot="footer">
@@ -101,6 +102,9 @@ export default {
     loading: false,
     sortBy: null,
     sortDirection: null,
+    extensionApp: 'AnalyticsTable',
+    cellValueExtensionType: 'CellValue',
+    cellValueExtensions: {},
   }),
   computed: {
     hasMore() {
@@ -174,7 +178,25 @@ export default {
       },
     },
   },
+  created() {
+    document.addEventListener(`extension-${this.extensionApp}-${this.cellValueExtensionType}-updated`, this.refreshCellValueExtensions);
+    this.refreshCellValueExtensions();
+  },
   methods: {
+    refreshCellValueExtensions() {
+      const extensions = extensionRegistry.loadExtensions(this.extensionApp, this.cellValueExtensionType);
+      let changed = false;
+      extensions.forEach(extension => {
+        if (extension.type && extension.options && (!this.cellValueExtensions[extension.type] || this.cellValueExtensions[extension.type] !== extension.options)) {
+          this.cellValueExtensions[extension.type] = extension.options;
+          changed = true;
+        }
+      });
+      // force update of attribute to re-render switch new extension type
+      if (changed) {
+        this.cellValueExtensions = Object.assign({}, this.cellValueExtensions);
+      }
+    },
     addHeader(headers, column, index) {
       headers.push({
         text: column.title && this.$t(column.title) || '',

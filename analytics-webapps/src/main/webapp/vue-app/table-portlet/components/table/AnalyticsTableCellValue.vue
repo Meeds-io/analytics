@@ -2,29 +2,10 @@
   <span v-if="!value" :class="signClass">
     -
   </span>
-  <analytics-table-cell-document-title-value
-    v-else-if="isDocumentTitleAggregation"
-    :column="column"
-    :value="value" />
-  <analytics-table-cell-document-size-value
-    v-else-if="isDocumentSizeAggregation"
-    :value="value" />
-  <analytics-table-cell-document-origin-value
-    v-else-if="isDocumentOriginAggregation"
-    :value="value" />
-  <analytics-table-cell-user-value
-    v-else-if="isUserAggregation"
-    :value="value"
-    :item="item"
-    :labels="labels" />
-  <analytics-table-cell-space-value
-    v-else-if="isSpaceAggregation"
-    :value="value"
-    :item="item"
-    :labels="labels" />
-  <analytics-table-cell-content-value
-    v-else-if="isContentAggregation"
-    :value="value" />
+  <extension-registry-component
+    v-else-if="cellValueExtension"
+    :component="extendedCellValueComponent"
+    :params="extendedCellValueComponentParams" />
   <date-format
     v-else-if="dataType === 'date'"
     :value="dateValue"
@@ -134,6 +115,12 @@ export default {
         return null;
       },
     },
+    cellValueExtension: {
+      type: Object,
+      default: function() {
+        return null;
+      },
+    },
   },
   data: () => ({
     fullDateFormat: {
@@ -163,23 +150,21 @@ export default {
     valueNumberAbs() {
       return Math.abs(this.valueNumber);
     },
-    isUserAggregation() {
-      return this.field === 'userId' && this.aggregationType === 'TERMS';
+    extendedCellValueComponent() {
+      return this.cellValueExtension && {
+        componentName: 'cell-value',
+        componentOptions: {
+          vueComponent: this.cellValueExtension.vueComponent,
+        },
+      } || null;
     },
-    isSpaceAggregation() {
-      return this.field === 'spaceId' && this.aggregationType === 'TERMS';
-    },
-    isContentAggregation() {
-      return this.field === 'contentId.keyword' && this.aggregationType === 'TERMS';
-    },
-    isDocumentTitleAggregation() {
-      return this.field === 'documentId.keyword';
-    },
-    isDocumentSizeAggregation() {
-      return this.field === 'documentSize';
-    },
-    isDocumentOriginAggregation() {
-      return this.field === 'origin.keyword';
+    extendedCellValueComponentParams() {
+      return this.cellValueExtension && {
+        column: this.column,
+        item: this.item,
+        value: this.value,
+        labels: this.labels,
+      } || null;
     },
     sign() {
       if (!this.compare) {

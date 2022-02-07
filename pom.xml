@@ -31,7 +31,6 @@
     <!-- 3rd party libraries versions -->
     <org.exoplatform.social.version>6.3.x-maintenance-SNAPSHOT</org.exoplatform.social.version>
     <org.exoplatform.platform-ui.version>6.3.x-maintenance-SNAPSHOT</org.exoplatform.platform-ui.version>
-
     <!-- Sonar properties -->
     <sonar.organization>exoplatform</sonar.organization>
   </properties>

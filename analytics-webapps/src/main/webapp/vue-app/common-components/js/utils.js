@@ -63,20 +63,6 @@ export function loadSpace(spaces, spaceId) {
   }
 }
 
-export function getContent(contentId) {
-  return fetch(`${eXo.env.portal.context}/${eXo.env.portal.rest}/v1/news/${contentId}`, {
-    credentials: 'include',
-    method: 'GET',
-  }).then((resp) => {
-    if (resp && resp.ok) {
-      return resp.json();
-    }
-    return null;
-  }).then(resp => {
-    return resp;
-  });
-}
-
 export function buildPageLinkRecursively(baseUri, nav) {
   if (!nav) {
     return;

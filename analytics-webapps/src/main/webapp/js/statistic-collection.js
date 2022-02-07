@@ -176,7 +176,7 @@ function() {
     if((/exo\/6.2/).test(userAgentLowerCase)){
       let realScreenWidth = (screen.width > screen.height) ? screen.height : screen.width;
       if(realScreenWidth >= 481 && realScreenWidth < 1026)
-        return true;
+        return true; 
       return false;
     }
     return /(ipad|tablet|(android(?!.*mobile))|(windows(?!.*phone)(.*touch))|kindle|playbook|silk|(puffin(?!.*(IP|AP|WP))))/.test(userAgentLowerCase);
@@ -204,17 +204,17 @@ function() {
     if(isAndroidApp(userAgentLowerCase))
       return "eXo-Android";
     if((checkDeviceType(userAgentLowerCase)!=="Desktop"))
-      return browserType + "-mobile";
-    return browserType;
+      return browserType + "-mobile"; 
+    return browserType;   
   }
   function isExoApp(userAgentLowerCase){
-    return /exo/.test(userAgentLowerCase);
+    return /exo/.test(userAgentLowerCase); 
   }
   function isIosApp(userAgentLowerCase){
-    return  isExoApp(userAgentLowerCase) && /iphone|ipad|ipad/.test(userAgentLowerCase) && !/safari/.test(userAgentLowerCase);
+    return  isExoApp(userAgentLowerCase) && /iphone|ipad|ipad/.test(userAgentLowerCase) && !/safari/.test(userAgentLowerCase); 
   }
   function isAndroidApp(userAgentLowerCase){
-      return isExoApp(userAgentLowerCase) && /android/.test(userAgentLowerCase);
+      return isExoApp(userAgentLowerCase) && /android/.test(userAgentLowerCase); 
   }
   require(['SHARED/vue'], () => {
     if (eXo.env.portal.requestStartTime) {
