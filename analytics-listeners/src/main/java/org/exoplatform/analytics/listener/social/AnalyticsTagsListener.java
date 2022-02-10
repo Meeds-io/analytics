@@ -18,31 +18,34 @@ import java.util.Date;
 import java.util.Set;
 
 @Asynchronous
-public class AnalyticsTagsListener extends Listener<ExoSocialActivity, Set<TagName>> {
+public class AnalyticsTagsListener extends Listener<String, Set<TagName>> {
 
     private ActivityManager activityManager;
 
     private IdentityManager identityManager;
 
-    private PortalContainer container;
-
     public AnalyticsTagsListener(ActivityManager activityManager, IdentityManager identityManager) {
         this.activityManager = activityManager;
         this.identityManager = identityManager;
-        this.container = PortalContainer.getInstance();
     }
 
     @Override
-    public void onEvent(Event<ExoSocialActivity, Set<TagName>> event) throws Exception {
+    public void onEvent(Event<String, Set<TagName>> event) throws Exception {
         Set<TagName> tagNames = event.getData();
-        ExoSocialActivity activity = event.getSource();
-        addEventStatistic(tagNames, activity);
+        String activityId = event.getSource();
+        addEventStatistic(tagNames, activityId);
     }
 
-    private void addEventStatistic(Set<TagName> tagNames, ExoSocialActivity activity) {
+    private void addEventStatistic(Set<TagName> tagNames, String activityId) {
 
         int numberOfTags = tagNames.size();
-        String objectType = MetadataActivityProcessor.ACTIVITY_METADATA_OBJECT_TYPE;
+        String objectType;
+        ExoSocialActivity activity = activityManager.getActivity(activityId);
+        if (activity.getType() == null) {
+            objectType = activity.isComment() ? "COMMENT" : "ACTIVITY";
+        } else {
+            objectType = activity.getType();
+        }
         Identity audienceIdentity = activityManager.getActivityStreamOwnerIdentity(activity.getId());
         String username = getActivityPoster(activity);
         StatisticData statisticData = new StatisticData();
