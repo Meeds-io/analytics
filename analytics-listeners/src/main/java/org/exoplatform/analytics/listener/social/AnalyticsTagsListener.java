@@ -3,7 +3,6 @@ package org.exoplatform.analytics.listener.social;
 import org.apache.commons.lang.Validate;
 import org.exoplatform.analytics.model.StatisticData;
 import org.exoplatform.analytics.utils.AnalyticsUtils;
-import org.exoplatform.container.PortalContainer;
 import org.exoplatform.services.listener.Asynchronous;
 import org.exoplatform.services.listener.Event;
 import org.exoplatform.services.listener.Listener;
@@ -11,7 +10,6 @@ import org.exoplatform.social.core.activity.model.ExoSocialActivity;
 import org.exoplatform.social.core.identity.model.Identity;
 import org.exoplatform.social.core.manager.ActivityManager;
 import org.exoplatform.social.core.manager.IdentityManager;
-import org.exoplatform.social.core.processor.MetadataActivityProcessor;
 import org.exoplatform.social.metadata.tag.model.TagName;
 
 import java.util.Date;
