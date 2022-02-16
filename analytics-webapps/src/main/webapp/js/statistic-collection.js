@@ -54,6 +54,7 @@ function() {
         document.addEventListener('search-connector-selected', event => this.addStatisticSearchFilter(event && event.detail));
         document.addEventListener('favorite-added', event => this.addStatisticFavorite(true, event && event.detail));
         document.addEventListener('favorite-removed', event => this.addStatisticFavorite(false, event && event.detail));
+        document.addEventListener('download-file', event => this.addStatisticDownload(event && event.detail));
         document.addEventListener('search-tag', () => this.addStatisticSearchByTag());
         document.addEventListener('search-favorites-selected', () => this.sendMessage({
           'module': 'portal',
@@ -94,6 +95,22 @@ function() {
         'timestamp': Date.now(),
         'parameters': {
           'type': eventDetail.typeLabel || eventDetail.type,
+          'contentId': eventDetail.id,
+          'spaceId': eventDetail.spaceId,
+        },
+      });
+    },
+    addStatisticDownload: function (eventDetail) {
+      this.sendMessage({
+        'module': 'portal',
+        'subModule': 'ui',
+        'userId': eXo.env.portal.userIdentityId,
+        'userName': eXo.env.portal.userName,
+        'name': 'Download file New App',
+        'operation': 'click',
+        'timestamp': Date.now(),
+        'parameters': {
+          'type': eventDetail.type,
           'contentId': eventDetail.id,
           'spaceId': eventDetail.spaceId,
         },
