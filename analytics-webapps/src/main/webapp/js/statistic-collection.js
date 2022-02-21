@@ -204,6 +204,7 @@ function() {
     if(isMobileDevice)
       return "Mobile";
     return "Desktop";   
+
   }
   function isTablet(userAgentLowerCase){
     if((/exo\/6.2/).test(userAgentLowerCase)){

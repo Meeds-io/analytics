@@ -31,7 +31,10 @@ export function init(cacheId) {
   exoi18n.loadLanguageAsync(lang, url).then(i18n => {
     const appElement = document.createElement('div');
     appElement.id = appId;
-
+    console.log('====== form main.js=====');
+    console.log('====== so our cacheId should be ===== analyticsDashboardBreadcrumb/portal/dw/analytics ');
+    console.log('====== so our appId should be ===== analyticsDashboardBreadcrumb ');
+    console.log('this is the cacheId ',cacheId,' and this is the app element id : ',appId);
     // init Vue app when locale ressources are ready
     new Vue({
       mounted() {
