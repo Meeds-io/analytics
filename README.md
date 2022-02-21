@@ -1,31 +1,10 @@
-# Addon: exo-analytics
+# Addon: meeds-analytics
 
 An addon that provide tools to display platform usage statistics using charts.
 
-# Compatibility
-
-The exo-analytics addon is compatible on the following dependencies versions :
-
-| Addon version        | JDK | Elasticsearch | eXo Platform          |
-|----------------------|-----|---------------|-----------------------|
-| exo-addons:1.0.0-M01 | 8   | 5.6           | 6.0                   |
-
 # Prerequisites
 
-The addon requires eXo Platform with embedded Elasticsearch version inside eXo Platform (default configuration)
-or in a standalone Elasticsearch server configured.
-See [Elasticsearch configuration in eXo Platform](https://docs.exoplatform.org/en/latest/Configuration.html#elasticsearch-configuration)
-
-# How to install
-
-1. Go to eXo Platform Tomcat server Home
-2. Install exo-analytics addon using command line:
-
-```bash
-# Replace version by the needed version of addon, like 1.0.x-SNAPSHOT or 1.0.0-M01
-./addon install exo-analytics:VERSION
-```
-3. Start eXo Platform
+The addon requires Meeds server with Elasticsearch.
 
 ## Configuration options
 
@@ -37,7 +16,7 @@ You can can change some options of the addon using properties that you can add i
 | exo.analytics.viewall.permission        | NO        | *:/platform/administrators | Group of users that can consult all data in Graphs. |
 | exo.analytics.view.permission        | NO        | *:/platform/users | Group of users that can consult their personal and their spaces Graphs. |
 | exo.analytics.aggregation.terms.doc_size        | NO        | 200 | Limit of number of resturned documents in aggregations result of type 'terms' (not used for aggregations of type : sum, avg, date_histogram, histogram and cardinality) |
-| exo.addon.analytics.es.mapping.path | NO        | jar:/analytics-es-mapping.json             | Initial [ES mapping](https://github.com/exo-addons/analytics/blob/master/analytics-services/src/main/resources/analytics-es-mapping.json) that will be used to generate daily [ES index](https://www.elastic.co/guide/en/elasticsearch/reference/5.6/mapping.html)   |
+| exo.addon.analytics.es.mapping.path | NO        | jar:/analytics-es-mapping.json             | Initial [ES mapping](https://github.com/Meeds-io/analytics/blob/master/analytics-services/src/main/resources/analytics-es-mapping.json) that will be used to generate daily [ES index](https://www.elastic.co/guide/en/elasticsearch/reference/5.6/mapping.html)   |
 | exo.cache.analytics.queue.MaxNodes | NO        | 2000             | Number of maximum entries in in-memory cached Analytics Queue that is processed each 10 seconds |
 | exo.cache.analytics.queue.TimeToLive | NO        | -1             | lifetime of entries in Analytics Queue. Default: infinite. |
 | exo.es.analytics.index.server.url | NO        | Same as used [ES for eXo](https://docs.exoplatform.org/en/latest/Configuration.html#properties-of-the-elasticsearch-client) | Elasticsearch server URL used for indexing and searching analytics content |
@@ -77,14 +56,14 @@ he will see only his data without being able to change charts settings.
 In fact, the user and space filtering on statistics data is made automatically switch loggedin user and page context (inside a space or in public page)
 
 The default collected statistics data are:
-* [Activities statistics data](https://github.com/exo-addons/analytics/blob/master/analytics-listeners/src/main/java/org/exoplatform/analytics/listener/AnalyticsActivityListener.java) :
+* [Activities statistics data](https://github.com/Meeds-io/analytics/blob/master/analytics-listeners/src/main/java/org/exoplatform/analytics/listener/AnalyticsActivityListener.java) :
   * create activity
   * create comment
   * update activity
   * update comment
   * like activity
   * like comment.
-* [Space statistics data](https://github.com/exo-addons/analytics/blob/master/analytics-listeners/src/main/java/org/exoplatform/analytics/listener/SpaceAnalyticsListener.java):
+* [Space statistics data](https://github.com/Meeds-io/analytics/blob/master/analytics-listeners/src/main/java/org/exoplatform/analytics/listener/SpaceAnalyticsListener.java):
   * create a space
   * remove a space
   * rename a space
@@ -102,32 +81,32 @@ The default collected statistics data are:
   * leaving a space
   * inviting a user to a space
   * requesting join a space by a user
-* [User statistics data](https://github.com/exo-addons/analytics/blob/master/analytics-listeners/src/main/java/org/exoplatform/analytics/listener/UserAnalyticsEventListener.java):
+* [User statistics data](https://github.com/Meeds-io/analytics/blob/master/analytics-listeners/src/main/java/org/exoplatform/analytics/listener/UserAnalyticsEventListener.java):
   * Create a user
   * Delete a user
   * Enable/Disable a user
-* [User Profile statistics data](https://github.com/exo-addons/analytics/blob/master/analytics-listeners/src/main/java/org/exoplatform/analytics/listener/AnalyticsProfileListener.java):
+* [User Profile statistics data](https://github.com/Meeds-io/analytics/blob/master/analytics-listeners/src/main/java/org/exoplatform/analytics/listener/AnalyticsProfileListener.java):
   * create new user social profile (generally triggered at same time than create a user event)
   * update avatar
   * update banner
   * update contact section
   * update experience section
-* [User login statistics data](https://github.com/exo-addons/analytics/blob/master/analytics-listeners/src/main/java/org/exoplatform/analytics/listener/LoginAnalyticsListener.java):
+* [User login statistics data](https://github.com/Meeds-io/analytics/blob/master/analytics-listeners/src/main/java/org/exoplatform/analytics/listener/LoginAnalyticsListener.java):
   * login / logout of a user
-* [User relationship statistics data](https://github.com/exo-addons/analytics/blob/master/analytics-listeners/src/main/java/org/exoplatform/analytics/listener/AnalyticsRelationshipListener.java):
+* [User relationship statistics data](https://github.com/Meeds-io/analytics/blob/master/analytics-listeners/src/main/java/org/exoplatform/analytics/listener/AnalyticsRelationshipListener.java):
   * request connection with other user
   * accept connection with other user
   * deny connection with other user
   * ignore connection request of other user
   * remove connection with other user
-* [Displayed page statistics data](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-listeners/src/main/java/org/exoplatform/analytics/listener/PageAccessListener.java)
-* [Extensible UI and DOM Events statistics data](https://github.com/exo-addons/analytics/blob/master/analytics-listeners/src/main/java/org/exoplatform/analytics/listener/WebSocketUIStatisticListener.java):
-  * [Home link click](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L8-L84)
-  * [Hamburger menu topbar click](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L436-L498)
-  * [Hamburger menu page link click](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L85-L158)
-  * [Hamburger menu space link click](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L159-L232)
-  * [Post activity using drawer composer](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L291-L362)
-  * [Post activity using inpage composer](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L363-L435)
+* [Displayed page statistics data](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-listeners/src/main/java/org/exoplatform/analytics/listener/PageAccessListener.java)
+* [Extensible UI and DOM Events statistics data](https://github.com/Meeds-io/analytics/blob/master/analytics-listeners/src/main/java/org/exoplatform/analytics/listener/WebSocketUIStatisticListener.java):
+  * [Home link click](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L8-L84)
+  * [Hamburger menu topbar click](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L436-L498)
+  * [Hamburger menu page link click](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L85-L158)
+  * [Hamburger menu space link click](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L159-L232)
+  * [Post activity using drawer composer](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L291-L362)
+  * [Post activity using inpage composer](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L363-L435)
 
 Technical note: By default, the produced and persisted `statistic samples/data` by those `listeners`
 has basic properties stored into it and that could be extended any time because a dynamic mapping is used on each daily
@@ -248,66 +227,66 @@ Specifically for each listener, it has default produced data are: (data can be e
   * `subModule` = `ui`
   * `portalUri` = current portal URI when user triggered the event
   * For **DOM event** *Home page link* :
-    * `watcher` = `Home page link` (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L18))
-    * `ui` = `toolbar` (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L32))
-    * `application` = `NavigationToolbarPortlet` (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L40))
-    * `operation` = `click` (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L22))
-    * `dom-href` = link of target page (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L71))
-    * `dom-class` = DOM class value of element having triggered the event(defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L74))
-    * `dom-id` = DOM class value of element having triggered the event(defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L77))
-    * `event-type` = event type having triggered the event (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L57))
-    * `event-pageX`: horizontal coordinate of Element having triggered the event (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L69))
-    * `event-pageY`: vertical coordinate of Element having triggered the event  (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L63))
+    * `watcher` = `Home page link` (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L18))
+    * `ui` = `toolbar` (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L32))
+    * `application` = `NavigationToolbarPortlet` (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L40))
+    * `operation` = `click` (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L22))
+    * `dom-href` = link of target page (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L71))
+    * `dom-class` = DOM class value of element having triggered the event(defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L74))
+    * `dom-id` = DOM class value of element having triggered the event(defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L77))
+    * `event-type` = event type having triggered the event (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L57))
+    * `event-pageX`: horizontal coordinate of Element having triggered the event (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L69))
+    * `event-pageY`: vertical coordinate of Element having triggered the event  (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L63))
   * For **DOM event** *Hamburger menu icon* :
-    * `watcher` = `Hamburger menu icon` (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L437))
-    * `ui` = `toolbar` (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L460))
-    * `application` = `HamburgerNavigationMenuLink` (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L468))
-    * `operation` = `click` (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L450))
-    * `event-type` = event type having triggered the event (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L485))
-    * `event-pageX`: horizontal coordinate of Element having triggered the event (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L488))
-    * `event-pageY`: vertical coordinate of Element having triggered the event  (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L491))
+    * `watcher` = `Hamburger menu icon` (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L437))
+    * `ui` = `toolbar` (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L460))
+    * `application` = `HamburgerNavigationMenuLink` (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L468))
+    * `operation` = `click` (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L450))
+    * `event-type` = event type having triggered the event (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L485))
+    * `event-pageX`: horizontal coordinate of Element having triggered the event (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L488))
+    * `event-pageY`: vertical coordinate of Element having triggered the event  (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L491))
   * For **DOM event** *Hamburger menu site navigation link* :
-    * `watcher` = `Hamburger menu site navigation link` (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L95))
-    * `ui` = `HamburgerMenu` (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L109))
-    * `application` = `SiteHamburgerNavigation` (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L117))
-    * `operation` = `click` (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L99))
-    * `dom-href` = link of target page (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L148))
-    * `dom-data-aria-selected` = DOM aria-selected data value, used to determine whether the element is current page or not. (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L151))
-    * `event-type` = event type having triggered the event (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L134))
-    * `event-pageX`: horizontal coordinate of Element having triggered the event (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L137))
-    * `event-pageY`: vertical coordinate of Element having triggered the event  (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L140))
+    * `watcher` = `Hamburger menu site navigation link` (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L95))
+    * `ui` = `HamburgerMenu` (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L109))
+    * `application` = `SiteHamburgerNavigation` (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L117))
+    * `operation` = `click` (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L99))
+    * `dom-href` = link of target page (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L148))
+    * `dom-data-aria-selected` = DOM aria-selected data value, used to determine whether the element is current page or not. (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L151))
+    * `event-type` = event type having triggered the event (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L134))
+    * `event-pageX`: horizontal coordinate of Element having triggered the event (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L137))
+    * `event-pageY`: vertical coordinate of Element having triggered the event  (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L140))
   * For **DOM event** *Hamburger menu spaces navigation link* :
-    * `watcher` = `Hamburger menu spaces navigation link` (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L169))
-    * `ui` = `HamburgerMenu` (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L183))
-    * `application` = `SpacesHamburgerNavigation` (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L191))
-    * `operation` = `click` (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L173))
-    * `dom-href` = link of target page (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L222))
-    * `dom-data-aria-selected` = DOM aria-selected data value, used to determine whether the element is current page or not. (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L225))
-    * `event-type` = event type having triggered the event (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L208))
-    * `event-pageX`: horizontal coordinate of Element having triggered the event (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L211))
-    * `event-pageY`: vertical coordinate of Element having triggered the event  (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L214))
+    * `watcher` = `Hamburger menu spaces navigation link` (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L169))
+    * `ui` = `HamburgerMenu` (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L183))
+    * `application` = `SpacesHamburgerNavigation` (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L191))
+    * `operation` = `click` (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L173))
+    * `dom-href` = link of target page (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L222))
+    * `dom-data-aria-selected` = DOM aria-selected data value, used to determine whether the element is current page or not. (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L225))
+    * `event-type` = event type having triggered the event (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L208))
+    * `event-pageX`: horizontal coordinate of Element having triggered the event (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L211))
+    * `event-pageY`: vertical coordinate of Element having triggered the event  (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L214))
   * For **DOM event** *Activities refresh button* :
-    * `watcher` = `Activities refresh button` (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L243))
-    * `ui` = `ActivityStream` (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L257))
-    * `application` = `uiActivitiesDisplay` (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L265))
-    * `operation` = `click` (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L247))
-    * `event-type` = event type having triggered the event (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L282))
+    * `watcher` = `Activities refresh button` (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L243))
+    * `ui` = `ActivityStream` (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L257))
+    * `application` = `uiActivitiesDisplay` (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L265))
+    * `operation` = `click` (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L247))
+    * `event-type` = event type having triggered the event (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L282))
   * For **DOM event** *Post activity using Composer Drawer* :
-    * `watcher` = `Post activity using Composer Drawer` (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L300))
-    * `ui` = `ActivityStream` (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L314))
-    * `component` = `composer` (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L330))
-    * `application` = `ActivityComposerDrawer` (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L322))
-    * `operation` = `click` (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L304))
-    * `event-type` = event type having triggered the event (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L347))
-    * `dom-disabled`: DOM value of attribute `disabled` (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L355))
+    * `watcher` = `Post activity using Composer Drawer` (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L300))
+    * `ui` = `ActivityStream` (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L314))
+    * `component` = `composer` (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L330))
+    * `application` = `ActivityComposerDrawer` (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L322))
+    * `operation` = `click` (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L304))
+    * `event-type` = event type having triggered the event (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L347))
+    * `dom-disabled`: DOM value of attribute `disabled` (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L355))
   * For **DOM event** *Post activity using legacy Composer* :
-    * `watcher` = `Post activity using legacy Composer` (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L373))
-    * `ui` = `ActivityStream` (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L384))
-    * `component` = `composer` (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L330))
-    * `application` = `EmbeddedActivityComposer` (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L395))
-    * `operation` = `click` (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L377))
-    * `event-type` = event type having triggered the event (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L420))
-    * `dom-disabled`: DOM value of attribute `disabled` (defined by [configuration](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L428))
+    * `watcher` = `Post activity using legacy Composer` (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L373))
+    * `ui` = `ActivityStream` (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L384))
+    * `component` = `composer` (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L330))
+    * `application` = `EmbeddedActivityComposer` (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L395))
+    * `operation` = `click` (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L377))
+    * `event-type` = event type having triggered the event (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L420))
+    * `dom-disabled`: DOM value of attribute `disabled` (defined by [configuration](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml#L428))
 
 
 You can consult the data used to display analytics chart using `View samples` button on each portlet.
@@ -346,7 +325,7 @@ ou can choose the following parameters:
 
 # DOM Events configuration plugin
 
-In order to add new DOM Event watcher, you can add a [component-plugin](https://docs.exoplatform.org/en/5.3/eXo_Kernel.html#external-plugin) to inject into Service `org.exoplatform.analytics.api.service.AnalyticsService`. (You can follow some example from [here](https://github.com/exo-addons/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml))
+In order to add new DOM Event watcher, you can add a [component-plugin](https://docs.exoplatform.org/en/5.3/eXo_Kernel.html#external-plugin) to inject into Service `org.exoplatform.analytics.api.service.AnalyticsService`. (You can follow some example from [here](https://github.com/Meeds-io/analytics/blob/1.0.0-M04/analytics-webapps/src/main/webapp/WEB-INF/conf/analytics/analytics-ui-watchers-configuration.xml))
 
 The DOM statistic data are collected in a sync way, but sent to server in async way in a dedicated Process using [Cometd Worker](https://docs.cometd.org/current3/reference/#_javascript_configure) (used parameter: **`useWorkerScheduler`**)
 
@@ -430,8 +409,3 @@ To understand more about properties of plugin, please read the commented descrip
       </init-params>
     </component-plugin>
 ```
-
-## Issues
-
-If you have an issue with the addon, you can ask your question in [eXo Tribe](https://community.exoplatform.com/)
-or report your issue in current github repository.

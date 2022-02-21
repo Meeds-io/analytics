@@ -1,3 +1,19 @@
+/**
+ * This file is part of the Meeds project (https://meeds.io/).
+ * Copyright (C) 2022 Meeds Association
+ * contact@meeds.io
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
 function() {
   const api = {
     init : function (settings, watchers) {
@@ -38,6 +54,7 @@ function() {
         document.addEventListener('search-connector-selected', event => this.addStatisticSearchFilter(event && event.detail));
         document.addEventListener('favorite-added', event => this.addStatisticFavorite(true, event && event.detail));
         document.addEventListener('favorite-removed', event => this.addStatisticFavorite(false, event && event.detail));
+        document.addEventListener('download-file', event => this.addStatisticDownload(event && event.detail));
         document.addEventListener('search-tag', () => this.addStatisticSearchByTag());
         document.addEventListener('search-favorites-selected', () => this.sendMessage({
           'module': 'portal',
@@ -78,6 +95,22 @@ function() {
         'timestamp': Date.now(),
         'parameters': {
           'type': eventDetail.typeLabel || eventDetail.type,
+          'contentId': eventDetail.id,
+          'spaceId': eventDetail.spaceId,
+        },
+      });
+    },
+    addStatisticDownload: function (eventDetail) {
+      this.sendMessage({
+        'module': 'portal',
+        'subModule': 'ui',
+        'userId': eXo.env.portal.userIdentityId,
+        'userName': eXo.env.portal.userName,
+        'name': 'Download file New App',
+        'operation': 'click',
+        'timestamp': Date.now(),
+        'parameters': {
+          'type': eventDetail.type,
           'contentId': eventDetail.id,
           'spaceId': eventDetail.spaceId,
         },
@@ -170,7 +203,8 @@ function() {
       return "Tablet";
     if(isMobileDevice)
       return "Mobile";
-    return "Desktop";
+    return "Desktop";   
+
   }
   function isTablet(userAgentLowerCase){
     if((/exo\/6.2/).test(userAgentLowerCase)){
