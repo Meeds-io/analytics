@@ -31,7 +31,7 @@
     :space="space"
     :size="32"
     avatar-class="border-color"
-    extra-class="analytics-table-space d-inline-block my-1"
+    extra-class="analytics-table-space my-1"
     popover />
 </template>
 
