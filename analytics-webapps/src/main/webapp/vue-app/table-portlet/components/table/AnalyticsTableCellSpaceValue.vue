@@ -29,10 +29,10 @@
   <exo-space-avatar
     v-else-if="space"
     :space="space"
-    :labels="labels"
     :size="32"
     avatar-class="border-color"
-    class="analytics-table-space d-inline-block my-1" />
+    extra-class="analytics-table-space my-1"
+    popover />
 </template>
 
 <script>

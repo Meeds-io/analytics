@@ -31,17 +31,11 @@
   </v-tooltip>
   <exo-user-avatar
     v-else-if="user"
-    :title="user.fullname"
-    :username="user.username"
-    :fullname="user.fullname"
-    :url="`/portal/dw/profile/${user.username}`"
+    :identity="user"
     :size="32"
-    :avatar-url="user.avatar"
-    :labels="labels"
-    :external="user.external"
-    :retrieve-extra-information="false"
-    class="analytics-table-user my-1"
-    avatar-class="border-color">
+    extra-class="analytics-table-user my-1"
+    avatar-class="border-color"
+    popover>
     <template v-if="user.deleted === 'true'" slot="subTitle">
       <v-chip x-small disabled>
         {{ $t('analytics.deletedUser') }}
