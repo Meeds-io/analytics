@@ -156,6 +156,9 @@
       <depends>
         <module>commonAnalyticsVueComponents</module>
       </depends>
+      <depends>
+        <module>commonVueComponents</module>
+      </depends>
     </module>
   </portlet>
 
