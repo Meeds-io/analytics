@@ -93,6 +93,8 @@ export default {
       }
     },
     parentAnalyticsPageUri() {
+      console.log('====== the baseUri should be ===== /portal/dw');
+      console.log('baseUri ',this.baseUri);
       return `${this.baseUri}/${this.parentAnalyticsPageRelativeUri}`;
     },
     subPageParts() {

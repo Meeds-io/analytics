@@ -31,6 +31,5 @@
     <v-cacheable-dom-app cache-id="<%=cacheId%>"></v-cacheable-dom-app>
     <script type="text/javascript">
             require(['PORTLET/analytics/AnalyticsDashboardBreadcrumb'], app => app.init('<%=cacheId%>'));
-    </script>
   </div>
 </div>
