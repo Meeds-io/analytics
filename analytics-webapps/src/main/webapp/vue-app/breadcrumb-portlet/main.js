@@ -29,17 +29,17 @@ const url = `${eXo.env.portal.context}/${eXo.env.portal.rest}/i18n/bundle/locale
 
 export function init(cacheId) {
   exoi18n.loadLanguageAsync(lang, url).then(i18n => {
-    const appElement = document.createElement('div');
-    appElement.id = appId;
 
     // init Vue app when locale ressources are ready
-    new Vue({
+ 
+    Vue.createApp({
       mounted() {
         document.dispatchEvent(new CustomEvent('hideTopBarLoading'));
       },
       template: `<analytics-breadcrumb v-cacheable="{cacheId: '${cacheId}'}" id="${appId}" />`,
       vuetify,
       i18n
-    }).$mount(appElement);
+     
+    }, `#${appId}`, 'analytics');
   });
 }
