@@ -55,6 +55,7 @@ function() {
         document.addEventListener('favorite-added', event => this.addStatisticFavorite(true, event && event.detail));
         document.addEventListener('favorite-removed', event => this.addStatisticFavorite(false, event && event.detail));
         document.addEventListener('download-file', event => this.addStatisticDownload(event && event.detail));
+        document.addEventListener('document-change', event => this.addStatisticDocument(event && event.detail));
         document.addEventListener('search-tag', () => this.addStatisticSearchByTag());
         document.addEventListener('search-favorites-selected', () => this.sendMessage({
           'module': 'portal',
@@ -113,6 +114,22 @@ function() {
           'type': eventDetail.type,
           'contentId': eventDetail.id,
           'spaceId': eventDetail.spaceId,
+        },
+      });
+    },
+    addStatisticDocument: function (eventDetail) {
+      this.sendMessage({
+        'module': 'portal',
+        'subModule': 'ui',
+        'userId': eXo.env.portal.userIdentityId,
+        'userName': eXo.env.portal.userName,
+        'name': eventDetail.name,
+        'operation': 'click',
+        'timestamp': Date.now(),
+        'parameters': {
+          'type': eventDetail.type,
+          'spaceId': eventDetail.spaceId,
+          'Category' : eventDetail.category,
         },
       });
     },
