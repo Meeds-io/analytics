@@ -50,7 +50,11 @@ public class AnalyticsActivityListener extends ActivityListenerPlugin {
     StatisticData statisticData = addActivityStatisticEvent(event, "updateActivity");
     addStatisticData(statisticData);
   }
-
+  @Override
+  public void deleteActivity(ActivityLifeCycleEvent event) {
+    StatisticData statisticData = addActivityStatisticEvent(event,"deleteActivity");
+    addStatisticData(statisticData);
+  }
   @Override
   public void saveComment(ActivityLifeCycleEvent event) {
     StatisticData statisticData = addActivityStatisticEvent(event, "createComment");
@@ -62,7 +66,11 @@ public class AnalyticsActivityListener extends ActivityListenerPlugin {
     StatisticData statisticData = addActivityStatisticEvent(event, "updateComment");
     addStatisticData(statisticData);
   }
-
+  @Override
+  public void deleteComment(ActivityLifeCycleEvent event) {
+    StatisticData statisticData = addActivityStatisticEvent(event,"deleteComment");
+    addStatisticData(statisticData);
+  }
   @Override
   public void likeActivity(ActivityLifeCycleEvent event) {
     StatisticData statisticData = addActivityStatisticEvent(event, "likeActivity");
