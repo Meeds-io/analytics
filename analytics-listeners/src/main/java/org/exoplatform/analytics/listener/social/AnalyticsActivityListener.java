@@ -52,6 +52,12 @@ public class AnalyticsActivityListener extends ActivityListenerPlugin {
   }
 
   @Override
+  public void shareActivity(ActivityLifeCycleEvent event) {
+    StatisticData statisticData = addActivityStatisticEvent(event, "shareActivity");
+    addStatisticData(statisticData);
+  }
+
+  @Override
   public void saveComment(ActivityLifeCycleEvent event) {
     StatisticData statisticData = addActivityStatisticEvent(event, "createComment");
     addStatisticData(statisticData);
