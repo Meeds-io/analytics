@@ -127,9 +127,10 @@ function() {
         'operation': 'click',
         'timestamp': Date.now(),
         'parameters': {
+          'view': eventDetail.view,
           'type': eventDetail.type,
           'spaceId': eventDetail.spaceId,
-          'Category' : eventDetail.category,
+          'category' : eventDetail.category,
         },
       });
     },
