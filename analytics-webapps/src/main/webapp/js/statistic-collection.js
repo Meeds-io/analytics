@@ -41,7 +41,7 @@ function() {
         self_.connected = handshake && handshake.successful;
       });
       const loc = window.location;
-      cCometd.init({
+      cCometd.configure({
         url: `${loc.protocol}//${loc.hostname}${(loc.port && ':') || ''}${loc.port || ''}/${this.settings.cometdContext}/cometd`,
         exoId: eXo.env.portal.userName,
         exoToken: this.settings.cometdToken,
