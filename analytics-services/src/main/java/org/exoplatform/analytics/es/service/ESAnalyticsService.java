@@ -8,11 +8,11 @@
  * version 3 of the License, or (at your option) any later version.
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * Lesser General Public License for more details.
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 package org.exoplatform.analytics.es.service;
 
@@ -640,9 +640,20 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
         }
 
         if (aggregationType.isUseInterval()) {
-          esQuery.append(",")
-                 .append("           \"interval\": \"")
-                 .append(aggregation.getInterval())
+          esQuery.append(",");
+          if (Arrays.asList(AnalyticsAggregation.YEAR_INTERVAL,
+                            AnalyticsAggregation.QUARTER_INTERVAL,
+                            AnalyticsAggregation.MONTH_INTERVAL,
+                            AnalyticsAggregation.WEEK_INTERVAL,
+                            AnalyticsAggregation.DAY_INTERVAL,
+                            AnalyticsAggregation.HOUR_INTERVAL,
+                            AnalyticsAggregation.MINUTE_INTERVAL)
+                    .contains(aggregation.getInterval())) {
+            esQuery.append("           \"calendar_interval\": \"");
+          } else {
+            esQuery.append("           \"fixed_interval\": \"");
+          }
+          esQuery.append(aggregation.getInterval())
                  .append("\"");
           if (aggregation.getOffset() != null) {
             esQuery.append(",")
@@ -1009,7 +1020,6 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
     addEmptyResultsToNotExistingEntries(chartsData);
     return chartsData;
   }
-
 
   private void computeAggregatedResultEntry(AnalyticsFilter filter,
                                             JSONObject aggregations,
