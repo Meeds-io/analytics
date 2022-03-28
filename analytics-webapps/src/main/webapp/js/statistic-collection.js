@@ -379,8 +379,6 @@ function() {
                 pageUri: eXo.env.portal.selectedNodeUri,
                 applicationNames: eXo.env.portal.applicationNames,
                 isMobile,
-                deviceType: deviceType,
-                connectedWith: connectedWith,
               },
             });
           }, 500);
