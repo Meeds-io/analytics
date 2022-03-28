@@ -268,12 +268,35 @@ function() {
       return isExoApp(userAgentLowerCase) && /android/.test(userAgentLowerCase); 
   }
   require(['SHARED/vue'], () => {
+    const isMobile = navigator.userAgentData && navigator.userAgentData.mobile || (navigator.userAgent && /mobi/i.test(navigator.userAgent.toLowerCase())) || false;
+    const deviceType = checkDeviceType(navigator.userAgent.toLowerCase());
+    const connectedWith = checkconnectedWith(navigator.userAgent.toLowerCase());
+    function sendMobileStatistics() {
+        api.sendMessage({
+          name: 'pageUIDisplay',
+          operation: 'pageFullUIDisplay',
+          userName: eXo.env.portal.userName,
+          spaceId: eXo.env.portal.spaceId,
+          parameters: {
+            portalName: eXo.env.portal.portalName,
+            portalUri: eXo.env.server.portalBaseURL,
+            pageUri: window.location.pathname,
+            pageTitle: eXo.env.portal.pageTitle,
+            pageUri: eXo.env.portal.selectedNodeUri,
+            applicationNames: eXo.env.portal.applicationNames,
+            isMobile,
+            deviceType: deviceType,
+            connectedWith: connectedWith,
+          },
+        });  
+    }
+    document.addEventListener('vue-app-loading-end',()=>{
+      window.setTimeout(sendMobileStatistics,500);
+    });
     if (eXo.env.portal.requestStartTime) {
       eXo.env.portal.loadingAppsStartTime = {};
       const fullyLoadedCallbackIdle = 1000;
       const isMobile = navigator.userAgentData && navigator.userAgentData.mobile || (navigator.userAgent && /mobi/i.test(navigator.userAgent.toLowerCase())) || false;
-      const deviceType = checkDeviceType(navigator.userAgent.toLowerCase());
-      const connectedWith = checkconnectedWith(navigator.userAgent.toLowerCase());
       function pageFullyLoadedCallback() {
         if (document.readyState === 'complete'
             && !eXo.env.portal.loadingAppsFinished
@@ -304,8 +327,6 @@ function() {
               pageUri: eXo.env.portal.selectedNodeUri,
               applicationNames: eXo.env.portal.applicationNames,
               isMobile,
-              deviceType: deviceType,
-              connectedWith: connectedWith,
             },
           });
         }
@@ -422,8 +443,6 @@ function() {
                 pageUri: eXo.env.portal.selectedNodeUri,
                 applicationName: appName,
                 isMobile,
-                deviceType: deviceType,
-                connectedWith: connectedWith,
                 startLoadingTime: startLoadingTime,
                 endLoadingTime: endLoadingTime,
               },
