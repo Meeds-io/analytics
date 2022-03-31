@@ -290,9 +290,13 @@ function() {
           },
         });  
     }
-    document.addEventListener('vue-app-loading-end',()=>{
-      window.setTimeout(sendMobileStatistics,500);
-    });
+    if(!eXo.env.portal.requestStartTime){
+      document.addEventListener('readystatechange',(event)=>{
+        if (event.target.readyState === 'complete') {
+          window.setTimeout(sendMobileStatistics,1000);
+        }
+      });
+    }
     if (eXo.env.portal.requestStartTime) {
       eXo.env.portal.loadingAppsStartTime = {};
       const fullyLoadedCallbackIdle = 1000;
@@ -327,6 +331,8 @@ function() {
               pageUri: eXo.env.portal.selectedNodeUri,
               applicationNames: eXo.env.portal.applicationNames,
               isMobile,
+              deviceType: deviceType,
+              connectedWith: connectedWith,
             },
           });
         }
