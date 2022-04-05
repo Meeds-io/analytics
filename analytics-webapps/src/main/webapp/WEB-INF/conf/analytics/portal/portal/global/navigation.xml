@@ -45,6 +45,12 @@
         <visibility>DISPLAYED</visibility>
         <page-reference>portal::global::analytics-mobile</page-reference>
       </node>
+      <node>
+        <name>analyticsSecurity</name>
+        <label>#{analytics.navigation.analyticsSecurity}</label>
+        <visibility>DISPLAYED</visibility>
+        <page-reference>portal::global::analytics-security</page-reference>
+      </node>
     </node>
   </page-nodes>
 </node-navigation>
