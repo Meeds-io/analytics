@@ -47,6 +47,17 @@
   </external-component-plugins>
 
   <external-component-plugins>
+    <target-component>org.exoplatform.services.listener.ListenerService</target-component>
+    <component-plugin>
+      <name>login.failed</name>
+      <set-method>addListener</set-method>
+      <type>org.exoplatform.analytics.listener.portal.LoginFailedAnalyticsListener</type>
+      <description>Listener for user login failed event statistics</description>
+    </component-plugin>
+  </external-component-plugins>
+
+
+  <external-component-plugins>
     <target-component>org.exoplatform.social.core.manager.ActivityManager</target-component>
     <component-plugin>
       <name>AnalyticsActivityListener</name>
