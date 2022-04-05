@@ -17,23 +17,15 @@
 package org.exoplatform.analytics.listener.portal;
 
 import static org.exoplatform.analytics.utils.AnalyticsUtils.addStatisticData;
-import static org.exoplatform.analytics.utils.AnalyticsUtils.getUserIdentityId;
-
-import org.apache.commons.lang3.StringUtils;
 
 import org.exoplatform.analytics.model.StatisticData;
 import org.exoplatform.analytics.utils.AnalyticsUtils;
-import org.exoplatform.services.listener.Asynchronous;
 import org.exoplatform.services.listener.Event;
 import org.exoplatform.services.listener.Listener;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
-import org.exoplatform.services.security.ConversationRegistry;
-import org.exoplatform.services.security.ConversationState;
-
 import java.util.Map;
 
-@Asynchronous
 public class LoginFailedAnalyticsListener extends Listener<String, Map<String,String>> {
   private static final Log LOG = ExoLogger.getLogger(LoginFailedAnalyticsListener.class);
 
