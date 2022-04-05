@@ -296,8 +296,7 @@ function() {
           window.setTimeout(sendMobileStatistics,1000);
         }
       });
-    }
-    if (eXo.env.portal.requestStartTime) {
+    } else {
       eXo.env.portal.loadingAppsStartTime = {};
       const fullyLoadedCallbackIdle = 1000;
       const isMobile = navigator.userAgentData && navigator.userAgentData.mobile || (navigator.userAgent && /mobi/i.test(navigator.userAgent.toLowerCase())) || false;
