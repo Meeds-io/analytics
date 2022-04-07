@@ -271,8 +271,26 @@ function() {
     const isMobile = navigator.userAgentData && navigator.userAgentData.mobile || (navigator.userAgent && /mobi/i.test(navigator.userAgent.toLowerCase())) || false;
     const deviceType = checkDeviceType(navigator.userAgent.toLowerCase());
     const connectedWith = checkconnectedWith(navigator.userAgent.toLowerCase());
-    function sendMobileStatistics() {
-        api.sendMessage({
+    eXo.env.portal.loadingAppsStartTime = {};
+    const fullyLoadedCallbackIdle = 1000;
+    function pageFullyLoadedCallback() {
+      if (document.readyState === 'complete'
+          && !eXo.env.portal.loadingAppsFinished) {
+        let endLoadingTime;
+        if(eXo.env.portal.requestStartTime){
+          endLoadingTime = eXo.env.portal.lastAppLoadingFinished - eXo.env.portal.requestStartTime;
+        }
+        eXo.env.portal.loadingAppsFinished = true;
+        if (eXo.developing) {
+          const endTimeStyle = endLoadingTime > 3000 && 'color:red;font-weight:bold;' || 'color:green;font-weight:bold;';
+          // eslint-disable-next-line no-console
+          console.warn(`Overall %cpage applications%c finished loading at : %c${endLoadingTime} %cms`,
+            'font-weight:bold;',
+            '',
+            endTimeStyle,
+            '');
+        }
+        let data = {
           name: 'pageUIDisplay',
           operation: 'pageFullUIDisplay',
           userName: eXo.env.portal.userName,
@@ -288,55 +306,20 @@ function() {
             deviceType: deviceType,
             connectedWith: connectedWith,
           },
-        });  
+        };
+        if(endLoadingTime){
+          data.parameters.duration = endLoadingTime;
+        }
+        api.sendMessage(data);
+      }
     }
     if(!eXo.env.portal.requestStartTime){
       document.addEventListener('readystatechange',(event)=>{
         if (event.target.readyState === 'complete') {
-          window.setTimeout(sendMobileStatistics,1000);
+          window.setTimeout(pageFullyLoadedCallback,fullyLoadedCallbackIdle);
         }
       });
     } else {
-      eXo.env.portal.loadingAppsStartTime = {};
-      const fullyLoadedCallbackIdle = 1000;
-      const isMobile = navigator.userAgentData && navigator.userAgentData.mobile || (navigator.userAgent && /mobi/i.test(navigator.userAgent.toLowerCase())) || false;
-      function pageFullyLoadedCallback() {
-        if (document.readyState === 'complete'
-            && !eXo.env.portal.loadingAppsFinished
-            && !Object.keys(eXo.env.portal.loadingAppsStartTime).length) {
-
-          const endLoadingTime = eXo.env.portal.lastAppLoadingFinished - eXo.env.portal.requestStartTime;
-          const endTimeStyle = endLoadingTime > 3000 && 'color:red;font-weight:bold;' || 'color:green;font-weight:bold;';
-          eXo.env.portal.loadingAppsFinished = true;
-          if (eXo.developing) {
-            // eslint-disable-next-line no-console
-            console.warn(`Overall %cpage applications%c finished loading at : %c${endLoadingTime} %cms`,
-              'font-weight:bold;',
-              '',
-              endTimeStyle,
-              '');
-          }
-          api.sendMessage({
-            name: 'pageUIDisplay',
-            operation: 'pageFullUIDisplay',
-            userName: eXo.env.portal.userName,
-            spaceId: eXo.env.portal.spaceId,
-            parameters: {
-              duration: endLoadingTime,
-              portalName: eXo.env.portal.portalName,
-              portalUri: eXo.env.server.portalBaseURL,
-              pageUri: window.location.pathname,
-              pageTitle: eXo.env.portal.pageTitle,
-              pageUri: eXo.env.portal.selectedNodeUri,
-              applicationNames: eXo.env.portal.applicationNames,
-              isMobile,
-              deviceType: deviceType,
-              connectedWith: connectedWith,
-            },
-          });
-        }
-      }
-
       document.addEventListener('vue-app-loading-start', event => {
         const detail = event && event.detail;
         const appName = detail.appName;
