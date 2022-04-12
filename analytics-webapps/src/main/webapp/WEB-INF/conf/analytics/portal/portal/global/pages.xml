@@ -745,4 +745,236 @@
         </container>
     </container>
 </page>
+<page>
+    <name>analytics-security</name>
+    <title>Analytics Security</title>
+    <access-permissions>*:/platform/analytics;*:/platform/administrators</access-permissions>
+    <edit-permission>manager:/platform/analytics</edit-permission>
+    <container
+      id="topAnalyticsPage"
+      template="system:/groovy/portal/webui/container/UIContainer.gtmpl"
+      cssClass="singlePageApplication border-box-sizing">
+      <access-permissions>Everyone</access-permissions>
+      <container id="breadcrumbAnalytics" template="system:/groovy/portal/webui/container/UIContainer.gtmpl">
+        <access-permissions>Everyone</access-permissions>
+        <portlet-application>
+          <portlet>
+            <application-ref>analytics</application-ref>
+            <portlet-ref>AnalyticsDashboardBreadcrumb</portlet-ref>
+          </portlet>
+          <title>Breadcrumb Analytics</title>
+          <access-permissions>Everyone</access-permissions>
+          <show-info-bar>false</show-info-bar>
+        </portlet-application>
+      </container>
+      <container cssClass="analyticsPageRow" template="system:/groovy/portal/webui/container/UIContainer.gtmpl">
+        <access-permissions>Everyone</access-permissions>
+        <portlet-application>
+          <portlet>
+            <application-ref>analytics</application-ref>
+            <portlet-ref>AnalyticsPortlet</portlet-ref>
+            <preferences>
+              <preference>
+                <name>settings</name>
+                <value>
+                  {
+                    "offset": 0,
+                    "filters": [
+                      {
+                        "field": "operation",
+                        "type": "EQUAL",
+                        "valueString": "login",
+                        "range": null
+                      },
+                      {
+                        "field": "status",
+                        "type": "EQUAL",
+                        "valueString": "1",
+                        "range": null
+                      },
+                      {
+                        "field": "reason",
+                        "type": "EQUAL",
+                        "valueString": "wrongCredentials",
+                        "range": null
+                      }
+                    ],
+                    "limit": 0,
+                    "multipleCharts": false,
+                    "chartType": "bar",
+                    "colors": null,
+                    "multipleChartsField": null,
+                    "lang": null,
+                    "aggregations": [
+                      {
+                        "field": "timestamp",
+                        "type": "DATE",
+                        "offset": null,
+                        "interval": "day",
+                        "limit": 0,
+                        "useBounds": false,
+                        "minBound": 0,
+                        "maxBound": 0,
+                        "sortDirection": "asc"
+                      },
+                      {
+                        "field": "timestamp",
+                        "type": "COUNT",
+                        "offset": null,
+                        "interval": null,
+                        "limit": 0,
+                        "useBounds": false,
+                        "minBound": 0,
+                        "maxBound": 0,
+                        "sortDirection": "desc"
+                      }
+                    ],
+                    "yAxisAggregation": {
+                      "field": "timestamp",
+                      "type": "COUNT",
+                      "offset": null,
+                      "interval": null,
+                      "limit": 0,
+                      "useBounds": false,
+                      "minBound": 0,
+                      "maxBound": 0,
+                      "sortDirection": "desc"
+                    },
+                    "multipleChartsAggregation": null,
+                    "xAxisAggregations": [
+                      {
+                        "field": "timestamp",
+                        "type": "DATE",
+                        "offset": null,
+                        "interval": "day",
+                        "limit": 0,
+                        "useBounds": false,
+                        "minBound": 0,
+                        "maxBound": 0,
+                        "sortDirection": "asc"
+                      }
+                    ],
+                    "timeZone": null,
+                    "title": "analytics.failedLogin"
+                  }
+                </value>
+              </preference>
+            </preferences>
+          </portlet>
+          <title>Failed logins</title>
+          <access-permissions>Everyone</access-permissions>
+          <show-info-bar>false</show-info-bar>
+        </portlet-application>
+        <portlet-application>
+          <portlet>
+            <application-ref>analytics</application-ref>
+            <portlet-ref>AnalyticsPortlet</portlet-ref>
+            <preferences>
+              <preference>
+                <name>settings</name>
+                <value>
+                  {
+                    "offset": 0,
+                    "filters": [
+                      {
+                        "field": "operation",
+                        "type": "EQUAL",
+                        "valueString": "login",
+                        "range": null
+                      },
+                      {
+                        "field": "status",
+                        "type": "EQUAL",
+                        "valueString": "1",
+                        "range": null
+                      },
+                      {
+                        "field": "reason",
+                        "type": "EQUAL",
+                        "valueString": "accountLocked",
+                        "range": null
+                      }
+                    ],
+                    "limit": 0,
+                    "multipleCharts": false,
+                    "chartType": "bar",
+                    "colors": [
+                      "#F97575",
+                      "#f97575",
+                      "#98cc81",
+                      "#4273c8",
+                      "#cea6ac",
+                      "#bc99e7",
+                      "#9ee4f5",
+                      "#774ea9",
+                      "#ffa500",
+                      "#bed67e",
+                      "#0E100F",
+                      "#ffaacc"
+                    ],
+                    "multipleChartsField": null,
+                    "lang": null,
+                    "aggregations": [
+                      {
+                        "field": "timestamp",
+                        "type": "DATE",
+                        "offset": null,
+                        "interval": "day",
+                        "limit": 0,
+                        "useBounds": false,
+                        "minBound": 0,
+                        "maxBound": 0,
+                        "sortDirection": "asc"
+                      },
+                      {
+                        "field": "timestamp",
+                        "type": "COUNT",
+                        "offset": null,
+                        "interval": null,
+                        "limit": 0,
+                        "useBounds": false,
+                        "minBound": 0,
+                        "maxBound": 0,
+                        "sortDirection": "desc"
+                      }
+                    ],
+                    "yAxisAggregation": {
+                      "field": "timestamp",
+                      "type": "COUNT",
+                      "offset": null,
+                      "interval": null,
+                      "limit": 0,
+                      "useBounds": false,
+                      "minBound": 0,
+                      "maxBound": 0,
+                      "sortDirection": "desc"
+                    },
+                    "multipleChartsAggregation": null,
+                    "xAxisAggregations": [
+                      {
+                        "field": "timestamp",
+                        "type": "DATE",
+                        "offset": null,
+                        "interval": "day",
+                        "limit": 0,
+                        "useBounds": false,
+                        "minBound": 0,
+                        "maxBound": 0,
+                        "sortDirection": "asc"
+                      }
+                    ],
+                    "timeZone": null,
+                    "title": "analytics.accountLocked"
+                  }
+                </value>
+              </preference>
+            </preferences>
+          </portlet>
+          <title>Locked Accounts</title>
+          <access-permissions>Everyone</access-permissions>
+          <show-info-bar>false</show-info-bar>
+        </portlet-application>
+      </container>
+    </container>
+  </page>
 </page-set>
