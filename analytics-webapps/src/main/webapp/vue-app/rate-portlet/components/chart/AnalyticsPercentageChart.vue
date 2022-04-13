@@ -24,7 +24,7 @@
     </h1>
     <template v-if="isUserLimit">
       <v-tooltip bottom>
-        <template v-slot:activator="{ on, attrs }">
+        <template #activator="{ on, attrs }">
           <div
             class="text-sub-title text-no-wrap mt-2"
             v-bind="attrs"
@@ -40,7 +40,7 @@
       </v-tooltip>
     </template>
     <v-tooltip bottom>
-      <template v-slot:activator="{ on, attrs }">
+      <template #activator="{ on, attrs }">
         <div
           class="text-no-wrap mt-1"
           v-bind="attrs"

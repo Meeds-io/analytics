@@ -50,7 +50,7 @@
 export default {
   props: {
     pages: {
-      type: Object,
+      type: Array,
       default: () => [],
     },
   },

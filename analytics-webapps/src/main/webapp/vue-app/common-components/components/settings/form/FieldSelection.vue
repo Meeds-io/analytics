@@ -33,7 +33,7 @@
       chips
       dense
       @change="updateData">
-      <template v-slot:selection="data">
+      <template #selection="data">
         <v-chip
           v-bind="data.attrs"
           :input-value="data.selected"
@@ -42,7 +42,7 @@
           {{ data.item && data.item.label || data.item }}
         </v-chip>
       </template>
-      <template v-slot:item="data">
+      <template #item="data">
         <v-list-item-content v-text="data.item.label" />
       </template>
     </v-autocomplete>
