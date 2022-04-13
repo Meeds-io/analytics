@@ -33,7 +33,7 @@
       <div class="d-flex pa-3 analytics-chart-header" flat>
         <v-toolbar-title class="d-flex">
           <v-tooltip bottom>
-            <template v-slot:activator="{ on, attrs }">
+            <template #activator="{ on, attrs }">
               <v-btn
                 height="20"
                 width="20"
@@ -66,7 +66,7 @@
           v-if="canEdit"
           v-model="showMenu"
           offset-y>
-          <template v-slot:activator="{ on }">
+          <template #activator="{ on }">
             <v-btn
               icon
               class="ml-2"

@@ -22,7 +22,7 @@
       class="analytics-progress-bar"
       height="45">
       <v-tooltip v-if="initialized" bottom>
-        <template v-slot:activator="{ on, attrs }">
+        <template #activator="{ on, attrs }">
           <h3
             :style="`margin-left: calc(${progressBarValueClass}% - 24px); margin-right: auto;`"
             class="font-weight-bold white--text"
@@ -36,7 +36,7 @@
     </v-progress-linear>
     <div class="text-no-wrap mt-2">
       <v-tooltip bottom>
-        <template v-slot:activator="{ on, attrs }">
+        <template #activator="{ on, attrs }">
           <span
             :class="lastPeriodComparaisonClass"
             v-bind="attrs"

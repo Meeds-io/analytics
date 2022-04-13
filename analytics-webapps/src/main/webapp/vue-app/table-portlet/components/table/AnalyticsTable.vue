@@ -29,7 +29,7 @@
     class="analytics-table border-box-sizing px-2">
     <template
       v-for="header in headers"
-      v-slot:[`item.${header.value}`]="{item}">
+      #[`item.${header.value}`]="{item}">
       <analytics-table-cell
         :key="header.value"
         :header="header"

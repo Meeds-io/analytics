@@ -16,7 +16,7 @@
 -->
 <template>
   <v-list-group active-class="primary white--text border-radius border-color mb-0" dark>
-    <template v-slot:activator>
+    <template #activator>
       <v-list-item-title v-if="columnTitle">{{ $t(columnTitle) }}</v-list-item-title>
       <v-list-item-title v-else class="font-italic subtitle-1 text-sub-title">{{ $t('analytics.columnTitlePlaceholder') }}</v-list-item-title>
     </template>

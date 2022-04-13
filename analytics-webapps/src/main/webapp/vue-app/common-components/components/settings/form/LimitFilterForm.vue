@@ -50,9 +50,7 @@
       <analytics-search-filter-form
         :fields-mappings="fieldsMappings"
         :filters="filters">
-        <template v-slot="title">
-          <h3>{{ $t('analytics.limitComputingFilters') }}</h3>
-        </template>
+        <h3>{{ $t('analytics.limitComputingFilters') }}</h3>
       </analytics-search-filter-form>
     </template>
   </div>

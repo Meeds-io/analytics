@@ -32,7 +32,7 @@
     :class="signClass"
     class="text-no-wrap">
     <v-tooltip v-if="previousValue" bottom>
-      <template v-slot:activator="{ on, attrs }">
+      <template #activator="{ on, attrs }">
         <span
           v-bind="attrs"
           v-on="on">
@@ -42,7 +42,7 @@
       <span>{{ $t('analytics.previousPeriodValue', {0: previousValue}) }}</span>
     </v-tooltip>
     <v-tooltip v-else-if="threshold" bottom>
-      <template v-slot:activator="{ on, attrs }">
+      <template #activator="{ on, attrs }">
         <span
           :class="signClass"
           v-bind="attrs"

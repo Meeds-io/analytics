@@ -21,7 +21,7 @@
     color="white"
     width="290px"
     content-class="overflow-hidden">
-    <template v-slot:activator="{ on }">
+    <template #activator="{ on }">
       <div class="themeColor">
         <div
           :style="{ backgroundColor: value}"

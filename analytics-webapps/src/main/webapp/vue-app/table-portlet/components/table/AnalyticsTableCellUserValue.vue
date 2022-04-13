@@ -21,7 +21,7 @@
     color="primary"
     indeterminate />
   <v-tooltip v-else-if="error" bottom>
-    <template v-slot:activator="{ on, attrs }">
+    <template #activator="{ on, attrs }">
       <i
         class="uiIconColorError"
         v-bind="attrs"
@@ -43,7 +43,7 @@
     </template>
   </exo-user-avatar>
   <v-tooltip v-else bottom>
-    <template v-slot:activator="{ on, attrs }">
+    <template #activator="{ on, attrs }">
       <i
         class="uiIconColorInfo"
         v-bind="attrs"
