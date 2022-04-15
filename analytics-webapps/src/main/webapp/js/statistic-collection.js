@@ -262,7 +262,7 @@ function() {
     return /exo/.test(userAgentLowerCase); 
   }
   function isIosApp(userAgentLowerCase){
-    return  isExoApp(userAgentLowerCase) && /iphone|ipad|ipad/.test(userAgentLowerCase); 
+    return  isExoApp(userAgentLowerCase) && /iphone|ipad/.test(userAgentLowerCase); 
   }
   function isAndroidApp(userAgentLowerCase){
       return isExoApp(userAgentLowerCase) && /android/.test(userAgentLowerCase); 
