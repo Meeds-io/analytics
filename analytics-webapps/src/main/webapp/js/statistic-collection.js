@@ -266,7 +266,6 @@ function() {
   }
   function isAndroidApp(userAgentLowerCase){
       return isExoApp(userAgentLowerCase) && /android/.test(userAgentLowerCase); 
-      
   }
   require(['SHARED/vue'], () => {
     const isMobile = navigator.userAgentData && navigator.userAgentData.mobile || (navigator.userAgent && /mobi/i.test(navigator.userAgent.toLowerCase())) || false;
