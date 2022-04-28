@@ -305,6 +305,7 @@ function() {
             isMobile,
             deviceType: deviceType,
             connectedWith: connectedWith,
+            moduleName: eXo.env.portal.mainApplicationName
           },
         };
         if(endLoadingTime){
