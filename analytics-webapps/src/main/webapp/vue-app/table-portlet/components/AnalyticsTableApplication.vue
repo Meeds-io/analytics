@@ -127,7 +127,7 @@ export default {
     columnsData: {},
     searchOptions: {
       currentUser: '',
-      filterType: '',
+      filterType: 'all',
     },
   }),
   computed: {
