@@ -16,40 +16,27 @@
 -->
 <template>
   <v-row>
-    <v-col>{{ getI18N(value) }}</v-col>
-    <v-col v-if="sampleItemExtension && initialized">
+    <v-col>{{ keyLabel }}</v-col>
+    <v-col v-if="sampleItemExtension">
       <extension-registry-component
         :component="extendedSampleItemComponent"
         :params="extendedSampleItemComponentParams" />
     </v-col>
-    <v-col v-else-if="value === 'userId' && userIdentity" class="text--secondary">
-      {{ chartData[value] }}
-      (<analytics-profile-chip :identity="userIdentity" />)
-    </v-col>
-    <v-col v-else-if="value === 'spaceId' && spaceIdentity" class="text--secondary">
-      {{ chartData[value] }}
-      (<analytics-profile-chip :identity="spaceIdentity" />)
-    </v-col>
-    <v-col v-else-if="value === 'modifierSocialId' && userModifierIdentity" class="text--secondary">
-      {{ chartData[value] }}
-      (<analytics-profile-chip :identity="userModifierIdentity" />)
-    </v-col>
     <v-col v-else class="text--secondary">
-      {{ chartData[value] }}
+      {{ attrValue }}
     </v-col>
   </v-row>
 </template>
-
 <script>
 export default {
   props: {
-    value: {
+    attrKey: {
       type: Object,
       default: function() {
         return null;
       },
     },
-    chartData: {
+    attrValue: {
       type: Object,
       default: function() {
         return null;
@@ -58,94 +45,38 @@ export default {
     sampleItemExtensions: {
       type: Object,
       default: function() {
-        return null;
-      },
-    },
-    users: {
-      type: Object,
-      default: function() {
-        return null;
-      },
-    },
-    userIdentity: {
-      type: Object,
-      default: function() {
-        return null;
+        return {};
       },
     },
   },
-  data: () => ({
-    initialized: false,
-  }),
   computed: {
-    extendedSampleItemComponent() {
-      return this.sampleItemExtension && {
-        componentName: 'sample-item',
-        componentOptions: {
-          vueComponent: this.sampleItemExtension.vueComponent,
-        },
-      } || null;
+    keyLabel() {
+      const fieldLabelI18NKey = `analytics.field.label.${this.attrKey}`;
+      return this.$te(fieldLabelI18NKey) ? this.$t(fieldLabelI18NKey) : this.attrKey;
     },
     sampleItemExtension() {
       if (this.sampleItemExtensions) {
         return Object.values(this.sampleItemExtensions)
           .sort((ext1, ext2) => (ext1.rank || 0) - (ext2.rank || 0))
-          .find(extension => extension.match && extension.match(this.value)) || null;
+          .find(extension => extension.match && extension.match(this.attrKey)) || null;
       }
       return null;
     },
-    extendedSampleItemComponentParams() {
+    extendedSampleItemComponent() {
       return this.sampleItemExtension && {
-        value: this.chartData[this.value],
-        users: this.users,
+        componentName: 'sample-item',
+        componentOptions: {
+          vueComponent: this.sampleItemExtension?.vueComponent,
+        },
       } || null;
     },
-    userModifierIdentity() {
-      if (this.chartData && this.chartData.modifierSocialId && this.users) {
-        const userObj = this.users[this.chartData.modifierSocialId];
-        if (userObj) {
-          return userObj;
-        } else {
-          return {
-            identityId: this.chartData.modifierSocialId,
-          };
-        }
-      } else {
-        return null;
-      }
+    extendedSampleItemComponentParams() {
+      return this.sampleItemExtension && {
+        attrKey: this.attrKey,
+        attrValue: this.attrValue,
+        options: this.sampleItemExtension?.options,
+      } || null;
     },
-    spaceIdentity() {
-      if (this.chartData && this.chartData.spaceId && this.spaces) {
-        const spaceObj = this.spaces[this.chartData.spaceId];
-        if (spaceObj) {
-          return spaceObj;
-        } else {
-          return {
-            spaceId: this.chartData.spaceId,
-          };
-        }
-      } else {
-        return null;
-      }
-    },
-  },
-  created() {
-    if (this.sampleItemExtension && this.sampleItemExtension.isUserIdentity) {
-      this.$analyticsUtils.loadUser(this.users, parseInt(this.chartData[this.value]))
-        .then(() => this.$nextTick())
-        .finally(() => {
-          this.initialized = true;
-        });
-    } else {
-      this.initialized = true;
-    }
-  },
-  methods: {
-    getI18N(label){
-      const fieldLabelI18NKey = `analytics.field.label.${label}`;
-      const fieldLabelI18NValue = this.$t(fieldLabelI18NKey);
-      return  fieldLabelI18NValue === fieldLabelI18NKey ? label : fieldLabelI18NValue;
-    }
   },
 };
 </script>

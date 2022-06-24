@@ -40,6 +40,7 @@ import ViewSamplesDrawer from './components/samples/ViewSamplesDrawer.vue';
 import ProfileChip from './components/samples/ProfileChip.vue';
 import SampleItem from './components/samples/SampleItem.vue';
 import SampleItemAttribute from './components/samples/SampleItemAttribute.vue';
+import ProfileSampleItemAttribute from './components/samples/ProfileSampleItemAttribute.vue';
 
 import SelectPeriod from './components/common/SelectPeriod.vue';
 
@@ -47,6 +48,7 @@ const components = {
   'analytics-profile-chip': ProfileChip,
   'analytics-sample-item': SampleItem,
   'analytics-sample-item-attribute': SampleItemAttribute,
+  'analytics-profile-sample-item-attribute': ProfileSampleItemAttribute,
   'analytics-setting-color-picker': SettingColorPicker,
   'analytics-identity-field-selection': IdentityFieldSelection,
   'analytics-field-selection': FieldSelection,

@@ -17,26 +17,15 @@
 <template>
   <v-expansion-panel class="border-box-sizing">
     <v-expansion-panel-header>
-      <v-row no-gutters>
-        <v-col cols="8">
-          <v-fade-transition leave-absolute>
-            <v-row no-gutters class="sampleItemHeader">
-              <v-col
-                v-if="userIdentity || userModifierIdentity"
-                class="text-truncate">
-                <analytics-profile-chip :identity="userIdentity || userModifierIdentity" />
-              </v-col>
-              <v-col
-                v-if="chartData.operation"
-                :title="chartData.operation"
-                class="text-truncate">
-                <template v-if="userIdentity || userModifierIdentity">
-                  - 
-                </template>
-                <strong>{{ chartData.operation }}</strong>
-              </v-col>
-            </v-row>
-          </v-fade-transition>
+      <v-row no-gutters class="sampleItemHeader">
+        <v-col cols="4" class="text-truncate">
+          <analytics-profile-chip v-if="userId" :profile-id="userId" />
+        </v-col>
+        <v-col
+          cols="4"
+          :title="chartData.operation"
+          class="text-truncate">
+          <strong v-if="chartData.operation">{{ chartData.operation }}</strong>
         </v-col>
         <v-col cols="4" class="text--secondary text-right">
           <date-format :value="chartDataTime" :format="dateFormat" />
@@ -46,30 +35,25 @@
     <v-expansion-panel-content>
       <template v-if="chartDataProps">
         <analytics-sample-item-attribute
-          v-for="chartDataProp in chartDataProps"
-          :key="chartDataProp"
-          :value="chartDataProp"
-          :chart-data="chartData"
-          :users="users"
-          :user-identity="userIdentity"
-          :sample-item-extension="sampleItemExtensions"
+          v-for="attrKey in chartDataProps"
+          :key="attrKey"
+          :attr-key="attrKey"
+          :attr-value="chartData[attrKey]"
+          :sample-item-extensions="sampleItemExtensions"
           class="ma-2 no-gutters" />
       </template>
       <template v-if="chartDataParameters">
         <analytics-sample-item-attribute
-          v-for="chartDataParameter in chartDataParameters"
-          :key="chartDataParameter"
-          :value="chartDataParameter"
-          :chart-data="chartData.parameters"
-          :users="users"
-          :user-identity="userIdentity"
-          :sample-item-extensions="sampleItemExtensions"
+          v-for="attrKey in chartDataParameters"
+          :key="attrKey"
+          :attr-key="attrKey"
+          :attr-value="chartData.parameters[attrKey]"
+          :sample-item-extensions="sampleItemExtensions[attrKey]"
           class="ma-2 no-gutters" />
       </template>
     </v-expansion-panel-content>
   </v-expansion-panel>
 </template>
-
 <script>
 export default {
   props: {
@@ -79,22 +63,10 @@ export default {
         return null;
       },
     },
-    users: {
-      type: Object,
-      default: function() {
-        return null;
-      },
-    },
-    spaces: {
-      type: Object,
-      default: function() {
-        return null;
-      },
-    },
     sampleItemExtensions: {
       type: Object,
       default: function() {
-        return null;
+        return {};
       },
     },
   },
@@ -109,34 +81,6 @@ export default {
     },
   }),
   computed: {
-    userIdentity() {
-      if (this.chartData && this.chartData.userId && this.users) {
-        const userObj = this.users[this.chartData.userId];
-        if (userObj) {
-          return userObj;
-        } else {
-          return {
-            identityId: this.chartData.userId,
-          };
-        }
-      } else {
-        return null;
-      }
-    },
-    userModifierIdentity() {
-      if (this.chartData && this.chartData.parameters && this.chartData.parameters.modifierSocialId && this.users) {
-        const userObj = this.users[this.chartData.parameters.modifierSocialId];
-        if (userObj) {
-          return userObj;
-        } else {
-          return {
-            identityId: this.chartData.parameters.modifierSocialId,
-          };
-        }
-      } else {
-        return null;
-      }
-    },
     chartDataTime() {
       return this.chartData && this.chartData.timestamp && new Date(this.chartData.timestamp);
     },
@@ -146,6 +90,9 @@ export default {
     },
     chartDataParameters() {
       return this.chartData && this.chartData.parameters && Object.keys(this.chartData.parameters).sort();
+    },
+    userId() {
+      return this.chartData.userId || this.chartData.modifierSocialId;
     },
   },
 };

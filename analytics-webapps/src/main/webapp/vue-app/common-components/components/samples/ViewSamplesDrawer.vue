@@ -63,7 +63,6 @@
     </template>
   </exo-drawer>
 </template>
-
 <script>
 export default {
   props: {
@@ -119,6 +118,12 @@ export default {
     },
   },
   created() {
+    if (!this.$root.users) {
+      this.$root.users = {};
+    }
+    if (!this.$root.spaces) {
+      this.$root.spaces = {};
+    }
     document.addEventListener(`extension-${this.extensionApp}-${this.sampleItemExtensionType}-updated`, this.refreshSampleItemExtensions);
     this.refreshSampleItemExtensions();
   },
@@ -138,8 +143,6 @@ export default {
       if (!this.selectedPeriod) {
         return;
       }
-
-      let loadedChartData;
       const params = {
         lang: eXo.env.portal.language && eXo.env.portal.language.replace('_','-'),
         min: this.selectedPeriod.min,
@@ -166,29 +169,12 @@ export default {
             throw new Error('Error getting analytics samples with filters:', params);
           }
         })
-        .then((chartDatas) => loadedChartData = chartDatas)
-        .then((chartDatas) => this.loadUsersAndSpacesObjects(chartDatas))
-        .then(() => this.chartDatas = [])
-        .then(() => this.$nextTick())
-        .then(() => this.chartDatas = loadedChartData)
+        .then((chartDatas) => this.chartDatas = chartDatas)
         .catch((e) => {
           console.error('fetch analytics - error', e);
           this.error = 'Error getting analytics';
         })
         .finally(() => this.loading = false);
-    },
-    loadUsersAndSpacesObjects(chartDatas, index) {
-      index = index || 0;
-      if (!chartDatas || index >= chartDatas.length) {
-        return;
-      }
-      const chartData = chartDatas[index];
-      if (chartData) {
-        return this.$analyticsUtils.loadUser(this.users, chartData.userId)
-          .then(() => this.$analyticsUtils.loadUser(this.users, chartData.parameters && chartData.parameters.modifierSocialId))
-          .then(() => this.$analyticsUtils.loadSpace(this.spaces, chartData.spaceId))
-          .then(() => this.loadUsersAndSpacesObjects(chartDatas, ++index));
-      }
     },
     computeCanLoadMore() {
       if (this.chartDatas) {

@@ -15,67 +15,72 @@
   Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 -->
 <template>
-  <a
-    v-if="displayName"
-    v-identity-popover="userIdentity"
-    class="text-truncate"
-    rel="nofollow"
-    target="_blank">
-    {{ displayName }}
-  </a>
-  <code v-else>
-    {{ spaceId || identityId }}
-  </code>
+  <v-progress-circular
+    v-if="loading"
+    indeterminate
+    color="primary" />
+  <div v-else class="d-flex flex-row">
+    <template v-if="identity">
+      <exo-space-avatar
+        v-if="isSpace"
+        :space="identity"
+        extra-class="flex-grow-1"
+        size="24"
+        popover
+        link-style />
+      <exo-user-avatar
+        v-else
+        :identity="identityProfile"
+        class="flex-grow-1"
+        size="24"
+        popover
+        link-style />
+      <code v-if="displayValue">
+        ({{ profileId }})
+      </code>
+    </template>
+    <code v-else>
+      {{ profileId }}
+    </code>
+  </div>
 </template>
 
 <script>
 
 export default {
   props: {
-    identity: {
-      type: Object,
-      default: function() {
-        return null;
-      },
+    profileId: {
+      type: String,
+      default: null,
+    },
+    isSpace: {
+      type: Boolean,
+      default: false,
+    },
+    displayValue: {
+      type: Boolean,
+      default: false,
     },
   },
+  data: () => ({
+    identity: null,
+    loading: true,
+  }),
   computed: {
-    identityId() {
-      return this.identity && this.identity.identityId;
+    identityProfile() {
+      return !this.isSpace && this.identity?.profile;
     },
-    remoteId() {
-      return this.identity && this.identity.remoteId;
-    },
-    providerId() {
-      return this.identity && this.identity.providerId;
-    },
-    avatar() {
-      return this.identity && this.identity.avatar;
-    },
-    spaceId() {
-      return this.identity && this.identity.spaceId;
-    },
-    displayName() {
-      return this.identity && this.identity.displayName;
-    },
-    userIdentity() {
-      return {
-        id: this.identity?.identityId,
-        username: this.identity?.remoteId,
-        fullName: this.identity?.displayName,
-        position: this.identity?.position,
-        avatar: this.identity?.avatarUrl,
-        external: this.identity?.isExternal,
-      };
-    },
-    url() {
-      if (this.providerId === 'organization') {
-        return `${eXo.env.portal.context}/${eXo.env.portal.portalName}/profile/${this.remoteId}`;
-      } else if (this.providerId === 'space') {
-        return `${eXo.env.portal.context}/g/:spaces:${this.remoteId}/`;
-      }
-      return '';
-    },
+  },
+  created() {
+    if (this.isSpace) {
+      this.$analyticsUtils.loadSpace(this.$root.spaces, this.profileId)
+        .then(identity => this.identity = identity)
+        .finally(() => this.loading = false);
+    } else {
+      this.$analyticsUtils.loadUser(this.$root.users, this.profileId)
+        .then(identity => this.identity = identity)
+        .finally(() => this.loading = false);
+    }
   },
 };
 </script>
