@@ -24,8 +24,6 @@
         ref="chartSettingDialog"
         :retrieve-mappings-url="retrieveMappingsUrl"
         :settings="chartSettings"
-        :users="userObjects"
-        :spaces="spaceObjects"
         class="mt-0"
         @save="saveSettings" />
     </template>
@@ -157,8 +155,6 @@ export default {
     showMenu: false,
     displaySamplesCount: false,
     selectedPeriod: null,
-    userObjects: {},
-    spaceObjects: {},
     loading: true,
     appId: `AnalyticsApplication${parseInt(Math.random() * 10000)
       .toString()

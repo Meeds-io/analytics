@@ -143,18 +143,6 @@ export default {
         return null;
       },
     },
-    users: {
-      type: Object,
-      default: function() {
-        return null;
-      },
-    },
-    spaces: {
-      type: Object,
-      default: function() {
-        return null;
-      },
-    },
   },
   data() {
     return {

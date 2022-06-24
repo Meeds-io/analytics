@@ -24,8 +24,6 @@
         ref="chartSettingDialog"
         :retrieve-mappings-url="retrieveMappingsUrl"
         :settings="chartSettings"
-        :users="userObjects"
-        :spaces="spaceObjects"
         class="mt-0"
         @save="saveSettings" />
       <analytics-json-panel-dialog
@@ -36,8 +34,6 @@
         ref="viewSamplesDrawer"
         :title="$t(title)"
         :selected-period="selectedPeriod"
-        :users="userObjects"
-        :spaces="spaceObjects"
         :retrieve-samples-url="retrieveChartSamplesUrl"
         class="mt-0" />
     </template>
@@ -170,8 +166,6 @@ export default {
     showMenu: false,
     displaySamplesCount: false,
     selectedPeriod: null,
-    userObjects: {},
-    spaceObjects: {},
     loading: true,
     appId: `AnalyticsApplication${parseInt(Math.random() * 10000)
       .toString()

@@ -43,8 +43,6 @@
             v-for="chartData in chartDatas"
             :key="chartData.id"
             :chart-data="chartData"
-            :users="users"
-            :spaces="spaces"
             :sample-item-extensions="sampleItemExtensions" />
         </v-expansion-panels>
       </v-row>
@@ -74,18 +72,6 @@ export default {
     },
     title: {
       type: String,
-      default: function() {
-        return null;
-      },
-    },
-    users: {
-      type: Object,
-      default: function() {
-        return null;
-      },
-    },
-    spaces: {
-      type: Object,
       default: function() {
         return null;
       },

@@ -72,12 +72,6 @@ export default {
         return null;
       },
     },
-    users: {
-      type: Object,
-      default: function() {
-        return null;
-      },
-    },
     limit: {
       type: Number,
       default: 20
@@ -85,12 +79,6 @@ export default {
     pageSize: {
       type: Number,
       default: 20
-    },
-    spaces: {
-      type: Object,
-      default: function() {
-        return null;
-      },
     },
     userFields: {
       type: Array,
