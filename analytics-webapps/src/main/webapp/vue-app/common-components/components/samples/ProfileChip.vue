@@ -24,20 +24,20 @@
       <exo-space-avatar
         v-if="isSpace"
         :space="identity"
-        extra-class="flex-grow-1"
+        extra-class="me-2"
         size="24"
         popover
         link-style />
       <exo-user-avatar
         v-else
         :identity="identityProfile"
-        class="flex-grow-1"
+        class="me-2"
         size="24"
         popover
         link-style />
-      <code v-if="displayValue">
+      <span v-if="displayValue" class="text-seconday">
         ({{ profileId }})
-      </code>
+      </span>
     </template>
     <code v-else>
       {{ profileId }}
