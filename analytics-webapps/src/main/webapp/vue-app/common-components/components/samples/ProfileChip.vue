@@ -17,8 +17,7 @@
 <template>
   <a
     v-if="displayName"
-    :title="displayName"
-    :href="url"
+    v-identity-popover="userIdentity"
     class="text-truncate"
     rel="nofollow"
     target="_blank">
@@ -58,6 +57,16 @@ export default {
     },
     displayName() {
       return this.identity && this.identity.displayName;
+    },
+    userIdentity() {
+      return {
+        id: this.identity?.identityId,
+        username: this.identity?.remoteId,
+        fullName: this.identity?.displayName,
+        position: this.identity?.position,
+        avatar: this.identity?.avatarUrl,
+        external: this.identity?.isExternal,
+      };
     },
     url() {
       if (this.providerId === 'organization') {

@@ -45,44 +45,26 @@
     </v-expansion-panel-header>
     <v-expansion-panel-content>
       <template v-if="chartDataProps">
-        <v-row
+        <analytics-sample-item-attribute
           v-for="chartDataProp in chartDataProps"
           :key="chartDataProp"
-          class="ma-2"
-          no-gutters>
-          <v-col>{{ getI18N(chartDataProp) }}</v-col>
-          <v-col v-if="chartDataProp === 'userId' && userIdentity" class="text--secondary">
-            {{ chartData[chartDataProp] }}
-            (<analytics-profile-chip :identity="userIdentity" />)
-          </v-col>
-          <v-col v-else-if="chartDataProp === 'spaceId' && spaceIdentity" class="text--secondary">
-            {{ chartData[chartDataProp] }}
-            (<analytics-profile-chip :identity="spaceIdentity" />)
-          </v-col>
-          <v-col v-else class="text--secondary">
-            {{ chartData[chartDataProp] }}
-          </v-col>
-        </v-row>
+          :value="chartDataProp"
+          :chart-data="chartData"
+          :users="users"
+          :user-identity="userIdentity"
+          :sample-item-extension="sampleItemExtensions"
+          class="ma-2 no-gutters" />
       </template>
       <template v-if="chartDataParameters">
-        <v-row
+        <analytics-sample-item-attribute
           v-for="chartDataParameter in chartDataParameters"
           :key="chartDataParameter"
-          class="ma-2"
-          no-gutters>
-          <v-col>{{ getI18N(chartDataParameter) }}</v-col>
-          <v-col v-if="chartDataParameter === 'modifierSocialId' && userModifierIdentity" class="text--secondary">
-            {{ chartData.parameters[chartDataParameter] }}
-            (<analytics-profile-chip :identity="userModifierIdentity" />)
-          </v-col>
-          <v-col v-if="chartDataParameter === 'contentId'" class="text--secondary block">
-            {{ chartData.parameters[chartDataParameter] }}
-            (<analytics-content-chip :content-id="chartData.parameters[chartDataParameter]" />)
-          </v-col>
-          <v-col v-else class="text--secondary">
-            {{ chartData.parameters[chartDataParameter] }}
-          </v-col>
-        </v-row>
+          :value="chartDataParameter"
+          :chart-data="chartData.parameters"
+          :users="users"
+          :user-identity="userIdentity"
+          :sample-item-extensions="sampleItemExtensions"
+          class="ma-2 no-gutters" />
       </template>
     </v-expansion-panel-content>
   </v-expansion-panel>
@@ -104,6 +86,12 @@ export default {
       },
     },
     spaces: {
+      type: Object,
+      default: function() {
+        return null;
+      },
+    },
+    sampleItemExtensions: {
       type: Object,
       default: function() {
         return null;
@@ -149,20 +137,6 @@ export default {
         return null;
       }
     },
-    spaceIdentity() {
-      if (this.chartData && this.chartData.spaceId && this.spaces) {
-        const spaceObj = this.spaces[this.chartData.spaceId];
-        if (spaceObj) {
-          return spaceObj;
-        } else {
-          return {
-            spaceId: this.chartData.spaceId,
-          };
-        }
-      } else {
-        return null;
-      }
-    },
     chartDataTime() {
       return this.chartData && this.chartData.timestamp && new Date(this.chartData.timestamp);
     },
@@ -173,13 +147,6 @@ export default {
     chartDataParameters() {
       return this.chartData && this.chartData.parameters && Object.keys(this.chartData.parameters).sort();
     },
-  },
-  methods: {
-    getI18N(label){
-      const fieldLabelI18NKey = `analytics.field.label.${label}`;
-      const fieldLabelI18NValue = this.$t(fieldLabelI18NKey);
-      return  fieldLabelI18NValue === fieldLabelI18NKey ? label : fieldLabelI18NValue;
-    }
   },
 };
 </script>

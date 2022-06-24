@@ -44,7 +44,8 @@
             :key="chartData.id"
             :chart-data="chartData"
             :users="users"
-            :spaces="spaces" />
+            :spaces="spaces"
+            :sample-item-extensions="sampleItemExtensions" />
         </v-expansion-panels>
       </v-row>
     </template>
@@ -103,6 +104,9 @@ export default {
     pageSize: 10,
     limit: 10,
     canLoadMore: false,
+    extensionApp: 'AnalyticsSamples',
+    sampleItemExtensionType: 'SampleItem',
+    sampleItemExtensions: {},
   }),
   watch: {
     loading() {
@@ -113,6 +117,10 @@ export default {
         this.computeCanLoadMore();
       }
     },
+  },
+  created() {
+    document.addEventListener(`extension-${this.extensionApp}-${this.sampleItemExtensionType}-updated`, this.refreshSampleItemExtensions);
+    this.refreshSampleItemExtensions();
   },
   methods: {
     open() {
@@ -188,6 +196,20 @@ export default {
         this.canLoadMore = loadedDataLength >= this.limit;
       } else {
         this.canLoadMore = false;
+      }
+    },
+    refreshSampleItemExtensions() {
+      const extensions = extensionRegistry.loadExtensions(this.extensionApp, this.sampleItemExtensionType);
+      let changed = false;
+      extensions.forEach(extension => {
+        if (extension.type && extension.options && (!this.sampleItemExtensions[extension.type] || this.sampleItemExtensions[extension.type] !== extension.options)) {
+          this.sampleItemExtensions[extension.type] = extension.options;
+          changed = true;
+        }
+      });
+      // force update of attribute to re-render switch new extension type
+      if (changed) {
+        this.sampleItemExtensions = Object.assign({}, this.sampleItemExtensions);
       }
     },
   }

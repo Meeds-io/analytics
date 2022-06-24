@@ -33,10 +33,12 @@ export function loadUser(users, userId) {
         obj = obj || {};
         const userObject = {
           identityId: userId,
-          providerId: obj.globalId && obj.globalId.domain,
-          remoteId: obj.globalId && obj.globalId.localId,
-          avatar: obj.avatar || '/eXoSkin/skin/images/system/UserAvtDefault.png',
-          displayName: obj.profile && obj.profile.fullname,
+          providerId: obj?.providerId,
+          remoteId: obj?.remoteId,
+          avatar: obj?.profile?.avatar || '/eXoSkin/skin/images/system/UserAvtDefault.png',
+          displayName: obj?.profile.fullname,
+          position: obj?.profile?.position,
+          external: obj?.profile?.isExternal,
         };
         users[userId] = userObject;
       });

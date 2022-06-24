@@ -66,6 +66,9 @@ function() {
           'name': 'search by favorite',
           'timestamp': Date.now()
         }));
+        document.addEventListener('exo-kudos-sent', (event) => {
+          const kudosSent = event && event.detail;
+        });
       }
 
       this.cometdSubscription = cCometd.subscribe(this.settings.cometdChannel, null, event => {}, null, (subscribeReply) => {
