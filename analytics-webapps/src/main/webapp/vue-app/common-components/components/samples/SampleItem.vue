@@ -48,7 +48,7 @@
           :key="attrKey"
           :attr-key="attrKey"
           :attr-value="chartData.parameters[attrKey]"
-          :sample-item-extensions="sampleItemExtensions[attrKey]"
+          :sample-item-extensions="sampleItemExtensions"
           class="ma-2 no-gutters" />
       </template>
     </v-expansion-panel-content>
