@@ -34,10 +34,6 @@
       {{ chartData[value] }}
       (<analytics-profile-chip :identity="userModifierIdentity" />)
     </v-col>
-    <v-col v-else-if="value === 'contentId'" class="text--secondary block">
-      {{ chartData[value] }}
-      (<analytics-content-chip :content-id="chartData[value]" />)
-    </v-col>
     <v-col v-else class="text--secondary">
       {{ chartData[value] }}
     </v-col>
@@ -100,7 +96,7 @@ export default {
     },
     extendedSampleItemComponentParams() {
       return this.sampleItemExtension && {
-        userId: this.chartData[this.value],
+        value: this.chartData[this.value],
         users: this.users,
       } || null;
     },
@@ -140,6 +136,8 @@ export default {
         .finally(() => {
           this.initialized = true;
         });
+    } else {
+      this.initialized = true;
     }
   },
   methods: {
