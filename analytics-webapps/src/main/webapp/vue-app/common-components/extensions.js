@@ -14,6 +14,30 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-import './initComponents.js';
-import './extensions.js';
-Vue.use(Vuetify);
+extensionRegistry.registerExtension('AnalyticsSamples', 'SampleItem', {
+  type: 'userId',
+  options: {
+    // Rank of executing 'match' method
+    rank: 10,
+    // Used Vue component to display cell value
+    vueComponent: Vue.options.components['analytics-profile-sample-item-attribute'],
+    match: fieldName => (fieldName === 'userId' || fieldName === 'modifierSocialId'),
+    options: {
+      isUser: true,
+    },
+  },
+});
+
+extensionRegistry.registerExtension('AnalyticsSamples', 'SampleItem', {
+  type: 'spaceId',
+  options: {
+    // Rank of executing 'match' method
+    rank: 10,
+    // Used Vue component to display cell value
+    vueComponent: Vue.options.components['analytics-profile-sample-item-attribute'],
+    match: fieldName => (fieldName === 'spaceId'),
+    options: {
+      isSpace: true,
+    },
+  },
+});
