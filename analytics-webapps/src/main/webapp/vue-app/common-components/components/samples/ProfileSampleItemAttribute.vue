@@ -15,44 +15,37 @@
   Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 -->
 <template>
-  <a
-    v-if="contentTitle"
-    :title="contentTitle"
-    :href="contentUrl"
-    class="text-truncate"
-    rel="nofollow"
-    target="_blank">
-    {{ contentTitle }}
-  </a>
-  <code v-else>
-    {{ contentId }}
-  </code>
+  <analytics-profile-chip
+    :profile-id="attrValue"
+    :is-space="isSpace"
+    display-value />
 </template>
-
 <script>
-
 export default {
   props: {
-    contentId: {
-      type: String,
-      default: ''
+    attrKey: {
+      type: Object,
+      default: function() {
+        return null;
+      },
+    },
+    attrValue: {
+      type: Object,
+      default: function() {
+        return null;
+      },
+    },
+    options: {
+      type: Object,
+      default: function() {
+        return null;
+      },
     },
   },
-  data: () => ({
-    content: null,
-  }),
   computed: {
-    contentTitle() {
-      return this.content && this.content.title;
-    },
-    contentUrl() {
-      return this.content && this.content.url;
+    isSpace() {
+      return this.options?.isSpace;
     },
   },
-  created() {
-    this.$analyticsUtils.getContent(this.contentId).then(content => {
-      this.content = content;
-    });
-  }
 };
 </script>

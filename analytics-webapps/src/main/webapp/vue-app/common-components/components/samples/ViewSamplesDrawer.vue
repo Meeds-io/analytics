@@ -43,8 +43,7 @@
             v-for="chartData in chartDatas"
             :key="chartData.id"
             :chart-data="chartData"
-            :users="users"
-            :spaces="spaces" />
+            :sample-item-extensions="sampleItemExtensions" />
         </v-expansion-panels>
       </v-row>
     </template>
@@ -62,7 +61,6 @@
     </template>
   </exo-drawer>
 </template>
-
 <script>
 export default {
   props: {
@@ -74,18 +72,6 @@ export default {
     },
     title: {
       type: String,
-      default: function() {
-        return null;
-      },
-    },
-    users: {
-      type: Object,
-      default: function() {
-        return null;
-      },
-    },
-    spaces: {
-      type: Object,
       default: function() {
         return null;
       },
@@ -103,6 +89,9 @@ export default {
     pageSize: 10,
     limit: 10,
     canLoadMore: false,
+    extensionApp: 'AnalyticsSamples',
+    sampleItemExtensionType: 'SampleItem',
+    sampleItemExtensions: {},
   }),
   watch: {
     loading() {
@@ -113,6 +102,16 @@ export default {
         this.computeCanLoadMore();
       }
     },
+  },
+  created() {
+    if (!this.$root.users) {
+      this.$root.users = {};
+    }
+    if (!this.$root.spaces) {
+      this.$root.spaces = {};
+    }
+    document.addEventListener(`extension-${this.extensionApp}-${this.sampleItemExtensionType}-updated`, this.refreshSampleItemExtensions);
+    this.refreshSampleItemExtensions();
   },
   methods: {
     open() {
@@ -130,8 +129,6 @@ export default {
       if (!this.selectedPeriod) {
         return;
       }
-
-      let loadedChartData;
       const params = {
         lang: eXo.env.portal.language && eXo.env.portal.language.replace('_','-'),
         min: this.selectedPeriod.min,
@@ -158,29 +155,12 @@ export default {
             throw new Error('Error getting analytics samples with filters:', params);
           }
         })
-        .then((chartDatas) => loadedChartData = chartDatas)
-        .then((chartDatas) => this.loadUsersAndSpacesObjects(chartDatas))
-        .then(() => this.chartDatas = [])
-        .then(() => this.$nextTick())
-        .then(() => this.chartDatas = loadedChartData)
+        .then((chartDatas) => this.chartDatas = chartDatas)
         .catch((e) => {
           console.error('fetch analytics - error', e);
           this.error = 'Error getting analytics';
         })
         .finally(() => this.loading = false);
-    },
-    loadUsersAndSpacesObjects(chartDatas, index) {
-      index = index || 0;
-      if (!chartDatas || index >= chartDatas.length) {
-        return;
-      }
-      const chartData = chartDatas[index];
-      if (chartData) {
-        return this.$analyticsUtils.loadUser(this.users, chartData.userId)
-          .then(() => this.$analyticsUtils.loadUser(this.users, chartData.parameters && chartData.parameters.modifierSocialId))
-          .then(() => this.$analyticsUtils.loadSpace(this.spaces, chartData.spaceId))
-          .then(() => this.loadUsersAndSpacesObjects(chartDatas, ++index));
-      }
     },
     computeCanLoadMore() {
       if (this.chartDatas) {
@@ -188,6 +168,20 @@ export default {
         this.canLoadMore = loadedDataLength >= this.limit;
       } else {
         this.canLoadMore = false;
+      }
+    },
+    refreshSampleItemExtensions() {
+      const extensions = extensionRegistry.loadExtensions(this.extensionApp, this.sampleItemExtensionType);
+      let changed = false;
+      extensions.forEach(extension => {
+        if (extension.type && extension.options && (!this.sampleItemExtensions[extension.type] || this.sampleItemExtensions[extension.type] !== extension.options)) {
+          this.sampleItemExtensions[extension.type] = extension.options;
+          changed = true;
+        }
+      });
+      // force update of attribute to re-render switch new extension type
+      if (changed) {
+        this.sampleItemExtensions = Object.assign({}, this.sampleItemExtensions);
       }
     },
   }

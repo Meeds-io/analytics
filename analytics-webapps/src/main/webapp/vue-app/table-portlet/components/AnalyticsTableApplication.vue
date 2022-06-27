@@ -47,8 +47,6 @@
           ref="tableSettingDrawer"
           :retrieve-mappings-url="retrieveMappingsUrl"
           :settings="settings"
-          :users="userObjects"
-          :spaces="spaceObjects"
           :user-fields="userFields"
           :space-fields="spaceFields"
           class="mt-0"
@@ -61,8 +59,6 @@
       :settings="settings"
       :period="selectedPeriod"
       :selected-identity="selectedIdentity"
-      :users="userObjects"
-      :spaces="spaceObjects"
       :user-fields="userFields"
       :space-fields="spaceFields"
       :limit="settings && settings.pageSize"
@@ -122,8 +118,6 @@ export default {
     scope: null,
     initialized: false,
     selectedPeriod: null,
-    userObjects: {},
-    spaceObjects: {},
     columnsData: {},
     searchOptions: {
       currentUser: '',
