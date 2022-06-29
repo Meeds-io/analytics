@@ -59,7 +59,7 @@ public class AnalyticsActivityTagsListener extends Listener<TagObject, Set<TagNa
     String objectType;
     ExoSocialActivity activity = activityManager.getActivity(activityId);
     if (activity.getType() == null) {
-      objectType = activity.isComment() ? "COMMENT" : "ACTIVITY";
+      objectType = activity.isComment() ? "Comment" : "Activity";
     } else {
       objectType = activity.getType();
     }
