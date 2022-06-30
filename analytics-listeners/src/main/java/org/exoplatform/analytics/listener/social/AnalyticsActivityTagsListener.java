@@ -73,7 +73,7 @@ public class AnalyticsActivityTagsListener extends Listener<TagObject, Set<TagNa
     statisticData.setUserId(Long.parseLong(activity.getUserId()));
     statisticData.addParameter("username", username);
     statisticData.addParameter("type", objectType);
-    statisticData.addParameter("dataType", objectType + "_TYPE");
+    statisticData.addParameter("dataType", StringUtils.lowerCase(objectType));
     statisticData.addParameter("spaceId", audienceIdentity.getId());
 
     for (int i = 0; i < numberOfTags; i++) {

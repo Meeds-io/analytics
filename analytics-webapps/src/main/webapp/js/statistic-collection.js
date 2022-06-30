@@ -96,8 +96,8 @@ function() {
         'operation': bookmark && 'Bookmark' || 'UnBookmark',
         'timestamp': Date.now(),
         'parameters': {
-          'type': type,
-          'dataType': `${type.toUpperCase()}_TYPE`,
+           type,
+          'dataType': type.toLowerCase(),
           'contentId': eventDetail.id,
           'spaceId': eventDetail.spaceId,
         },
