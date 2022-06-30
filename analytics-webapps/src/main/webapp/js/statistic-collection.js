@@ -86,7 +86,6 @@ function() {
       this.sendMessage(connectorAnalytics);
     },
     addStatisticFavorite: function (bookmark, eventDetail) {
-      let type = eventDetail.typeLabel || eventDetail.type;
       this.sendMessage({
         'module': 'portal',
         'subModule': 'ui',
@@ -96,7 +95,8 @@ function() {
         'operation': bookmark && 'Bookmark' || 'UnBookmark',
         'timestamp': Date.now(),
         'parameters': {
-          'type': type.charAt(0).toUpperCase() + type.slice(1),
+          'type': eventDetail.typeLabel || eventDetail.type,
+          'dataType': eventDetail.dataType,
           'contentId': eventDetail.id,
           'spaceId': eventDetail.spaceId,
         },
