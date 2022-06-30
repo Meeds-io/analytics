@@ -3,7 +3,7 @@
   <parent>
     <groupId>org.exoplatform.addons.analytics</groupId>
     <artifactId>analytics-parent</artifactId>
-    <version>1.3.x-SNAPSHOT</version>
+    <version>1.3.0-M06</version>
   </parent>
   <artifactId>analytics-listeners</artifactId>
   <name>eXo Analytics - Listeners</name>
