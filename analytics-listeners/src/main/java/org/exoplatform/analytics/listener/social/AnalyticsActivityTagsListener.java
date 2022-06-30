@@ -56,12 +56,12 @@ public class AnalyticsActivityTagsListener extends Listener<TagObject, Set<TagNa
 
   private void addEventStatistic(Set<TagName> tagNames, String activityId) {
     int numberOfTags = tagNames.size();
-    String objectType = null;
-    String dataType = null;
+    String objectType;
     ExoSocialActivity activity = activityManager.getActivity(activityId);
     if (activity.getType() == null) {
       objectType = activity.isComment() ? "COMMENT" : "ACTIVITY";
-      dataType = activity.isComment() ? "Comments" : "Activities";
+    } else {
+      objectType = activity.getType();
     }
     Identity audienceIdentity = activityManager.getActivityStreamOwnerIdentity(activity.getId());
     String username = getActivityPoster(activity);
@@ -73,7 +73,7 @@ public class AnalyticsActivityTagsListener extends Listener<TagObject, Set<TagNa
     statisticData.setUserId(Long.parseLong(activity.getUserId()));
     statisticData.addParameter("username", username);
     statisticData.addParameter("type", objectType);
-    statisticData.addParameter("dataType", dataType);
+    statisticData.addParameter("dataType", objectType + "_TYPE");
     statisticData.addParameter("spaceId", audienceIdentity.getId());
 
     for (int i = 0; i < numberOfTags; i++) {
