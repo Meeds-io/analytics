@@ -23,7 +23,7 @@
         :params="extendedSampleItemComponentParams" />
     </v-col>
     <v-col v-else class="text--secondary">
-      {{ attrValue }}
+      {{ valueLabel }}
     </v-col>
   </v-row>
 </template>
@@ -53,6 +53,10 @@ export default {
     keyLabel() {
       const fieldLabelI18NKey = `analytics.field.label.${this.attrKey}`;
       return this.$te(fieldLabelI18NKey) ? this.$t(fieldLabelI18NKey) : this.attrKey;
+    },
+    valueLabel() {
+      const fieldLabelI18NValue = `analytics.${this.attrValue}`;
+      return this.$te(fieldLabelI18NValue) ? this.$t(fieldLabelI18NValue) : this.attrValue;
     },
     sampleItemExtension() {
       if (this.sampleItemExtensions) {
