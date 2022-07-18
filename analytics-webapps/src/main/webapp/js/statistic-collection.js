@@ -52,6 +52,7 @@ function() {
         // First time init, install listener
         document.addEventListener('exo-statistic-message', event => this.sendMessage(event && event.detail));
         document.addEventListener('search-connector-selected', event => this.addStatisticSearchFilter(event && event.detail));
+        document.addEventListener('activity-stream-type-filter-applied', event => this.addStatisticStreamFilter(event && event.detail));
         document.addEventListener('favorite-added', event => this.addStatisticFavorite(true, event && event.detail));
         document.addEventListener('favorite-removed', event => this.addStatisticFavorite(false, event && event.detail));
         document.addEventListener('download-file', event => this.addStatisticDownload(event && event.detail));
@@ -84,6 +85,18 @@ function() {
         'timestamp': Date.now()
       };
       this.sendMessage(connectorAnalytics);
+    },
+    addStatisticStreamFilter: function (streamFilter) {
+      const streamFilterAnalytics = {
+        'module': 'portal',
+        'subModule': 'ui',
+        'userId': eXo.env.portal.userIdentityId,
+        'userName': eXo.env.portal.userName,
+        'operation': streamFilter,
+        'name': 'streamFilter',
+        'timestamp': Date.now()
+      };
+      this.sendMessage(streamFilterAnalytics);
     },
     addStatisticFavorite: function (bookmark, eventDetail) {
       let type = eventDetail.typeLabel || eventDetail.type;
