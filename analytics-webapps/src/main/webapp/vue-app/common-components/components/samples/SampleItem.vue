@@ -23,9 +23,9 @@
         </v-col>
         <v-col
           cols="4"
-          :title="chartData.operation"
+          :title="operationLabel"
           class="text-truncate">
-          <strong v-if="chartData.operation">{{ chartData.operation }}</strong>
+          <strong v-if="chartData.operation">{{ operationLabel }}</strong>
         </v-col>
         <v-col cols="4" class="text--secondary text-right">
           <date-format :value="chartDataTime" :format="dateFormat" />
@@ -93,6 +93,10 @@ export default {
     },
     userId() {
       return this.chartData.userId || this.chartData.modifierSocialId;
+    },
+    operationLabel() {
+      const operationLabelI18NValue = `analytics.${this.chartData.operation}`;
+      return this.$te(operationLabelI18NValue) ? this.$t(operationLabelI18NValue) : this.chartData.operation;
     },
   },
 };
