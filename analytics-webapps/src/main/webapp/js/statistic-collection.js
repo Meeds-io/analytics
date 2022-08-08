@@ -67,7 +67,6 @@ function() {
           'name': 'search by favorite',
           'timestamp': Date.now()
         }));
-        document.addEventListener('identity-profile-access', () => this.addStatisticProfileAccess(event && event.detail));
       }
 
       this.cometdSubscription = cCometd.subscribe(this.settings.cometdChannel, null, event => {}, null, (subscribeReply) => {
@@ -86,20 +85,6 @@ function() {
         'timestamp': Date.now()
       };
       this.sendMessage(connectorAnalytics);
-    },
-    addStatisticProfileAccess: function (eventDetail) {
-      this.sendMessage({
-        'module': 'portal',
-        'subModule': 'ui',
-        'userId': eXo.env.portal.userIdentityId,
-        'userName': eXo.env.portal.userName,
-        'operation': eventDetail.entityType === 'USER_TIPTIP' ? 'profileAccess' : 'spaceAccess',
-        'timestamp': Date.now(),
-        'parameters': {
-          'entityType': eventDetail.entityType,
-          'spaceId': eventDetail.spaceId,
-        },
-      });
     },
     addStatisticStreamFilter: function (streamFilter) {
       const streamFilterAnalytics = {
@@ -175,6 +160,20 @@ function() {
         'timestamp': Date.now()
       }
       this.sendMessage(tagSearch);
+    },
+    addStatisticProfileAccess: function (identityType) {
+      this.sendMessage({
+        'module': 'portal',
+        'subModule': 'ui',
+        'userId': eXo.env.portal.userIdentityId,
+        'userName': eXo.env.portal.userName,
+        'operation': identityType === 'USER_TIPTIP' ? 'profileAccess' : 'spaceAccess',
+        'timestamp': Date.now(),
+        'parameters': {
+          'entityType': identityType,
+          'spaceId': eXo.env.portal.spaceId,
+        },
+      });
     },
     installWatchers: function () {
       const self_ = this;
@@ -398,6 +397,11 @@ function() {
                 isMobile,
               },
             });
+            let identityType = localStorage.getItem('popover-identity-type');
+            if ((eXo.env.portal.pageTitle === 'Profile' || window.location.pathname.startsWith('/portal/g/:spaces')) && identityType) {
+              api.addStatisticProfileAccess(identityType);
+              localStorage.removeItem('popover-identity-type');
+            }
           }, 500);
         }
       }
