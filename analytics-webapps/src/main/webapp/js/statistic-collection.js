@@ -161,6 +161,20 @@ function() {
       }
       this.sendMessage(tagSearch);
     },
+    addStatisticProfileAccess: function (identityType) {
+      this.sendMessage({
+        'module': 'portal',
+        'subModule': 'ui',
+        'userId': eXo.env.portal.userIdentityId,
+        'userName': eXo.env.portal.userName,
+        'operation': identityType === 'USER_TIPTIP' ? 'profileAccess' : 'spaceAccess',
+        'timestamp': Date.now(),
+        'parameters': {
+          'entityType': identityType,
+          'spaceId': eXo.env.portal.spaceId,
+        },
+      });
+    },
     installWatchers: function () {
       const self_ = this;
       $(document).ready(() => {
@@ -325,6 +339,11 @@ function() {
           data.parameters.duration = endLoadingTime;
         }
         api.sendMessage(data);
+        let identityType = localStorage.getItem('popover-identity-type');
+        if ((eXo.env.portal.pageTitle === 'Profile' || eXo.env.portal.selectedNodeUri === 'profile' || window.location.pathname.startsWith('/portal/g/:spaces')) && identityType) {
+          api.addStatisticProfileAccess(identityType);
+          localStorage.removeItem('popover-identity-type');
+        }
       }
     }
     if(!eXo.env.portal.requestStartTime){
