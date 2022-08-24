@@ -88,7 +88,7 @@ function() {
       this.sendMessage(connectorAnalytics);
     },
     addStatisticEditorOptionsOpened: function () {
-      const connectorAnalytics = {
+      const editorOptionsAnalytics = {
         'module': 'social',
         'subModule': 'activity',
         'userId': eXo.env.portal.userIdentityId,
@@ -97,7 +97,7 @@ function() {
         'name': 'changeEditorsOptions',
         'timestamp': Date.now()
       };
-      this.sendMessage(connectorAnalytics);
+      this.sendMessage(editorOptionsAnalytics);
     },
     addStatisticStreamFilter: function (streamFilter) {
       const streamFilterAnalytics = {
