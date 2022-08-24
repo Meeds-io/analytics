@@ -58,6 +58,7 @@ function() {
         document.addEventListener('download-file', event => this.addStatisticDownload(event && event.detail));
         document.addEventListener('document-change', event => this.addStatisticDocument(event && event.detail));
         document.addEventListener('search-tag', () => this.addStatisticSearchByTag());
+        document.addEventListener('editors-options-opened', event => this.addStatisticEditorOptionsOpened());
         document.addEventListener('search-favorites-selected', () => this.sendMessage({
           'module': 'portal',
           'subModule': 'ui',
@@ -82,6 +83,18 @@ function() {
         'userName': eXo.env.portal.userName,
         'operation': 'click',
         'name': uiInteraction,
+        'timestamp': Date.now()
+      };
+      this.sendMessage(connectorAnalytics);
+    },
+    addStatisticEditorOptionsOpened: function () {
+      const connectorAnalytics = {
+        'module': 'social',
+        'subModule': 'activity',
+        'userId': eXo.env.portal.userIdentityId,
+        'userName': eXo.env.portal.userName,
+        'operation': 'displayRichOptions',
+        'name': 'changeEditorsOptions',
         'timestamp': Date.now()
       };
       this.sendMessage(connectorAnalytics);
