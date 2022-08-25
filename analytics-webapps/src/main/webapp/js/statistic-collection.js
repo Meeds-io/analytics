@@ -58,7 +58,7 @@ function() {
         document.addEventListener('download-file', event => this.addStatisticDownload(event && event.detail));
         document.addEventListener('document-change', event => this.addStatisticDocument(event && event.detail));
         document.addEventListener('search-tag', () => this.addStatisticSearchByTag());
-        document.addEventListener('editors-options-opened', event => this.addStatisticEditorOptionsOpened());
+        document.addEventListener('editors-options-opened', event => this.addStatisticEditorOptionsOpened(event && event.detail));
         document.addEventListener('editor-hashtag-added', event => this.addStatisticEditorHashtagAdded());
         document.addEventListener('editor-emoji-added', event => this.addStatisticEditorEmojiAdded());
         document.addEventListener('search-favorites-selected', () => this.sendMessage({
