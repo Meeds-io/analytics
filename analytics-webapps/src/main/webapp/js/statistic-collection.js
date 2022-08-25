@@ -59,6 +59,8 @@ function() {
         document.addEventListener('document-change', event => this.addStatisticDocument(event && event.detail));
         document.addEventListener('search-tag', () => this.addStatisticSearchByTag());
         document.addEventListener('editors-options-opened', event => this.addStatisticEditorOptionsOpened());
+        document.addEventListener('editor-hashtag-added', event => this.addStatisticEditorHashtagAdded());
+        document.addEventListener('editor-emoji-added', event => this.addStatisticEditorEmojiAdded());
         document.addEventListener('search-favorites-selected', () => this.sendMessage({
           'module': 'portal',
           'subModule': 'ui',
@@ -98,6 +100,30 @@ function() {
         'timestamp': Date.now()
       };
       this.sendMessage(editorOptionsAnalytics);
+    },
+    addStatisticEditorHashtagAdded: function () {
+      const editorHashTagAnalytics = {
+        'module': 'social',
+        'subModule': 'activity',
+        'userId': eXo.env.portal.userIdentityId,
+        'userName': eXo.env.portal.userName,
+        'operation': 'useHash',
+        'name': 'editorRichOptions',
+        'timestamp': Date.now()
+      };
+      this.sendMessage(editorHashTagAnalytics);
+    },
+    addStatisticEditorEmojiAdded: function () {
+      const editorEmojiAnalytics = {
+        'module': 'social',
+        'subModule': 'activity',
+        'userId': eXo.env.portal.userIdentityId,
+        'userName': eXo.env.portal.userName,
+        'operation': 'useEmoji',
+        'name': 'editorRichOptions',
+        'timestamp': Date.now()
+      };
+      this.sendMessage(editorEmojiAnalytics);
     },
     addStatisticStreamFilter: function (streamFilter) {
       const streamFilterAnalytics = {
