@@ -89,13 +89,13 @@ function() {
       };
       this.sendMessage(connectorAnalytics);
     },
-    addStatisticEditorOptionsOpened: function () {
+    addStatisticEditorOptionsOpened: function (eventDetail) {
       const editorOptionsAnalytics = {
         'module': 'social',
         'subModule': 'activity',
         'userId': eXo.env.portal.userIdentityId,
         'userName': eXo.env.portal.userName,
-        'operation': 'displayRichOptions',
+        'operation': eventDetail,
         'name': 'changeEditorsOptions',
         'timestamp': Date.now()
       };
