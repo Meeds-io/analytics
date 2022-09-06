@@ -60,6 +60,7 @@ function() {
         document.addEventListener('search-tag', () => this.addStatisticSearchByTag());
         document.addEventListener('editors-options-opened', event => this.addStatisticEditorOptionsOpened(event && event.detail));
         document.addEventListener('editor-option-added', event => this.addStatisticEditorOptionAdded(event && event.detail));
+        document.addEventListener('space-topbar-popover-action', event => this.addStatisticSpaceTopbarPopover(event && event.detail));
         document.addEventListener('search-favorites-selected', () => this.sendMessage({
           'module': 'portal',
           'subModule': 'ui',
@@ -111,6 +112,18 @@ function() {
         'timestamp': Date.now()
       };
       this.sendMessage(editorOptionAddedAnalytics);
+    },
+    addStatisticSpaceTopbarPopover: function (eventDetail) {
+      const spaceTopbarPopoverAnalytics = {
+        'module': 'portal',
+        'subModule': 'ui',
+        'userId': eXo.env.portal.userIdentityId,
+        'userName': eXo.env.portal.userName,
+        'operation': eventDetail,
+        'name': 'spaceTopbarpopover',
+        'timestamp': Date.now()
+      };
+      this.sendMessage(spaceTopbarPopoverAnalytics);
     },
     addStatisticStreamFilter: function (streamFilter) {
       const streamFilterAnalytics = {
