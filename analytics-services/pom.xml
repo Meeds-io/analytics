@@ -20,7 +20,7 @@
   <parent>
     <groupId>org.exoplatform.addons.analytics</groupId>
     <artifactId>analytics-parent</artifactId>
-    <version>1.2.x-SNAPSHOT</version>
+    <version>1.2.1-RC02</version>
   </parent>
   <artifactId>analytics-services</artifactId>
   <name>eXo Analytics - Services</name>
