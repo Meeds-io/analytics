@@ -139,6 +139,7 @@ function() {
     },
     addStatisticFavorite: function (bookmark, eventDetail) {
       let type = eventDetail.typeLabel || eventDetail.type;
+      let entityType = eventDetail.entityType || '';
       this.sendMessage({
         'module': 'portal',
         'subModule': 'ui',
@@ -152,6 +153,7 @@ function() {
           'dataType': type.toLowerCase(),
           'contentId': eventDetail.id,
           'spaceId': eventDetail.spaceId,
+          'entityType': entityType,
         },
       });
     },
