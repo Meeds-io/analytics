@@ -121,7 +121,10 @@ function() {
         'userName': eXo.env.portal.userName,
         'operation': eventDetail,
         'name': 'spaceTopbarpopover',
-        'timestamp': Date.now()
+        'timestamp': Date.now(),
+        'parameters': {
+          'entityType': 'SPACE_TOP_BAR_TIPTIP',
+        },
       };
       this.sendMessage(spaceTopbarPopoverAnalytics);
     },
