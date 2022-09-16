@@ -61,6 +61,7 @@ function() {
         document.addEventListener('editors-options-opened', event => this.addStatisticEditorOptionsOpened(event && event.detail));
         document.addEventListener('editor-option-added', event => this.addStatisticEditorOptionAdded(event && event.detail));
         document.addEventListener('space-topbar-popover-action', event => this.addStatisticSpaceTopbarPopover(event && event.detail));
+        document.addEventListener('space-left-navigation-action', event => this.addStatisticSpaceLeftNavigation(event && event.detail));
         document.addEventListener('search-favorites-selected', () => this.sendMessage({
           'module': 'portal',
           'subModule': 'ui',
@@ -124,6 +125,21 @@ function() {
         'timestamp': Date.now(),
         'parameters': {
           'entityType': 'SPACE_TOP_BAR_TIPTIP',
+        },
+      };
+      this.sendMessage(spaceTopbarPopoverAnalytics);
+    },
+    addStatisticSpaceLeftNavigation: function (eventDetail) {
+      const spaceLeftNavigationAnalytics = {
+        'module': 'portal',
+        'subModule': 'ui',
+        'userId': eXo.env.portal.userIdentityId,
+        'userName': eXo.env.portal.userName,
+        'operation': eventDetail,
+        'name': 'spaceLeftNavigation',
+        'timestamp': Date.now(),
+        'parameters': {
+          'entityType': 'left_navigation',
         },
       };
       this.sendMessage(spaceTopbarPopoverAnalytics);
