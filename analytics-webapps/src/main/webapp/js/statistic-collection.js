@@ -71,8 +71,9 @@ function() {
           'name': 'search by favorite',
           'timestamp': Date.now()
         }));
+        document.addEventListener('activity-stream-pinned', event => this.addStatisticActivityPin(true, event && event.detail));
+        document.addEventListener('activity-stream-unpinned', event => this.addStatisticActivityPin(false, event && event.detail));
       }
-
       this.cometdSubscription = cCometd.subscribe(this.settings.cometdChannel, null, event => {}, null, (subscribeReply) => {
         self_.connected = subscribeReply && subscribeReply.successful;
       });
@@ -301,6 +302,23 @@ function() {
         statisticMessage.token = this.settings.cometdToken;
         cCometd.publish(this.settings.cometdChannel, JSON.stringify(statisticMessage));
       }
+    },
+    addStatisticActivityPin: function (pinned, eventDetail) {
+      let type = eventDetail.activityType;
+      let spaceId = eventDetail.spaceId || '';
+      this.sendMessage({
+        'module': 'social',
+        'subModule': 'activity',
+        'userId': eXo.env.portal.userIdentityId,
+        'userName': eXo.env.portal.userName,
+        'name': 'pin',
+        'operation': pinned && 'Pin' || 'UnPin',
+        'timestamp': Date.now(),
+        'parameters': {
+          'type': type,
+          'spaceId': spaceId,
+        },
+      });
     },
   };
   function checkDeviceType(userAgentLowerCase){
