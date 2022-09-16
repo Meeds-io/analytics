@@ -139,7 +139,7 @@ function() {
         'name': 'spaceLeftNavigation',
         'timestamp': Date.now(),
         'parameters': {
-          'entityType': 'left_navigation',
+          'entityType': 'spaces_left_navigation',
         },
       };
       this.sendMessage(spaceTopbarPopoverAnalytics);
