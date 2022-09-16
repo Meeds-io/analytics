@@ -304,8 +304,6 @@ function() {
       }
     },
     addStatisticActivityPin: function (pinned, eventDetail) {
-      let type = eventDetail.type;
-      let spaceId = eXo.env.portal.spaceId || eventDetail.activityStream?.space?.dataEntity?.id;
       this.sendMessage({
         'module': 'social',
         'subModule': 'activity',
@@ -315,8 +313,8 @@ function() {
         'operation': pinned && 'Pin' || 'UnPin',
         'timestamp': Date.now(),
         'parameters': {
-          'type': type,
-          'spaceId': spaceId,
+          'type': eventDetail.type,
+          'spaceId': eventDetail.activityStream?.space?.dataEntity?.id,
         },
       });
     },
