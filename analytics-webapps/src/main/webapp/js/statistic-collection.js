@@ -71,8 +71,8 @@ function() {
           'name': 'search by favorite',
           'timestamp': Date.now()
         }));
-        document.addEventListener('activity-stream-pinned', event => this.addStatisticActivityPin(true, event && event.detail));
-        document.addEventListener('activity-stream-unpinned', event => this.addStatisticActivityPin(false, event && event.detail));
+        document.addEventListener('activity-pinned', event => this.addStatisticActivityPin(true, event && event.detail));
+        document.addEventListener('activity-unpinned', event => this.addStatisticActivityPin(false, event && event.detail));
       }
       this.cometdSubscription = cCometd.subscribe(this.settings.cometdChannel, null, event => {}, null, (subscribeReply) => {
         self_.connected = subscribeReply && subscribeReply.successful;
@@ -304,8 +304,8 @@ function() {
       }
     },
     addStatisticActivityPin: function (pinned, eventDetail) {
-      let type = eventDetail.activityType;
-      let spaceId = eventDetail.spaceId || '';
+      let type = eventDetail.type;
+      let spaceId = eXo.env.portal.spaceId || eventDetail.activityStream?.space?.dataEntity?.id;
       this.sendMessage({
         'module': 'social',
         'subModule': 'activity',
