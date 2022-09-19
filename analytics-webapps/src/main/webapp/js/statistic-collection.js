@@ -142,7 +142,7 @@ function() {
           'entityType': 'spaces_left_navigation',
         },
       };
-      this.sendMessage(spaceTopbarPopoverAnalytics);
+      this.sendMessage(spaceLeftNavigationAnalytics);
     },
     addStatisticStreamFilter: function (streamFilter) {
       const streamFilterAnalytics = {
