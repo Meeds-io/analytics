@@ -61,6 +61,8 @@ function() {
         document.addEventListener('editors-options-opened', event => this.addStatisticEditorOptionsOpened(event && event.detail));
         document.addEventListener('manage-access', event => this.addStatisticManageAccess(event && event.detail));
         document.addEventListener('editor-option-added', event => this.addStatisticEditorOptionAdded(event && event.detail));
+        document.addEventListener('space-topbar-popover-action', event => this.addStatisticSpaceTopbarPopover(event && event.detail));
+        document.addEventListener('space-left-navigation-action', event => this.addStatisticSpaceLeftNavigation(event && event.detail));
         document.addEventListener('search-favorites-selected', () => this.sendMessage({
           'module': 'portal',
           'subModule': 'ui',
@@ -114,6 +116,36 @@ function() {
       };
       this.sendMessage(editorOptionAddedAnalytics);
     },
+    addStatisticSpaceTopbarPopover: function (eventDetail) {
+      const spaceTopbarPopoverAnalytics = {
+        'module': 'portal',
+        'subModule': 'ui',
+        'userId': eXo.env.portal.userIdentityId,
+        'userName': eXo.env.portal.userName,
+        'operation': eventDetail,
+        'name': 'spaceTopbarpopover',
+        'timestamp': Date.now(),
+        'parameters': {
+          'entityType': 'SPACE_TOP_BAR_TIPTIP',
+        },
+      };
+      this.sendMessage(spaceTopbarPopoverAnalytics);
+    },
+    addStatisticSpaceLeftNavigation: function (eventDetail) {
+      const spaceLeftNavigationAnalytics = {
+        'module': 'portal',
+        'subModule': 'ui',
+        'userId': eXo.env.portal.userIdentityId,
+        'userName': eXo.env.portal.userName,
+        'operation': eventDetail,
+        'name': 'spaceLeftNavigation',
+        'timestamp': Date.now(),
+        'parameters': {
+          'entityType': 'spaces_left_navigation',
+        },
+      };
+      this.sendMessage(spaceLeftNavigationAnalytics);
+    },
     addStatisticStreamFilter: function (streamFilter) {
       const streamFilterAnalytics = {
         'module': 'portal',
@@ -128,6 +160,7 @@ function() {
     },
     addStatisticFavorite: function (bookmark, eventDetail) {
       let type = eventDetail.typeLabel || eventDetail.type;
+      let entityType = eventDetail.entityType || '';
       this.sendMessage({
         'module': 'portal',
         'subModule': 'ui',
@@ -141,6 +174,7 @@ function() {
           'dataType': type.toLowerCase(),
           'contentId': eventDetail.id,
           'spaceId': eventDetail.spaceId,
+          'entityType': entityType,
         },
       });
     },
