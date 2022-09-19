@@ -422,7 +422,7 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
     List<StatisticFieldValue> results = new ArrayList<>();
     for (int i = 0; i < buckets.length(); i++) {
       JSONObject bucket = buckets.getJSONObject(i);
-      String value = bucket.getString("key");
+      String value = getResultKeyAsString(bucket);
       long count = bucket.getLong("doc_count");
       results.add(new StatisticFieldValue(value, count));
     }
@@ -851,7 +851,7 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
           JSONArray subBuckets = bucket.getJSONObject(AGGREGATION_RESULT_PARAM).getJSONArray("buckets");
           for (int j = 0; j < subBuckets.length(); j++) {
             JSONObject subBucket = subBuckets.getJSONObject(j);
-            String key = subBucket.getString("key");
+            String key = getResultKeyAsString(subBucket);
             TableColumnItemValue itemValue = itemValues.computeIfAbsent(key, mapKey -> new TableColumnItemValue());
             itemValue.setKey(key);
             if (columnIndex == 0) {
@@ -865,7 +865,7 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
     } else {
       for (int i = 0; i < buckets.length(); i++) {
         JSONObject bucket = buckets.getJSONObject(i);
-        String key = bucket.getString("key");
+        String key = getResultKeyAsString(bucket);
         TableColumnItemValue itemValue = new TableColumnItemValue();
         itemValue.setKey(key);
         if (columnIndex == 0) {
@@ -900,7 +900,7 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
         JSONArray subAggregationBuckets = subAggregationResult.getJSONArray("buckets");
         for (int j = 0; j < subAggregationBuckets.length(); j++) {
           JSONObject subAggregationBucket = subAggregationBuckets.getJSONObject(j);
-          values.add(subAggregationBucket.getString("key"));
+          values.add(getResultKeyAsString(subAggregationBucket));
         }
       }
       value = values;
@@ -1044,7 +1044,7 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
         if (bucketResult.isNull(AGGREGATION_RESULT_PARAM)) {
           // Final result is found: last element in term of depth of
           // aggregations
-          String key = bucketResult.getString("key");
+          String key = getResultKeyAsString(bucketResult);
           String result = null;
           if (bucketResult.isNull(AGGREGATION_RESULT_VALUE_PARAM)) {
             result = bucketResult.get("doc_count").toString();
@@ -1065,7 +1065,7 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
           chartsData.addAggregationResult(parentAggregation, aggregationResult);
         } else {
           // An aggresgation in the middle of aggregations tree
-          String key = bucketResult.getString("key");
+          String key = getResultKeyAsString(bucketResult);
           ChartAggregationValue parentAggregationToUse = parentAggregation;
           if (multipleChartsAggregation != null && level == -1) {
             String fieldLabel;
@@ -1203,6 +1203,10 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
       }
       index++;
     }
+  }
+
+  private String getResultKeyAsString(JSONObject bucketResult) throws JSONException {
+    return bucketResult.has("key_as_string") ? bucketResult.getString("key_as_string") : String.valueOf(bucketResult.get("key"));
   }
 
 }
