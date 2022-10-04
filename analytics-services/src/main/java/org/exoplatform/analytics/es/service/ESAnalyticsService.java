@@ -892,7 +892,7 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
                                       boolean isValue) throws JSONException {
     Object value;
     if (bucket.has(AGGREGATION_RESULT_VALUE_PARAM)) {
-      value = bucket.getJSONObject(AGGREGATION_RESULT_VALUE_PARAM).getString("value");
+      value = bucket.getJSONObject(AGGREGATION_RESULT_VALUE_PARAM).get("value");
     } else if (bucket.has(AGGREGATION_RESULT_PARAM)) {
       JSONObject subAggregationResult = bucket.getJSONObject(AGGREGATION_RESULT_PARAM);
       List<String> values = new ArrayList<>();
@@ -905,21 +905,21 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
       }
       value = values;
     } else if (bucket.has("value")) {
-      value = bucket.getString("value");
+      value = bucket.get("value");
     } else {
       value = null;
     }
     if (isValue) {
       if (isCurrent) {
-        itemValue.setValue(value);
+        itemValue.setValue(toString(value));
       } else {
-        itemValue.setPreviousValue(value);
+        itemValue.setPreviousValue(toString(value));
       }
     } else {
       if (isCurrent) {
-        itemValue.setThreshold(value);
+        itemValue.setThreshold(toString(value));
       } else {
-        itemValue.setPreviousThreshold(value);
+        itemValue.setPreviousThreshold(toString(value));
       }
     }
   }
@@ -939,7 +939,7 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
     percentageChartValue.setDataCount(hitsResult.getJSONObject("total").getLong("value"));
 
     if (aggregations.has(AGGREGATION_BUCKETS_VALUE_PARAM)) {
-      String value = aggregations.getJSONObject(AGGREGATION_BUCKETS_VALUE_PARAM).getString("value");
+      String value = toString(aggregations.getJSONObject(AGGREGATION_BUCKETS_VALUE_PARAM).get("value"));
       double valueDouble = StringUtils.isBlank(value) || StringUtils.equals("null", value) ? 0d : Double.parseDouble(value);
       if (currentPeriod != null) {
         percentageChartValue.setCurrentPeriodValue(valueDouble);
@@ -954,11 +954,11 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
           JSONObject bucket = buckets.getJSONObject(i);
           Long timestamp = bucket.getLong("key");
           if (bucket.has(AGGREGATION_BUCKETS_VALUE_PARAM)) {
-            String value = bucket.getJSONObject(AGGREGATION_BUCKETS_VALUE_PARAM).getString("value");
+            String value = toString(bucket.getJSONObject(AGGREGATION_BUCKETS_VALUE_PARAM).get("value"));
             values.put(timestamp,
                        StringUtils.isBlank(value) || StringUtils.equals("null", value) ? 0d : Double.parseDouble(value));
           } else if (bucket.has(AGGREGATION_RESULT_VALUE_PARAM)) {
-            String value = bucket.getJSONObject(AGGREGATION_RESULT_VALUE_PARAM).getString("value");
+            String value = toString(bucket.getJSONObject(AGGREGATION_RESULT_VALUE_PARAM).get("value"));
             values.put(timestamp,
                        StringUtils.isBlank(value) || StringUtils.equals("null", value) ? 0d : Double.parseDouble(value));
           } else {
@@ -1139,7 +1139,7 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
       Iterator<?> remainingKeys = statisticDataJsonObject.keys();
       while (remainingKeys.hasNext()) {
         String key = (String) remainingKeys.next();
-        statisticData.getParameters().put(key, statisticDataJsonObject.getString(key));
+        statisticData.getParameters().put(key, toString(statisticDataJsonObject.get(key)));
       }
 
       results.add(statisticData);
@@ -1164,7 +1164,7 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
       Iterator keys = jsonObject.keys();
       while (keys.hasNext()) {
         String key = keys.next().toString();
-        String fieldMappingString = jsonObject.getString(key);
+        String fieldMappingString = toString(jsonObject.get(key));
         StatisticFieldMapping fieldMapping = fromJsonString(fieldMappingString, StatisticFieldMapping.class);
         esMappings.put(key, fieldMapping);
       }
@@ -1206,7 +1206,11 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
   }
 
   private String getResultKeyAsString(JSONObject bucketResult) throws JSONException {
-    return bucketResult.has("key_as_string") ? bucketResult.getString("key_as_string") : String.valueOf(bucketResult.get("key"));
+    return bucketResult.has("key_as_string") ? bucketResult.getString("key_as_string") : toString(bucketResult.get("key"));
+  }
+
+  private String toString(Object value) {
+    return Objects.toString(value, null);
   }
 
 }
