@@ -50,11 +50,13 @@ public class AnalyticsActivityTagsListener extends Listener<TagObject, Set<TagNa
   public void onEvent(Event<TagObject, Set<TagName>> event) throws Exception {
     TagObject tagObject = event.getSource();
     if (StringUtils.equals(tagObject.getType(), ExoSocialActivityImpl.DEFAULT_ACTIVITY_METADATA_OBJECT_TYPE)) {
-      addEventStatistic(event.getData(), tagObject.getId());
+      addEventActivityStatistic(event.getData(), tagObject.getId());
+    } else if (StringUtils.equals(tagObject.getType(), "Document")){
+      addEventDocumentsStatistic(event.getData(), tagObject);
     }
   }
 
-  private void addEventStatistic(Set<TagName> tagNames, String activityId) {
+  private void addEventActivityStatistic(Set<TagName> tagNames, String activityId) {
     int numberOfTags = tagNames.size();
     String objectType;
     ExoSocialActivity activity = activityManager.getActivity(activityId);
@@ -75,6 +77,24 @@ public class AnalyticsActivityTagsListener extends Listener<TagObject, Set<TagNa
     statisticData.addParameter("type", objectType);
     statisticData.addParameter("dataType", StringUtils.lowerCase(objectType));
     statisticData.addParameter("spaceId", audienceIdentity.getId());
+
+    for (int i = 0; i < numberOfTags; i++) {
+      AnalyticsUtils.addStatisticData(statisticData);
+    }
+  }
+
+  private void addEventDocumentsStatistic(Set<TagName> tagNames, TagObject tagObject) {
+    int numberOfTags = tagNames.size();
+    Identity userIdentity = identityManager.getIdentity(String.valueOf(tagObject.getUserId()));
+    StatisticData statisticData = new StatisticData();
+    statisticData.setModule("portal");
+    statisticData.setSubModule("ui");
+    statisticData.setOperation("Add tag");
+    statisticData.setTimestamp(new Date().getTime());
+    statisticData.setUserId(tagObject.getUserId());
+    statisticData.addParameter("username", userIdentity.getRemoteId());
+    statisticData.addParameter("dataType", StringUtils.lowerCase(tagObject.getType()));
+    statisticData.addParameter("spaceId", tagObject.getSpaceId());
 
     for (int i = 0; i < numberOfTags; i++) {
       AnalyticsUtils.addStatisticData(statisticData);
