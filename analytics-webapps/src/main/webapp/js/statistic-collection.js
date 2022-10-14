@@ -60,6 +60,7 @@ function() {
         document.addEventListener('search-tag', () => this.addStatisticSearchByTag());
         document.addEventListener('editors-options-opened', event => this.addStatisticEditorOptionsOpened(event && event.detail));
         document.addEventListener('manage-access', event => this.addStatisticManageAccess(event && event.detail));
+        document.addEventListener('create-description', event => this.addStatisticCreateDescription(event && event.detail));
         document.addEventListener('editor-option-added', event => this.addStatisticEditorOptionAdded(event && event.detail));
         document.addEventListener('search-favorites-selected', () => this.sendMessage({
           'module': 'portal',
@@ -158,6 +159,43 @@ function() {
           'spaceId': eventDetail.spaceId,
         },
       });
+    },
+
+    addStatisticCreateDescription: function (eventDetail) {
+
+      if (eventDetail.category === 'Document'){
+        this.sendMessage({
+          'module': 'portal',
+          'subModule': 'ui',
+          'userId': eXo.env.portal.userIdentityId,
+          'userName': eXo.env.portal.userName,
+          'name': 'actionCreateDescription',
+          'operation': 'createDescription',
+          'timestamp': Date.now(),
+          'parameters': {
+            'category' : eventDetail.category,
+            'spaceId': eventDetail.spaceId,
+            'view': eventDetail.view,
+            'documentName' : eventDetail.documentName,
+          },
+        });
+      } else {
+        this.sendMessage({
+          'module': 'portal',
+          'subModule': 'ui',
+          'userId': eXo.env.portal.userIdentityId,
+          'userName': eXo.env.portal.userName,
+          'name': 'actionCreateDescription',
+          'operation': 'createDescription',
+          'timestamp': Date.now(),
+          'parameters': {
+            'category' : eventDetail.category,
+            'spaceId': eventDetail.spaceId,
+            'view': eventDetail.view,
+            'folderName' : eventDetail.documentName,
+          },
+        });
+      }
     },
     addStatisticManageAccess: function (eventDetail) {
       this.sendMessage({
