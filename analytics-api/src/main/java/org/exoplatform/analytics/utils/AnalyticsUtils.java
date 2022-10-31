@@ -304,7 +304,7 @@ public class AnalyticsUtils {
 
   @ExoTransactional
   public static final void addStatisticData(StatisticData statisticData) {
-    if (statisticData == null) {
+    if (statisticData == null || statisticData.getOperation() == null) {
       return;
     }
     if (statisticData.getTimestamp() <= 0) {
