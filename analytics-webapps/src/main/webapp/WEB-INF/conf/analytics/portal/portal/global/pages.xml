@@ -56,7 +56,7 @@
                       "valueString": "login"
                     }
                   ],
-                  "title": "Distinct logins",
+                  "title": "analytics.distinctLogins",
                   "aggregations": [
                     {
                       "field": "timestamp",
@@ -100,7 +100,7 @@
               <preference>
                 <name>settings</name>
                 <value>{
-                 "title":"Users count",
+                 "title":"analytics.usersCount",
                  "chartType":"line",
                  "multipleChartsField":"countType.keyword",
                  "filters":[
@@ -288,7 +288,7 @@
                 <name>settings</name>
                 <value>{
                   "offset": 0,
-                  "title": "Spaces count",
+                  "title": "analytics.spacesCount",
                   "aggregations": [
                     {
                       "field": "timestamp",
@@ -345,7 +345,7 @@
                 <name>settings</name>
                 <value>{
                   "offset": 0,
-                  "title": "Activities",
+                  "title": "analytics.activitiesCount",
                   "lang": null,
                   "aggregations": [
                     {
