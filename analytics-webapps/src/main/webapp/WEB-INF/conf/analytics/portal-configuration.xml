@@ -72,7 +72,7 @@
           <name>category</name>
           <object type="org.exoplatform.webui.core.model.SelectItemCategory">
             <field name="name">
-              <string>analyticsPageConfigs</string>
+              <string>normalPageConfigs</string>
             </field>
             <field name="options">
               <collection type="java.util.ArrayList" item-type="org.exoplatform.webui.core.model.SelectItemOption">
