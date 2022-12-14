@@ -41,3 +41,14 @@ extensionRegistry.registerExtension('AnalyticsSamples', 'SampleItem', {
     },
   },
 });
+
+extensionRegistry.registerExtension('AnalyticsSamples', 'SampleItem', {
+  type: 'time',
+  options: {
+    // Rank of executing 'match' method
+    rank: 30,
+    // Used Vue component to display cell value
+    vueComponent: Vue.options.components['analytics-date-sample-item-attribute'],
+    match: (fieldName, fieldValue) => (fieldName.toLowerCase().includes('time') && Number.isInteger(Number(fieldValue)) && Number(fieldValue) > 1600000000000 && Number(fieldValue) < 3000000000000),
+  },
+});
