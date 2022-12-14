@@ -110,6 +110,25 @@
   </external-component-plugins>
 
   <external-component-plugins>
+    <target-component>org.exoplatform.services.listener.ListenerService</target-component>
+    <component-plugin>
+      <name>notification.read.item</name>
+      <set-method>addListener</set-method>
+      <type>org.exoplatform.analytics.listener.social.AnalyticsSpaceWebNotificationListener</type>
+    </component-plugin>
+    <component-plugin>
+      <name>notification.unread.item</name>
+      <set-method>addListener</set-method>
+      <type>org.exoplatform.analytics.listener.social.AnalyticsSpaceWebNotificationListener</type>
+    </component-plugin>
+    <component-plugin>
+      <name>notification.read.allItems</name>
+      <set-method>addListener</set-method>
+      <type>org.exoplatform.analytics.listener.social.AnalyticsSpaceWebNotificationListener</type>
+    </component-plugin>
+  </external-component-plugins>
+
+  <external-component-plugins>
     <target-component>org.exoplatform.services.scheduler.JobSchedulerService</target-component>
     <component-plugin>
       <name>UsersStatisticsCountJob</name>
