@@ -37,7 +37,11 @@ import org.exoplatform.social.core.space.model.Space;
 import org.exoplatform.social.core.space.spi.SpaceService;
 
 public class AnalyticsActivityListener extends ActivityListenerPlugin {
-  private static final Log LOG = ExoLogger.getLogger(AnalyticsActivityListener.class);
+  private static final Log   LOG                       = ExoLogger.getLogger(AnalyticsActivityListener.class);
+
+  public static final String LINK_ACTIVITY_TYPE        = "LINK_ACTIVITY";
+
+  public static final String FILE_SPACES_ACTIVITY_TYPE = "files:spaces";
 
   @Override
   public void saveActivity(ActivityLifeCycleEvent event) {
@@ -164,7 +168,7 @@ public class AnalyticsActivityListener extends ActivityListenerPlugin {
     statisticData.setOperation(operation);
     statisticData.setUserId(modifierUserId);
     statisticData.addParameter("streamIdentityId", streamIdentityId);
-    statisticData.addParameter("activityType", activity.getType());
+    statisticData.addParameter("activityType", getActivityType(activity));
     if (StringUtils.isNotBlank(activityId)) {
       statisticData.addParameter("activityId", activityId);
     }
@@ -179,4 +183,17 @@ public class AnalyticsActivityListener extends ActivityListenerPlugin {
     return statisticData;
   }
 
+  private String getActivityType(ExoSocialActivity activity) {
+    String type = activity.getType();
+    if (type == null || type.isEmpty()) {
+      if (activity.getFiles() != null && !activity.getFiles().isEmpty()) {
+        type = FILE_SPACES_ACTIVITY_TYPE;
+      } else if ((activity.getFiles() == null || activity.getFiles().isEmpty()) && activity.getTemplateParams() != null
+          && !activity.getTemplateParams().isEmpty() && activity.getTemplateParams().get("link") != null
+          && !activity.getTemplateParams().get("link").equals("-")) {
+        type = LINK_ACTIVITY_TYPE;
+      }
+    }
+    return type;
+  }
 }
