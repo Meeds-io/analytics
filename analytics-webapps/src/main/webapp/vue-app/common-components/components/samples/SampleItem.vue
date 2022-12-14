@@ -27,7 +27,7 @@
           class="text-truncate">
           <strong v-if="chartData.operation">{{ operationLabel }}</strong>
         </v-col>
-        <v-col cols="4" class="text--secondary text-right">
+        <v-col cols="4" class="text-right">
           <date-format :value="chartDataTime" :format="dateFormat" />
         </v-col>
       </v-row>
@@ -73,7 +73,7 @@ export default {
   data: () => ({
     dateFormat: {
       year: 'numeric',
-      month: 'long',
+      month: 'short',
       day: 'numeric',
       hour: 'numeric',
       minute: 'numeric',
