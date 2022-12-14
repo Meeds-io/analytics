@@ -62,7 +62,7 @@ export default {
       if (this.sampleItemExtensions) {
         return Object.values(this.sampleItemExtensions)
           .sort((ext1, ext2) => (ext1.rank || 0) - (ext2.rank || 0))
-          .find(extension => extension.match && extension.match(this.attrKey)) || null;
+          .find(extension => extension.match && extension.match(this.attrKey, this.attrValue)) || null;
       }
       return null;
     },
