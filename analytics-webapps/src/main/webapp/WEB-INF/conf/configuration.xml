@@ -24,5 +24,6 @@
   <import>war:/conf/analytics/dynamic-container-configuration.xml</import>
   <import>war:/conf/analytics/portal-configuration.xml</import>
   <import>war:/conf/analytics/app-center-configuration.xml</import>
+  <import>war:/conf/analytics/application-configuration.xml</import>
 
 </configuration>
