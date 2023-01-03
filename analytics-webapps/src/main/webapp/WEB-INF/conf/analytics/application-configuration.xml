@@ -13,6 +13,10 @@
             <type>org.exoplatform.application.registry.ApplicationCategoriesPlugins</type>
             <description>this listener init the portlets are registered in PortletRegister</description>
             <init-params>
+                <value-param>
+                    <name>merge</name>
+                    <value>true</value>
+                </value-param>
                 <object-param>
                     <name>analytics</name>
                     <description>description</description>
