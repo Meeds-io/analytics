@@ -17,14 +17,18 @@
 package org.exoplatform.addon.analytics.portlet;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.portlet.*;
 import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.lang.StringUtils;
-import org.json.*;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import org.exoplatform.analytics.api.service.AnalyticsService;
 import org.exoplatform.analytics.model.StatisticFieldMapping;
@@ -37,7 +41,10 @@ import org.exoplatform.commons.utils.CommonsUtils;
 import org.exoplatform.commons.utils.PropertyManager;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
-import org.exoplatform.services.security.*;
+import org.exoplatform.services.security.ConversationState;
+import org.exoplatform.services.security.Identity;
+import org.exoplatform.services.security.IdentityConstants;
+import org.exoplatform.services.security.MembershipEntry;
 import org.exoplatform.social.core.space.SpaceUtils;
 import org.exoplatform.social.core.space.model.Space;
 import org.exoplatform.social.core.space.spi.SpaceService;
