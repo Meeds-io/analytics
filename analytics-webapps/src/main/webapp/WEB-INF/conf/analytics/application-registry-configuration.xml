@@ -30,133 +30,133 @@
             <field name="accessPermissions">
               <collection type="java.util.ArrayList" item-type="java.lang.String">
                 <value>
-                    <string>*:/platform/users</string>
+                  <string>*:/platform/users</string>
                 </value>
               </collection>
             </field>
             <field name="applications">
               <collection type="java.util.ArrayList">
-                  <value>
-                    <object type="org.exoplatform.application.registry.Application">
-                        <field name="applicationName">
-                          <string>AnalyticsPortlet</string>
-                        </field>
-                        <field name="categoryName">
-                          <string>analytics</string>
-                        </field>
-                        <field name="displayName">
-                          <string>Analytics Application</string>
-                        </field>
-                        <field name="description">
-                          <string>Analytics Portlet</string>
-                        </field>
-                        <field name="type">
-                          <string>portlet</string>
-                        </field>
-                        <field name="contentId">
-                          <string>analytics/AnalyticsPortlet</string>
-                        </field>
-                        <field name="accessPermissions">
-                          <collection type="java.util.ArrayList" item-type="java.lang.String">
-                            <value>
-                              <string>Everyone</string>
-                            </value>
-                          </collection>
-                        </field>
-                    </object>
-                  </value>
-                  <value>
-                    <object type="org.exoplatform.application.registry.Application">
-                      <field name="applicationName">
-                        <string>AnalyticsRatePortlet</string>
-                      </field>
-                      <field name="categoryName">
-                        <string>analytics</string>
-                      </field>
-                      <field name="displayName">
-                        <string>Analytics Rate Application</string>
-                      </field>
-                      <field name="description">
-                        <string>Analytics Rate Portlet</string>
-                      </field>
-                      <field name="type">
-                        <string>portlet</string>
-                      </field>
-                      <field name="contentId">
-                        <string>analytics/AnalyticsRatePortlet</string>
-                      </field>
-                      <field name="accessPermissions">
-                        <collection type="java.util.ArrayList" item-type="java.lang.String">
-                          <value>
-                            <string>Everyone</string>
-                          </value>
-                        </collection>
-                      </field>
-                    </object>
-                  </value>
-                  <value>
-                      <object type="org.exoplatform.application.registry.Application">
-                          <field name="applicationName">
-                              <string>AnalyticsTablePortlet</string>
-                          </field>
-                          <field name="categoryName">
-                              <string>analytics</string>
-                          </field>
-                          <field name="displayName">
-                              <string>Analytics Table Application</string>
-                          </field>
-                          <field name="description">
-                              <string>AnalyticsTablePortlet</string>
-                          </field>
-                          <field name="type">
-                              <string>portlet</string>
-                          </field>
-                          <field name="contentId">
-                              <string>analytics/AnalyticsTablePortlet</string>
-                          </field>
-                          <field name="accessPermissions">
-                              <collection type="java.util.ArrayList" item-type="java.lang.String">
-                                  <value>
-                                      <string>Everyone</string>
-                                  </value>
-                              </collection>
-                          </field>
-                      </object>
-                  </value>
-                  <value>
-                    <object type="org.exoplatform.application.registry.Application">
-                      <field name="applicationName">
-                        <string>AnalyticsDashboardBreadcrumb</string>
-                      </field>
-                      <field name="categoryName">
-                        <string>analytics</string>
-                      </field>
-                      <field name="displayName">
-                        <string>AnalyticsDashboardBreadcrumb</string>
-                      </field>
-                      <field name="description">
-                        <string>AnalyticsDashboardBreadcrumb</string>
-                      </field>
-                      <field name="type">
-                        <string>portlet</string>
-                      </field>
-                      <field name="contentId">
-                        <string>analytics/AnalyticsDashboardBreadcrumb</string>
-                      </field>
-                      <field name="accessPermissions">
-                        <collection type="java.util.ArrayList" item-type="java.lang.String">
-                          <value>
-                            <string>Everyone</string>
-                          </value>
-                        </collection>
-                      </field>
-                    </object>
-                  </value>
-                </collection>
-              </field>
-            </object>
-          </object-param>
+                <value>
+                  <object type="org.exoplatform.application.registry.Application">
+                    <field name="applicationName">
+                      <string>AnalyticsPortlet</string>
+                    </field>
+                    <field name="categoryName">
+                      <string>analytics</string>
+                    </field>
+                    <field name="displayName">
+                      <string>Analytics Application</string>
+                    </field>
+                    <field name="description">
+                      <string>Analytics Portlet</string>
+                    </field>
+                    <field name="type">
+                      <string>portlet</string>
+                    </field>
+                    <field name="contentId">
+                      <string>analytics/AnalyticsPortlet</string>
+                    </field>
+                    <field name="accessPermissions">
+                      <collection type="java.util.ArrayList" item-type="java.lang.String">
+                        <value>
+                          <string>Everyone</string>
+                        </value>
+                      </collection>
+                    </field>
+                  </object>
+                </value>
+                <value>
+                  <object type="org.exoplatform.application.registry.Application">
+                    <field name="applicationName">
+                      <string>AnalyticsRatePortlet</string>
+                    </field>
+                    <field name="categoryName">
+                      <string>analytics</string>
+                    </field>
+                    <field name="displayName">
+                      <string>Analytics Rate Application</string>
+                    </field>
+                    <field name="description">
+                      <string>Analytics Rate Portlet</string>
+                    </field>
+                    <field name="type">
+                      <string>portlet</string>
+                    </field>
+                    <field name="contentId">
+                      <string>analytics/AnalyticsRatePortlet</string>
+                    </field>
+                    <field name="accessPermissions">
+                      <collection type="java.util.ArrayList" item-type="java.lang.String">
+                        <value>
+                          <string>Everyone</string>
+                        </value>
+                      </collection>
+                    </field>
+                  </object>
+                </value>
+                <value>
+                  <object type="org.exoplatform.application.registry.Application">
+                    <field name="applicationName">
+                      <string>AnalyticsTablePortlet</string>
+                    </field>
+                    <field name="categoryName">
+                      <string>analytics</string>
+                    </field>
+                    <field name="displayName">
+                      <string>Analytics Table Application</string>
+                    </field>
+                    <field name="description">
+                      <string>AnalyticsTablePortlet</string>
+                    </field>
+                    <field name="type">
+                      <string>portlet</string>
+                    </field>
+                    <field name="contentId">
+                      <string>analytics/AnalyticsTablePortlet</string>
+                    </field>
+                    <field name="accessPermissions">
+                      <collection type="java.util.ArrayList" item-type="java.lang.String">
+                        <value>
+                          <string>Everyone</string>
+                        </value>
+                      </collection>
+                    </field>
+                  </object>
+                </value>
+                <value>
+                  <object type="org.exoplatform.application.registry.Application">
+                    <field name="applicationName">
+                      <string>AnalyticsDashboardBreadcrumb</string>
+                    </field>
+                    <field name="categoryName">
+                      <string>analytics</string>
+                    </field>
+                    <field name="displayName">
+                      <string>AnalyticsDashboardBreadcrumb</string>
+                    </field>
+                    <field name="description">
+                      <string>AnalyticsDashboardBreadcrumb</string>
+                    </field>
+                    <field name="type">
+                      <string>portlet</string>
+                    </field>
+                    <field name="contentId">
+                      <string>analytics/AnalyticsDashboardBreadcrumb</string>
+                    </field>
+                    <field name="accessPermissions">
+                      <collection type="java.util.ArrayList" item-type="java.lang.String">
+                        <value>
+                          <string>Everyone</string>
+                        </value>
+                      </collection>
+                    </field>
+                  </object>
+                </value>
+              </collection>
+            </field>
+          </object>
+        </object-param>
       </init-params>
     </component-plugin>
-</external-component-plugins>
+  </external-component-plugins>
 </configuration>
