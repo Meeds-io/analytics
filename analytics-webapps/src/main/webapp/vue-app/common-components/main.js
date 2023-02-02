@@ -17,3 +17,10 @@
 import './initComponents.js';
 import './extensions.js';
 Vue.use(Vuetify);
+
+// Load Analytics Extension Modules
+Object.keys(window.requirejs.s.contexts._.registry)
+  .filter(definedMofule => definedMofule.includes('analyticsExtension'))
+  .forEach(module => {
+    window.require([module]);
+  });
