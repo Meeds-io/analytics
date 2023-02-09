@@ -16,58 +16,83 @@
  */
 package org.exoplatform.analytics.listener.social;
 
-import static org.exoplatform.analytics.utils.AnalyticsUtils.*;
+import static org.exoplatform.analytics.utils.AnalyticsUtils.addStatisticData;
+import static org.exoplatform.analytics.utils.AnalyticsUtils.getCurrentUserIdentityId;
 
 import org.exoplatform.analytics.model.StatisticData;
+import org.exoplatform.services.log.ExoLogger;
+import org.exoplatform.services.log.Log;
 import org.exoplatform.social.core.relationship.RelationshipEvent;
 import org.exoplatform.social.core.relationship.RelationshipListenerPlugin;
 import org.exoplatform.social.core.relationship.model.Relationship;
 
 public class AnalyticsRelationshipListener extends RelationshipListenerPlugin {
 
+  private static final Log LOG = ExoLogger.getLogger(AnalyticsRelationshipListener.class);
+
   @Override
   public void requested(RelationshipEvent event) {
-    Relationship relationship = event.getPayload();
-    StatisticData statisticData = buildStatisticData("requested",
-                                                     relationship.getSender().getId(),
-                                                     relationship.getReceiver().getId());
-    addStatisticData(statisticData);
+    try {
+      Relationship relationship = event.getPayload();
+      StatisticData statisticData = buildStatisticData("requested",
+                                                       relationship.getSender().getId(),
+                                                       relationship.getReceiver().getId());
+      addStatisticData(statisticData);
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
+    }
   }
 
   @Override
   public void denied(RelationshipEvent event) {
-    Relationship relationship = event.getPayload();
-    StatisticData statisticData = buildStatisticData("denied",
-                                                     relationship.getSender().getId(),
-                                                     relationship.getReceiver().getId());
-    addStatisticData(statisticData);
+    try {
+      Relationship relationship = event.getPayload();
+      StatisticData statisticData = buildStatisticData("denied",
+                                                       relationship.getSender().getId(),
+                                                       relationship.getReceiver().getId());
+      addStatisticData(statisticData);
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
+    }
   }
 
   @Override
   public void confirmed(RelationshipEvent event) {
-    Relationship relationship = event.getPayload();
-    StatisticData statisticData = buildStatisticData("confirmed",
-                                                     relationship.getSender().getId(),
-                                                     relationship.getReceiver().getId());
-    addStatisticData(statisticData);
+    try {
+      Relationship relationship = event.getPayload();
+      StatisticData statisticData = buildStatisticData("confirmed",
+                                                       relationship.getSender().getId(),
+                                                       relationship.getReceiver().getId());
+      addStatisticData(statisticData);
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
+    }
   }
 
   @Override
   public void ignored(RelationshipEvent event) {
-    Relationship relationship = event.getPayload();
-    StatisticData statisticData = buildStatisticData("ignored",
-                                                     relationship.getSender().getId(),
-                                                     relationship.getReceiver().getId());
-    addStatisticData(statisticData);
+    try {
+      Relationship relationship = event.getPayload();
+      StatisticData statisticData = buildStatisticData("ignored",
+                                                       relationship.getSender().getId(),
+                                                       relationship.getReceiver().getId());
+      addStatisticData(statisticData);
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
+    }
   }
 
   @Override
   public void removed(RelationshipEvent event) {
-    Relationship relationship = event.getPayload();
-    StatisticData statisticData = buildStatisticData("removed",
-                                                     relationship.getSender().getId(),
-                                                     relationship.getReceiver().getId());
-    addStatisticData(statisticData);
+    try {
+      Relationship relationship = event.getPayload();
+      StatisticData statisticData = buildStatisticData("removed",
+                                                       relationship.getSender().getId(),
+                                                       relationship.getReceiver().getId());
+      addStatisticData(statisticData);
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
+    }
   }
 
   private StatisticData buildStatisticData(String operation, String from, String to) {
@@ -79,6 +104,14 @@ public class AnalyticsRelationshipListener extends RelationshipListenerPlugin {
     statisticData.addParameter("from", from);
     statisticData.addParameter("to", to);
     return statisticData;
+  }
+
+  private void handleErrorProcessingOperation(RelationshipEvent event, Exception exception) {
+    LOG.warn("Error adding Statistic data for relationship {}/{} with event {}",
+             event.getPayload().getSender(),
+             event.getPayload().getReceiver(),
+             event.getType(),
+             exception);
   }
 
 }
