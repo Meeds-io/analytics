@@ -16,19 +16,33 @@
  */
 package org.exoplatform.analytics.utils;
 
-import static java.time.temporal.ChronoField.*;
+import static java.time.temporal.ChronoField.DAY_OF_MONTH;
+import static java.time.temporal.ChronoField.HOUR_OF_DAY;
+import static java.time.temporal.ChronoField.MONTH_OF_YEAR;
+import static java.time.temporal.ChronoField.YEAR;
 
 import java.io.ByteArrayInputStream;
-import java.time.*;
-import java.time.format.*;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.SignStyle;
 import java.time.temporal.IsoFields;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.TimeZone;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.json.*;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import org.exoplatform.analytics.api.service.StatisticDataQueueService;
 import org.exoplatform.analytics.model.StatisticData;
@@ -44,7 +58,11 @@ import org.exoplatform.social.core.identity.model.Identity;
 import org.exoplatform.social.core.manager.IdentityManager;
 import org.exoplatform.social.core.space.model.Space;
 import org.exoplatform.social.core.space.spi.SpaceService;
-import org.exoplatform.ws.frameworks.json.impl.*;
+import org.exoplatform.ws.frameworks.json.impl.JsonDefaultHandler;
+import org.exoplatform.ws.frameworks.json.impl.JsonException;
+import org.exoplatform.ws.frameworks.json.impl.JsonGeneratorImpl;
+import org.exoplatform.ws.frameworks.json.impl.JsonParserImpl;
+import org.exoplatform.ws.frameworks.json.impl.ObjectBuilder;
 
 public class AnalyticsUtils {
   private static final Log              LOG                              = ExoLogger.getLogger(AnalyticsUtils.class);
@@ -258,10 +276,10 @@ public class AnalyticsUtils {
     String[] valuesString = value.split(VALUES_SEPARATOR);
     List<String> valuesList = new ArrayList<>();
     Collections.addAll(valuesList, valuesString);
-    return new JSONArray(valuesList.stream().map(String::trim).collect(Collectors.toList())).toString();
+    return new JSONArray(valuesList.stream().map(String::trim).toList()).toString();
   }
 
-  public static final JSONObject getJSONObject(JSONObject jsonObject, int i, String... keys) {
+  public static final JSONObject getJSONObject(JSONObject jsonObject, int i, String... keys) { // NOSONAR
     if (keys == null || i >= keys.length) {
       return null;
     }
@@ -397,7 +415,7 @@ public class AnalyticsUtils {
   }
 
   public static void addSpaceStatistics(StatisticData statisticData, Space space) {
-    if (space == null) {
+    if (space == null || StringUtils.isBlank(space.getId())) {
       return;
     }
     statisticData.setSpaceId(Long.parseLong(space.getId()));
@@ -413,6 +431,6 @@ public class AnalyticsUtils {
   }
 
   private static int getSize(String[] array) {
-    return array == null ? 0 : new HashSet<>(Arrays.asList(array)).size();
+    return array == null ? 0 : (int) Arrays.stream(array).filter(Objects::nonNull).distinct().count();
   }
 }

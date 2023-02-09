@@ -16,121 +16,199 @@
  */
 package org.exoplatform.analytics.listener.social;
 
-import static org.exoplatform.analytics.utils.AnalyticsUtils.*;
+import static org.exoplatform.analytics.utils.AnalyticsUtils.addSpaceStatistics;
+import static org.exoplatform.analytics.utils.AnalyticsUtils.addStatisticData;
+import static org.exoplatform.analytics.utils.AnalyticsUtils.getCurrentUserIdentityId;
 
 import org.exoplatform.analytics.model.StatisticData;
+import org.exoplatform.services.log.ExoLogger;
+import org.exoplatform.services.log.Log;
 import org.exoplatform.social.core.space.SpaceListenerPlugin;
 import org.exoplatform.social.core.space.model.Space;
 import org.exoplatform.social.core.space.spi.SpaceLifeCycleEvent;
 
 public class AnalyticsSpaceListener extends SpaceListenerPlugin {
 
+  private static final Log LOG = ExoLogger.getLogger(AnalyticsSpaceListener.class);
+
   @Override
   public void spaceAccessEdited(SpaceLifeCycleEvent event) {
-    StatisticData statisticData = addSpaceStatisticEvent(event, "spaceAccessEdited");
-    addStatisticData(statisticData);
+    try {
+      StatisticData statisticData = addSpaceStatisticEvent(event, "spaceAccessEdited");
+      addStatisticData(statisticData);
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
+    }
   }
 
   @Override
   public void spaceBannerEdited(SpaceLifeCycleEvent event) {
-    StatisticData statisticData = addSpaceStatisticEvent(event, "spaceBannerEdited");
-    addStatisticData(statisticData);
+    try {
+      StatisticData statisticData = addSpaceStatisticEvent(event, "spaceBannerEdited");
+      addStatisticData(statisticData);
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
+    }
   }
 
   @Override
   public void spaceCreated(SpaceLifeCycleEvent event) {
-    StatisticData statisticData = addSpaceStatisticEvent(event, "spaceCreated");
-    addStatisticData(statisticData);
+    try {
+      StatisticData statisticData = addSpaceStatisticEvent(event, "spaceCreated");
+      addStatisticData(statisticData);
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
+    }
   }
 
   @Override
   public void spaceRemoved(SpaceLifeCycleEvent event) {
-    StatisticData statisticData = addSpaceStatisticEvent(event, "spaceRemoved");
-    addStatisticData(statisticData);
+    try {
+      StatisticData statisticData = addSpaceStatisticEvent(event, "spaceRemoved");
+      addStatisticData(statisticData);
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
+    }
   }
 
   @Override
   public void spaceRenamed(SpaceLifeCycleEvent event) {
-    StatisticData statisticData = addSpaceStatisticEvent(event, "spaceRenamed");
-    addStatisticData(statisticData);
+    try {
+      StatisticData statisticData = addSpaceStatisticEvent(event, "spaceRenamed");
+      addStatisticData(statisticData);
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
+    }
   }
 
   @Override
   public void spaceDescriptionEdited(SpaceLifeCycleEvent event) {
-    StatisticData statisticData = addSpaceStatisticEvent(event, "spaceDescriptionEdited");
-    addStatisticData(statisticData);
+    try {
+      StatisticData statisticData = addSpaceStatisticEvent(event, "spaceDescriptionEdited");
+      addStatisticData(statisticData);
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
+    }
   }
 
   @Override
   public void spaceRegistrationEdited(SpaceLifeCycleEvent event) {
-    StatisticData statisticData = addSpaceStatisticEvent(event, "spaceRegistrationEdited");
-    addStatisticData(statisticData);
+    try {
+      StatisticData statisticData = addSpaceStatisticEvent(event, "spaceRegistrationEdited");
+      addStatisticData(statisticData);
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
+    }
   }
 
   @Override
   public void spaceAvatarEdited(SpaceLifeCycleEvent event) {
-    StatisticData statisticData = addSpaceStatisticEvent(event, "spaceAvatarEdited");
-    addStatisticData(statisticData);
+    try {
+      StatisticData statisticData = addSpaceStatisticEvent(event, "spaceAvatarEdited");
+      addStatisticData(statisticData);
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
+    }
   }
 
   @Override
   public void applicationActivated(SpaceLifeCycleEvent event) {
-    StatisticData statisticData = addApplicationStatisticEvent(event, "applicationActivated");
-    addStatisticData(statisticData);
+    try {
+      StatisticData statisticData = addApplicationStatisticEvent(event, "applicationActivated");
+      addStatisticData(statisticData);
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
+    }
   }
 
   @Override
   public void applicationAdded(SpaceLifeCycleEvent event) {
-    StatisticData statisticData = addApplicationStatisticEvent(event, "applicationAdded");
-    addStatisticData(statisticData);
+    try {
+      StatisticData statisticData = addApplicationStatisticEvent(event, "applicationAdded");
+      addStatisticData(statisticData);
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
+    }
   }
 
   @Override
   public void applicationDeactivated(SpaceLifeCycleEvent event) {
-    StatisticData statisticData = addApplicationStatisticEvent(event, "applicationDeactivated");
-    addStatisticData(statisticData);
+    try {
+      StatisticData statisticData = addApplicationStatisticEvent(event, "applicationDeactivated");
+      addStatisticData(statisticData);
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
+    }
   }
 
   @Override
   public void applicationRemoved(SpaceLifeCycleEvent event) {
-    StatisticData statisticData = addApplicationStatisticEvent(event, "applicationRemoved");
-    addStatisticData(statisticData);
+    try {
+      StatisticData statisticData = addApplicationStatisticEvent(event, "applicationRemoved");
+      addStatisticData(statisticData);
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
+    }
   }
 
   @Override
   public void grantedLead(SpaceLifeCycleEvent event) {
-    StatisticData statisticData = addUserStatisticEvent(event, "grantedLead");
-    addStatisticData(statisticData);
+    try {
+      StatisticData statisticData = addUserStatisticEvent(event, "grantedLead");
+      addStatisticData(statisticData);
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
+    }
   }
 
   @Override
   public void joined(SpaceLifeCycleEvent event) {
-    StatisticData statisticData = addUserStatisticEvent(event, "joined");
-    addStatisticData(statisticData);
+    try {
+      StatisticData statisticData = addUserStatisticEvent(event, "joined");
+      addStatisticData(statisticData);
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
+    }
   }
 
   @Override
   public void left(SpaceLifeCycleEvent event) {
-    StatisticData statisticData = addUserStatisticEvent(event, "left");
-    addStatisticData(statisticData);
+    try {
+      StatisticData statisticData = addUserStatisticEvent(event, "left");
+      addStatisticData(statisticData);
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
+    }
   }
 
   @Override
   public void revokedLead(SpaceLifeCycleEvent event) {
-    StatisticData statisticData = addUserStatisticEvent(event, "revokedLead");
-    addStatisticData(statisticData);
+    try {
+      StatisticData statisticData = addUserStatisticEvent(event, "revokedLead");
+      addStatisticData(statisticData);
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
+    }
   }
 
   @Override
   public void addInvitedUser(SpaceLifeCycleEvent event) {
-    StatisticData statisticData = addUserStatisticEvent(event, "addInvitedUser");
-    addStatisticData(statisticData);
+    try {
+      StatisticData statisticData = addUserStatisticEvent(event, "addInvitedUser");
+      addStatisticData(statisticData);
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
+    }
   }
 
   @Override
   public void addPendingUser(SpaceLifeCycleEvent event) {
-    StatisticData statisticData = addUserStatisticEvent(event, "addPendingUser");
-    addStatisticData(statisticData);
+    try {
+      StatisticData statisticData = addUserStatisticEvent(event, "addPendingUser");
+      addStatisticData(statisticData);
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
+    }
   }
 
   private StatisticData addSpaceStatisticEvent(SpaceLifeCycleEvent event, String operation) {
@@ -159,6 +237,13 @@ public class AnalyticsSpaceListener extends SpaceListenerPlugin {
     statisticData.setUserId(getCurrentUserIdentityId());
     addSpaceStatistics(statisticData, space);
     return statisticData;
+  }
+
+  private void handleErrorProcessingOperation(SpaceLifeCycleEvent event, Exception exception) {
+    LOG.warn("Error adding Statistic data for space {} with event {}",
+             event.getSpace().getId(),
+             event.getType(),
+             exception);
   }
 
 }
