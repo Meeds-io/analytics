@@ -18,30 +18,31 @@ package org.exoplatform.analytics.listener.portal;
 
 import static org.exoplatform.analytics.utils.AnalyticsUtils.addStatisticData;
 
-import org.exoplatform.analytics.model.StatisticData;
-import org.exoplatform.analytics.utils.AnalyticsUtils;
-import org.exoplatform.services.listener.Event;
-import org.exoplatform.services.listener.Listener;
-import org.exoplatform.services.log.ExoLogger;
-import org.exoplatform.services.log.Log;
 import java.util.Map;
 
-public class LoginFailedAnalyticsListener extends Listener<String, Map<String,String>> {
-  private static final Log LOG = ExoLogger.getLogger(LoginFailedAnalyticsListener.class);
+import org.exoplatform.analytics.model.StatisticData;
+import org.exoplatform.analytics.utils.AnalyticsUtils;
+import org.exoplatform.commons.api.persistence.ExoTransactional;
+import org.exoplatform.services.listener.Asynchronous;
+import org.exoplatform.services.listener.Event;
+import org.exoplatform.services.listener.Listener;
+
+@Asynchronous
+public class LoginFailedAnalyticsListener extends Listener<String, Map<String, String>> {
 
   @Override
+  @ExoTransactional
   public void onEvent(Event<String, Map<String, String>> event) throws Exception {
-    Map<String,String> data = event.getData();
+    Map<String, String> data = event.getData();
 
     StatisticData statisticData = new StatisticData();
     statisticData.setModule("portal");
     statisticData.setSubModule("login");
     statisticData.setOperation("login");
     statisticData.setUserId(AnalyticsUtils.getUserIdentityId(data.get("user_id")));
-    statisticData.setStatus(data.get("status").equals("ko") ? StatisticData.StatisticStatus.KO :
-                            StatisticData.StatisticStatus.OK);
-    statisticData.addParameter("reason",data.get("reason"));
-
+    statisticData.setStatus(data.get("status").equals("ko") ? StatisticData.StatisticStatus.KO
+                                                            : StatisticData.StatisticStatus.OK);
+    statisticData.addParameter("reason", data.get("reason"));
     addStatisticData(statisticData);
   }
 }
