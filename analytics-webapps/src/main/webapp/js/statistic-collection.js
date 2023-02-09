@@ -419,7 +419,7 @@ function() {
           parameters: {
             portalName: eXo.env.portal.portalName,
             portalUri: eXo.env.server.portalBaseURL,
-            pageUri: window.location.pathname,
+            pageUrl: window.location.pathname,
             pageTitle: eXo.env.portal.pageTitle,
             pageUri: eXo.env.portal.selectedNodeUri,
             applicationNames: eXo.env.portal.applicationNames,
