@@ -16,9 +16,16 @@
  */
 package org.exoplatform.analytics.listener.social;
 
-import static org.exoplatform.analytics.utils.AnalyticsUtils.*;
+import static org.exoplatform.analytics.utils.AnalyticsUtils.AVATAR;
+import static org.exoplatform.analytics.utils.AnalyticsUtils.FIELD_SOCIAL_IDENTITY_ID;
+import static org.exoplatform.analytics.utils.AnalyticsUtils.IMAGE_SIZE;
+import static org.exoplatform.analytics.utils.AnalyticsUtils.IMAGE_TYPE;
+import static org.exoplatform.analytics.utils.AnalyticsUtils.addStatisticData;
+import static org.exoplatform.analytics.utils.AnalyticsUtils.getIdentity;
 
 import org.exoplatform.analytics.model.StatisticData;
+import org.exoplatform.services.log.ExoLogger;
+import org.exoplatform.services.log.Log;
 import org.exoplatform.social.core.identity.model.Identity;
 import org.exoplatform.social.core.identity.provider.OrganizationIdentityProvider;
 import org.exoplatform.social.core.model.AvatarAttachment;
@@ -27,39 +34,70 @@ import org.exoplatform.social.core.profile.ProfileListenerPlugin;
 
 public class AnalyticsProfileListener extends ProfileListenerPlugin {
 
+  private static final Log LOG = ExoLogger.getLogger(AnalyticsProfileListener.class);
+
   @Override
   public void avatarUpdated(ProfileLifeCycleEvent event) {
-    AvatarAttachment avatarAttachment = ((AvatarAttachment) event.getPayload().getProperty(AVATAR));
-    if (avatarAttachment != null){
-      StatisticData statisticData = buildStatisticData("avatar", event.getSource());
-      statisticData.addParameter(IMAGE_SIZE, avatarAttachment.getSize());
-      statisticData.addParameter(IMAGE_TYPE, avatarAttachment.getMimeType());
-      addStatisticData(statisticData);
+    try {
+      AvatarAttachment avatarAttachment = ((AvatarAttachment) event.getPayload().getProperty(AVATAR));
+      if (avatarAttachment != null) {
+        StatisticData statisticData = buildStatisticData("avatar", event.getSource());
+        if (statisticData != null) {
+          statisticData.addParameter(IMAGE_SIZE, avatarAttachment.getSize());
+          statisticData.addParameter(IMAGE_TYPE, avatarAttachment.getMimeType());
+          addStatisticData(statisticData);
+        }
+      }
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
     }
   }
 
   @Override
   public void bannerUpdated(ProfileLifeCycleEvent event) {
-    StatisticData statisticData = buildStatisticData("banner", event.getSource());
-    addStatisticData(statisticData);
+    try {
+      StatisticData statisticData = buildStatisticData("banner", event.getSource());
+      addStatisticData(statisticData);
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
+    }
   }
 
   @Override
   public void contactSectionUpdated(ProfileLifeCycleEvent event) {
-    StatisticData statisticData = buildStatisticData("contactSection", event.getSource());
-    addStatisticData(statisticData);
+    try {
+      StatisticData statisticData = buildStatisticData("contactSection", event.getSource());
+      addStatisticData(statisticData);
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
+    }
   }
 
   @Override
   public void experienceSectionUpdated(ProfileLifeCycleEvent event) {
-    StatisticData statisticData = buildStatisticData("experienceSection", event.getSource());
-    addStatisticData(statisticData);
+    try {
+      StatisticData statisticData = buildStatisticData("experienceSection", event.getSource());
+      addStatisticData(statisticData);
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
+    }
   }
 
   @Override
   public void createProfile(ProfileLifeCycleEvent event) {
-    StatisticData statisticData = buildStatisticData("createProfile", event.getSource());
-    addStatisticData(statisticData);
+    try {
+      StatisticData statisticData = buildStatisticData("createProfile", event.getSource());
+      addStatisticData(statisticData);
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
+    }
+  }
+
+  private void handleErrorProcessingOperation(ProfileLifeCycleEvent event, Exception exception) {
+    LOG.warn("Error adding Statistic data for user {} with event {}",
+             event.getUsername(),
+             event.getType(),
+             exception);
   }
 
   private StatisticData buildStatisticData(String operation, String username) {

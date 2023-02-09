@@ -37,6 +37,7 @@ import org.exoplatform.social.core.space.model.Space;
 import org.exoplatform.social.core.space.spi.SpaceService;
 
 public class AnalyticsActivityListener extends ActivityListenerPlugin {
+
   private static final Log   LOG                       = ExoLogger.getLogger(AnalyticsActivityListener.class);
 
   public static final String LINK_ACTIVITY_TYPE        = "LINK_ACTIVITY";
@@ -45,54 +46,94 @@ public class AnalyticsActivityListener extends ActivityListenerPlugin {
 
   @Override
   public void saveActivity(ActivityLifeCycleEvent event) {
-    StatisticData statisticData = addActivityStatisticEvent(event, "createActivity");
-    addStatisticData(statisticData);
+    try {
+      StatisticData statisticData = addActivityStatisticEvent(event, "createActivity");
+      addStatisticData(statisticData);
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
+    }
   }
 
   @Override
   public void updateActivity(ActivityLifeCycleEvent event) {
-    StatisticData statisticData = addActivityStatisticEvent(event, "updateActivity");
-    addStatisticData(statisticData);
+    try {
+      StatisticData statisticData = addActivityStatisticEvent(event, "updateActivity");
+      addStatisticData(statisticData);
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
+    }
   }
   @Override
   public void deleteActivity(ActivityLifeCycleEvent event) {
-    StatisticData statisticData = addActivityStatisticEvent(event,"deleteActivity");
-    addStatisticData(statisticData);
+    try {
+      StatisticData statisticData = addActivityStatisticEvent(event,"deleteActivity");
+      addStatisticData(statisticData);
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
+    }
   }
   @Override
   public void shareActivity(ActivityLifeCycleEvent event) {
-    StatisticData statisticData = addActivityStatisticEvent(event, "shareActivity");
-    addStatisticData(statisticData);
+    try {
+      StatisticData statisticData = addActivityStatisticEvent(event, "shareActivity");
+      addStatisticData(statisticData);
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
+    }
   }
 
   @Override
   public void saveComment(ActivityLifeCycleEvent event) {
-    StatisticData statisticData = addActivityStatisticEvent(event, "createComment");
-    addStatisticData(statisticData);
+    try {
+      StatisticData statisticData = addActivityStatisticEvent(event, "createComment");
+      addStatisticData(statisticData);
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
+    }
   }
 
   @Override
   public void updateComment(ActivityLifeCycleEvent event) {
-    StatisticData statisticData = addActivityStatisticEvent(event, "updateComment");
-    addStatisticData(statisticData);
+    try {
+      StatisticData statisticData = addActivityStatisticEvent(event, "updateComment");
+      addStatisticData(statisticData);
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
+    }
   }
   @Override
   public void deleteComment(ActivityLifeCycleEvent event) {
-    StatisticData statisticData = addActivityStatisticEvent(event,"deleteComment");
-    addStatisticData(statisticData);
+    try {
+      StatisticData statisticData = addActivityStatisticEvent(event,"deleteComment");
+      addStatisticData(statisticData);
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
+    }
   }
   @Override
   public void likeActivity(ActivityLifeCycleEvent event) {
-    StatisticData statisticData = addActivityStatisticEvent(event, "likeActivity");
-    addLikeIdentityId(statisticData, event);
-    addStatisticData(statisticData);
+    try {
+      StatisticData statisticData = addActivityStatisticEvent(event, "likeActivity");
+      addLikeIdentityId(statisticData, event);
+      addStatisticData(statisticData);
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
+    }
   }
 
   @Override
   public void likeComment(ActivityLifeCycleEvent event) {
-    StatisticData statisticData = addActivityStatisticEvent(event, "likeComment");
-    addLikeIdentityId(statisticData, event);
-    addStatisticData(statisticData);
+    try {
+      StatisticData statisticData = addActivityStatisticEvent(event, "likeComment");
+      addLikeIdentityId(statisticData, event);
+      addStatisticData(statisticData);
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
+    }
+  }
+
+  private void handleErrorProcessingOperation(ActivityLifeCycleEvent event, Exception exception) {
+    LOG.warn("Error adding Statistic data for activity {} with event {}", event.getActivityId(), event.getType(), exception);
   }
 
   private void addLikeIdentityId(StatisticData statisticData, ActivityLifeCycleEvent event) {
@@ -103,7 +144,7 @@ public class AnalyticsActivityListener extends ActivityListenerPlugin {
     }
   }
 
-  private StatisticData addActivityStatisticEvent(ActivityLifeCycleEvent event, String operation) {
+  private StatisticData addActivityStatisticEvent(ActivityLifeCycleEvent event, String operation) { // NOSONAR
     ExoSocialActivity activity = event.getActivity();
 
     String activityId = activity.getParentId() == null ? activity.getId() : activity.getParentId();

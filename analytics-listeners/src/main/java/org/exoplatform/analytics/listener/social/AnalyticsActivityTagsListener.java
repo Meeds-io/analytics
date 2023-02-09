@@ -23,6 +23,7 @@ import org.apache.commons.lang.Validate;
 import org.apache.commons.lang3.StringUtils;
 import org.exoplatform.analytics.model.StatisticData;
 import org.exoplatform.analytics.utils.AnalyticsUtils;
+import org.exoplatform.commons.api.persistence.ExoTransactional;
 import org.exoplatform.services.listener.Asynchronous;
 import org.exoplatform.services.listener.Event;
 import org.exoplatform.services.listener.Listener;
@@ -47,6 +48,7 @@ public class AnalyticsActivityTagsListener extends Listener<TagObject, Set<TagNa
   }
 
   @Override
+  @ExoTransactional
   public void onEvent(Event<TagObject, Set<TagName>> event) throws Exception {
     TagObject tagObject = event.getSource();
     if (StringUtils.equals(tagObject.getType(), ExoSocialActivityImpl.DEFAULT_ACTIVITY_METADATA_OBJECT_TYPE)) {
