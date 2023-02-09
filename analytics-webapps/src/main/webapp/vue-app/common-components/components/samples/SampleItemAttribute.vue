@@ -16,7 +16,7 @@
 -->
 <template>
   <v-row>
-    <v-col>{{ keyLabel }}</v-col>
+    <v-col class="d-flex flex-column justify-center">{{ keyLabel }}</v-col>
     <v-col v-if="sampleItemExtension">
       <extension-registry-component
         :component="extendedSampleItemComponent"
