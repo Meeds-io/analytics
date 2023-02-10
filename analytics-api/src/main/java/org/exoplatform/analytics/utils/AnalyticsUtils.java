@@ -33,8 +33,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.TimeZone;
 import java.util.regex.Pattern;
 
@@ -415,7 +415,7 @@ public class AnalyticsUtils {
   }
 
   public static void addSpaceStatistics(StatisticData statisticData, Space space) {
-    if (space == null) {
+    if (space == null || StringUtils.isBlank(space.getId())) {
       return;
     }
     statisticData.setSpaceId(Long.parseLong(space.getId()));
@@ -431,6 +431,6 @@ public class AnalyticsUtils {
   }
 
   private static int getSize(String[] array) {
-    return array == null ? 0 : new HashSet<>(Arrays.asList(array)).size();
+    return array == null ? 0 : (int) Arrays.stream(array).filter(Objects::nonNull).distinct().count();
   }
 }
