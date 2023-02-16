@@ -399,7 +399,7 @@ function() {
           && !eXo.env.portal.loadingAppsFinished) {
         let endLoadingTime;
         if(eXo.env.portal.requestStartTime){
-          endLoadingTime = eXo.env.portal.lastAppLoadingFinished - eXo.env.portal.requestStartTime;
+          endLoadingTime = Date.now() - eXo.env.portal.requestStartTime;
         }
         eXo.env.portal.loadingAppsFinished = true;
         if (eXo.developing) {
@@ -439,13 +439,13 @@ function() {
         }
       }
     }
-    if(!eXo.env.portal.requestStartTime){
-      document.addEventListener('readystatechange',(event)=>{
+    if(!eXo.env.portal.requestStartTime || !eXo.developing){
+      document.addEventListener('readystatechange',(event)=> {
         if (event.target.readyState === 'complete') {
-          window.setTimeout(pageFullyLoadedCallback,fullyLoadedCallbackIdle);
+          window.setTimeout(pageFullyLoadedCallback, fullyLoadedCallbackIdle);
         }
       });
-    } else {
+    } else if (eXo.developing) {
       document.addEventListener('vue-app-loading-start', event => {
         const detail = event && event.detail;
         const appName = detail.appName;
@@ -456,14 +456,12 @@ function() {
           };
           const startLoadingTime = time - eXo.env.portal.requestStartTime;
           const startTimeStyle = startLoadingTime > 3000 && 'color:red;font-weight:bold;' || 'color:green;font-weight:bold;';
-          if (eXo.developing) {
-            // eslint-disable-next-line no-console
-            console.debug(`App %c${appName}%c Start Loading at: %c${startLoadingTime} %cms`,
-              'font-weight:bold;',
-              '',
-              startTimeStyle,
-              '');
-          }
+          // eslint-disable-next-line no-console
+          console.debug(`App %c${appName}%c Start Loading at: %c${startLoadingTime} %cms`,
+            'font-weight:bold;',
+            '',
+            startTimeStyle,
+            '');
           api.sendMessage();
         }
       });
@@ -472,12 +470,11 @@ function() {
         if (eXo.env.portal.requestStartTime && nowDate > eXo.env.portal.requestStartTime) {
           const loadingTime = nowDate - eXo.env.portal.requestStartTime;
           const loadingTimeStyle = (loadingTime > (isMobile && 5000 || 3000)) && 'color:red;font-weight:bold;' || 'color:green;font-weight:bold;';
-          if (eXo.developing) {
-            console.warn(`%cPage displayed within: %c${loadingTime} %cms`,
-              'font-weight:bold;',
-              loadingTimeStyle,
-              '');
-          }
+          // eslint-disable-next-line no-console
+          console.warn(`%cPage displayed within: %c${loadingTime} %cms`,
+            'font-weight:bold;',
+            loadingTimeStyle,
+            '');
           window.setTimeout(() => {
             api.sendMessage({
               name: 'pageUIDisplay',
@@ -524,21 +521,19 @@ function() {
           const startTimeStyle = startLoadingTime > 3000 && 'color:red;font-weight:bold;' || 'color:green;font-weight:bold;';
           const endTimeStyle = endLoadingTime > 3000 && 'color:red;font-weight:bold;' || 'color:green;font-weight:bold;';
           const durationTimeStyle = durationLoadingTime > 1000 && 'color:red;font-weight:bold;' || 'color:green;font-weight:bold;';
-          if (eXo.developing) {
-            // eslint-disable-next-line no-console
-            console.debug(`App %c${appName}%c
-               Started at: %c${startLoadingTime} %cms
-               End at: %c${endLoadingTime} %cms
-               Duration : %c${durationLoadingTime} %cms`,
-            'font-weight:bold;',
-            '',
-            startTimeStyle,
-            '',
-            endTimeStyle,
-            '',
-            durationTimeStyle,
-            '');
-          }
+          // eslint-disable-next-line no-console
+          console.debug(`App %c${appName}%c
+             Started at: %c${startLoadingTime} %cms
+             End at: %c${endLoadingTime} %cms
+             Duration : %c${durationLoadingTime} %cms`,
+          'font-weight:bold;',
+          '',
+          startTimeStyle,
+          '',
+          endTimeStyle,
+          '',
+          durationTimeStyle,
+          '');
 
           window.setTimeout(() => {
             api.sendMessage({
