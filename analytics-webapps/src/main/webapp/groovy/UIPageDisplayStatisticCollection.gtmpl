@@ -23,12 +23,9 @@
   import org.exoplatform.commons.utils.PropertyManager;
 
   def rcontext = _ctx.getRequestContext() ;
-  def featureService = uicomponent.getApplicationComponent(ExoFeatureService.class);
 %>
 <script type="text/javascript">
-<% if (featureService.isActiveFeature('FrontEndPerformancesTracking') || PropertyManager.isDevelopping()) { %>
   eXo.env.portal.requestStartTime = <%=rcontext.getAttribute("requestStartTime")%>;
   eXo.env.portal.pageTitle = `<%=HTMLEntityEncoder.getInstance().encode(rcontext.getTitle())%>`;
   eXo.env.portal.applicationNames = `<%=StringUtils.join(uicomponent.getPortletNames(), ",")%>`;
-<% } %>
 </script>
