@@ -17,18 +17,6 @@
 -->
 <configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.exoplatform.org/xml/ns/kernel_1_2.xsd http://www.exoplatform.org/xml/ns/kernel_1_2.xsd" xmlns="http://www.exoplatform.org/xml/ns/kernel_1_2.xsd">
 
-  <component>
-    <key>FrontEndPerformancesTracking</key>
-    <type>org.exoplatform.container.ExtendedPropertyConfigurator</type>
-    <init-params>
-      <properties-param>
-        <name>FrontEndPerformancesTracking</name>
-        <description>Front End Applications Performances Tracking Feature enablement flag</description>
-        <property name="exo.feature.FrontEndPerformancesTracking.enabled" value="${exo.feature.FrontEndPerformancesTracking.enabled:false}" />
-      </properties-param>
-    </init-params>
-  </component>
-
   <external-component-plugins>
     <target-component>org.exoplatform.analytics.api.service.AnalyticsService</target-component>
     <component-plugin>
