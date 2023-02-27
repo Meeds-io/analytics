@@ -35,15 +35,6 @@
         <as>$</as>
       </depends>
       <depends>
-        <module>fetchPolyfill</module>
-      </depends>
-      <depends>
-        <module>customEventPolyfill</module>
-      </depends>
-      <depends>
-        <module>iePolyfills</module>
-      </depends>
-      <depends>
         <module>eCharts</module>
       </depends>
     </module>
@@ -77,15 +68,6 @@
         <as>$</as>
       </depends>
       <depends>
-        <module>fetchPolyfill</module>
-      </depends>
-      <depends>
-        <module>customEventPolyfill</module>
-      </depends>
-      <depends>
-        <module>iePolyfills</module>
-      </depends>
-      <depends>
         <module>eCharts</module>
       </depends>
     </module>
@@ -117,15 +99,6 @@
       <depends>
         <module>jquery</module>
         <as>$</as>
-      </depends>
-      <depends>
-        <module>fetchPolyfill</module>
-      </depends>
-      <depends>
-        <module>customEventPolyfill</module>
-      </depends>
-      <depends>
-        <module>iePolyfills</module>
       </depends>
       <depends>
         <module>eCharts</module>
