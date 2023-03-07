@@ -21,6 +21,7 @@ import static org.exoplatform.analytics.utils.AnalyticsUtils.addStatisticData;
 import org.apache.commons.lang3.StringUtils;
 
 import org.exoplatform.analytics.model.StatisticData;
+import org.exoplatform.commons.api.persistence.ExoTransactional;
 import org.exoplatform.services.listener.Event;
 import org.exoplatform.services.listener.Listener;
 import org.exoplatform.social.core.space.model.Space;
@@ -38,6 +39,7 @@ public class AnalyticsSpaceWebNotificationListener extends Listener<SpaceWebNoti
   }
 
   @Override
+  @ExoTransactional
   public void onEvent(Event<SpaceWebNotificationItem, Long> event) throws Exception {
     String eventName = event.getEventName();
     SpaceWebNotificationItem spaceWebNotificationItem = event.getSource();
@@ -67,8 +69,8 @@ public class AnalyticsSpaceWebNotificationListener extends Listener<SpaceWebNoti
     if (StringUtils.isNotBlank(spaceWebNotificationItem.getApplicationItemId())) {
       statisticData.addParameter("entityId", spaceWebNotificationItem.getApplicationItemId());
     }
-    if (spaceWebNotificationItem instanceof SpaceWebNotificationItemUpdate) {
-      String userEvent = ((SpaceWebNotificationItemUpdate) spaceWebNotificationItem).getUserEvent();
+    if (spaceWebNotificationItem instanceof SpaceWebNotificationItemUpdate spaceWebNotificationItemUpdate) {
+      String userEvent = spaceWebNotificationItemUpdate.getUserEvent();
       if (StringUtils.isNotBlank(userEvent)) {
         statisticData.addParameter("event-type", userEvent);
       }
