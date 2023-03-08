@@ -20,7 +20,7 @@
   <parent>
     <groupId>org.exoplatform.addons.analytics</groupId>
     <artifactId>analytics-parent</artifactId>
-    <version>1.4.x-meed-SNAPSHOT</version>
+    <version>1.4.0-meed-20230308</version>
   </parent>
   <artifactId>analytics-webapps</artifactId>
   <packaging>war</packaging>
