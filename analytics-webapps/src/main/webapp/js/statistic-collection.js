@@ -74,6 +74,7 @@ function() {
         }));
         document.addEventListener('activity-pinned', event => this.addStatisticActivityPin(true, event && event.detail));
         document.addEventListener('activity-unpinned', event => this.addStatisticActivityPin(false, event && event.detail));
+        document.addEventListener('left-menu-stickiness', event => this.addStatisticMenuStickiness(event && event.detail));
       }
       this.cometdSubscription = cCometd.subscribe(this.settings.cometdChannel, null, event => {}, null, (subscribeReply) => {
         self_.connected = subscribeReply && subscribeReply.successful;
@@ -145,6 +146,18 @@ function() {
         },
       };
       this.sendMessage(spaceLeftNavigationAnalytics);
+    },
+    addStatisticMenuStickiness: function (eventDetail) {
+      const spaceLeftNavigationStickiness = {
+        'module': 'portal',
+        'subModule': 'ui',
+        'userId': eXo.env.portal.userIdentityId,
+        'userName': eXo.env.portal.userName,
+        'operation': eventDetail && 'sticky' || 'unsticky',
+        'name': 'leftMenuStickines',
+        'timestamp': Date.now(),
+      };
+      this.sendMessage(spaceLeftNavigationStickiness);
     },
     addStatisticStreamFilter: function (streamFilter) {
       const streamFilterAnalytics = {
