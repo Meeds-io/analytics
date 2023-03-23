@@ -147,13 +147,13 @@ function() {
       };
       this.sendMessage(spaceLeftNavigationAnalytics);
     },
-    addStatisticMenuStickiness: function (eventDetail) {
+    addStatisticMenuStickiness: function (menuSticked) {
       const spaceLeftNavigationStickiness = {
         'module': 'portal',
         'subModule': 'ui',
         'userId': eXo.env.portal.userIdentityId,
         'userName': eXo.env.portal.userName,
-        'operation': eventDetail && 'sticky' || 'unsticky',
+        'operation': menuSticked && 'stick' || 'unstick',
         'name': 'leftMenuStickines',
         'timestamp': Date.now(),
       };
