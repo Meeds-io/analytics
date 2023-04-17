@@ -63,6 +63,7 @@ export default {
     space: null,
   }),
   created() {
+    this.value = JSON.parse(this.value);
     if (this.value && this.value.prettyName) {
       this.space = this.value;
       this.loading = false;
