@@ -17,11 +17,13 @@
 package org.exoplatform.addon.analytics.portlet;
 
 import java.io.IOException;
+import java.util.List;
 
 import javax.portlet.*;
 import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.lang.StringUtils;
+import org.exoplatform.analytics.model.chart.TableColumnItemValue;
 import org.json.JSONObject;
 
 import org.exoplatform.analytics.model.chart.TableColumnResult;
@@ -121,6 +123,10 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
                                                                             periodType,
                                                                             columnIndex,
                                                                             true);
+    if (tableFilter.getMainColumn().getValueAggregation().getAggregation().getField().equals("spaceId")){
+      List<String> spaceIds = result.getItems().stream().map(TableColumnItemValue::getKey).toList();
+      result.setItems(result.getItems().stream().filter(item -> AnalyticsUtils.checkExistingSpaces(spaceIds).contains(item.getKey())).toList());
+    }
     AnalyticsTableColumnFilter columnFilter = tableFilter.getColumnFilter(columnIndex);
     if (columnFilter.getThresholdAggregation() != null
         && columnFilter.getThresholdAggregation().getAggregation() != null

@@ -433,4 +433,16 @@ public class AnalyticsUtils {
   private static int getSize(String[] array) {
     return array == null ? 0 : (int) Arrays.stream(array).filter(Objects::nonNull).distinct().count();
   }
+  public static List<String> checkExistingSpaces(List<String> spaceIds){
+    SpaceService spaceService = CommonsUtils.getService(SpaceService.class);
+    String authenticatedUser = ConversationState.getCurrent().getIdentity().getUserId();
+    List<String> updatedListIds = new ArrayList<>();
+    for (String id :spaceIds) {
+      Space space = spaceService.getSpaceById(id);
+      if (space != null && !(Space.HIDDEN.equals(space.getVisibility()) && ! spaceService.isMember(space, authenticatedUser) && ! spaceService.isSuperManager(authenticatedUser)) ) {
+        updatedListIds.add(id);
+      }
+    }
+    return updatedListIds;
+  }
 }
