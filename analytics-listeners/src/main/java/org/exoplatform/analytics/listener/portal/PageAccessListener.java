@@ -18,8 +18,8 @@ package org.exoplatform.analytics.listener.portal;
 
 import static org.exoplatform.analytics.utils.AnalyticsUtils.*;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.exoplatform.analytics.model.StatisticData;
 import org.exoplatform.analytics.model.StatisticData.StatisticStatus;
