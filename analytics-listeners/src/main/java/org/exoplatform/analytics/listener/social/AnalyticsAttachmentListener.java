@@ -20,18 +20,23 @@ package org.exoplatform.analytics.listener.social;
 
 import org.exoplatform.analytics.model.StatisticData;
 import org.exoplatform.analytics.utils.AnalyticsUtils;
+import org.exoplatform.commons.api.persistence.ExoTransactional;
 import org.exoplatform.services.listener.Asynchronous;
 import org.exoplatform.services.listener.Event;
 import org.exoplatform.services.listener.Listener;
 import org.exoplatform.social.attachment.AttachmentPlugin;
 import org.exoplatform.social.attachment.AttachmentService;
 import org.exoplatform.social.attachment.model.ObjectAttachmentId;
+import org.exoplatform.social.core.space.model.Space;
+import org.exoplatform.social.core.space.spi.SpaceService;
 
 import java.util.Date;
 import java.util.Map;
 
+import static org.exoplatform.analytics.utils.AnalyticsUtils.addSpaceStatistics;
 import static org.exoplatform.analytics.utils.AnalyticsUtils.addStatisticData;
 
+@Asynchronous
 public class AnalyticsAttachmentListener extends Listener<String, ObjectAttachmentId> {
   public static final String      STATISTICS_ATTACH_OPERATION = "attachImages";
 
@@ -43,11 +48,15 @@ public class AnalyticsAttachmentListener extends Listener<String, ObjectAttachme
 
   private final AttachmentService attachmentService;
 
-  public AnalyticsAttachmentListener(AttachmentService attachmentService) {
+  private SpaceService            spaceService;
+
+  public AnalyticsAttachmentListener(AttachmentService attachmentService, SpaceService spaceService) {
     this.attachmentService = attachmentService;
+    this.spaceService = spaceService;
   }
 
   @Override
+  @ExoTransactional
   public void onEvent(Event<String, ObjectAttachmentId> event) throws Exception {
 
     String username = event.getSource();
@@ -78,13 +87,14 @@ public class AnalyticsAttachmentListener extends Listener<String, ObjectAttachme
   }
 
   private void buildStatisticData(String operation, long spaceId, long userId) {
+    Space space = spaceService.getSpaceById(String.valueOf(spaceId));
     StatisticData statisticData = new StatisticData();
     statisticData.setModule("social");
     statisticData.setSubModule("attachment");
     statisticData.setOperation(operation);
     statisticData.setTimestamp(new Date().getTime());
     statisticData.setUserId(userId);
-    statisticData.addParameter("spaceId", spaceId);
+    addSpaceStatistics(statisticData, space);
     addStatisticData(statisticData);
   }
 }
