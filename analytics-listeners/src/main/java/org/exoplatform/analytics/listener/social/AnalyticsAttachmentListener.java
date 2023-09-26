@@ -20,45 +20,34 @@ package org.exoplatform.analytics.listener.social;
 
 import org.exoplatform.analytics.model.StatisticData;
 import org.exoplatform.analytics.utils.AnalyticsUtils;
-import org.exoplatform.commons.api.persistence.ExoTransactional;
 import org.exoplatform.services.listener.Asynchronous;
 import org.exoplatform.services.listener.Event;
 import org.exoplatform.services.listener.Listener;
 import org.exoplatform.social.attachment.AttachmentPlugin;
 import org.exoplatform.social.attachment.AttachmentService;
 import org.exoplatform.social.attachment.model.ObjectAttachmentId;
-import org.exoplatform.social.core.activity.model.ExoSocialActivity;
-import org.exoplatform.social.core.manager.ActivityManager;
 
 import java.util.Date;
 import java.util.Map;
 
-@Asynchronous
+import static org.exoplatform.analytics.utils.AnalyticsUtils.addStatisticData;
+
 public class AnalyticsAttachmentListener extends Listener<String, ObjectAttachmentId> {
+  public static final String      STATISTICS_ATTACH_OPERATION = "attachImages";
 
-  public static final String      TASK_COMMENT_OBJECT_TYPE     = "taskComment";
+  public static final String      STATISTICS_DETACH_OPERATION = "removeImageAttachments";
 
-  public static final String      ACTIVITY_COMMENT_OBJECT_TYPE = "comment";
+  public static final String      ATTACHMENT_CREATED_EVENT    = "attachment.created";
 
-  public static final String      TASK_OBJECT_TYPE             = "task";
-
-  public static final String      ACTIVITY_OBJECT_TYPE         = "activity";
-
-  public static final String      RULE_OBJECT_TYPE             = "rule";
-
-  public static final String      STATISTICS_OPERATION         = "attachImages";
-
-  private final ActivityManager   activityManager;
+  public static final String      ATTACHMENT_DELETED_EVENT    = "attachment.deleted";
 
   private final AttachmentService attachmentService;
 
-  public AnalyticsAttachmentListener(ActivityManager activityManager, AttachmentService attachmentService) {
-    this.activityManager = activityManager;
+  public AnalyticsAttachmentListener(AttachmentService attachmentService) {
     this.attachmentService = attachmentService;
   }
 
   @Override
-  @ExoTransactional
   public void onEvent(Event<String, ObjectAttachmentId> event) throws Exception {
 
     String username = event.getSource();
@@ -68,50 +57,34 @@ public class AnalyticsAttachmentListener extends Listener<String, ObjectAttachme
       return;
     }
 
-    String objectModule = getModule(objectAttachment.getObjectType());
-    String objectSubModule = getSubModule(objectAttachment.getObjectType(), objectAttachment.getObjectId());
-
     Map<String, AttachmentPlugin> attachmentPlugins = attachmentService.getAttachmentPlugins();
     AttachmentPlugin attachmentPlugin = attachmentPlugins.get(objectAttachment.getObjectType());
     long spaceId = attachmentPlugin.getSpaceId(objectAttachment.getObjectId());
 
-    StatisticData statisticData = new StatisticData();
-    statisticData.setModule(objectModule);
-    statisticData.setSubModule(objectSubModule);
-    statisticData.setOperation(STATISTICS_OPERATION);
-    statisticData.setTimestamp(new Date().getTime());
-    statisticData.setUserId(AnalyticsUtils.getUserIdentityId(username));
-    statisticData.addParameter("spaceId", spaceId);
-  }
+    long userId = AnalyticsUtils.getUserIdentityId(username);
 
-  private String getModule(String objectType) {
-    return switch (objectType) {
-    case TASK_COMMENT_OBJECT_TYPE, TASK_OBJECT_TYPE -> "tasks";
-    case ACTIVITY_OBJECT_TYPE -> "social";
-    case RULE_OBJECT_TYPE -> "gamification";
-    default -> "";
-    };
-  }
-
-  private String getSubModule(String objectType, String objectId) {
-    switch (objectType) {
-    case ACTIVITY_OBJECT_TYPE:
-      ExoSocialActivity activity = activityManager.getActivity(objectId);
-      String objectSubModule;
-      if (activity.getType() == null) {
-        objectSubModule = activity.isComment() ? ACTIVITY_COMMENT_OBJECT_TYPE : ACTIVITY_OBJECT_TYPE;
-      } else {
-        objectSubModule = activity.getType();
-      }
-      return objectSubModule;
-    case TASK_OBJECT_TYPE:
-      return "task";
-    case TASK_COMMENT_OBJECT_TYPE:
-      return "comment";
-    case RULE_OBJECT_TYPE:
-      return "rule";
-    default:
-      return objectType;
+    switch (event.getEventName()) {
+    case ATTACHMENT_CREATED_EVENT: {
+      buildStatisticData(STATISTICS_ATTACH_OPERATION, spaceId, userId);
+      break;
     }
+    case ATTACHMENT_DELETED_EVENT: {
+      buildStatisticData(STATISTICS_DETACH_OPERATION, spaceId, userId);
+      break;
+    }
+    default:
+      throw new IllegalArgumentException("Unexpected listener event name: " + event.getEventName());
+    }
+  }
+
+  private void buildStatisticData(String operation, long spaceId, long userId) {
+    StatisticData statisticData = new StatisticData();
+    statisticData.setModule("social");
+    statisticData.setSubModule("attachment");
+    statisticData.setOperation(operation);
+    statisticData.setTimestamp(new Date().getTime());
+    statisticData.setUserId(userId);
+    statisticData.addParameter("spaceId", spaceId);
+    addStatisticData(statisticData);
   }
 }

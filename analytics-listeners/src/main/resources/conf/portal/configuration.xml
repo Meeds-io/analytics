@@ -27,6 +27,11 @@
       <set-method>addListener</set-method>
       <type>org.exoplatform.analytics.listener.social.AnalyticsAttachmentListener</type>
     </component-plugin>
+    <component-plugin>
+      <name>attachment.deleted</name>
+      <set-method>addListener</set-method>
+      <type>org.exoplatform.analytics.listener.social.AnalyticsAttachmentListener</type>
+    </component-plugin>
   </external-component-plugins>
 
   <external-component-plugins>
