@@ -21,7 +21,7 @@ package org.exoplatform.analytics.listener.social;
 import org.exoplatform.analytics.model.StatisticData;
 import org.exoplatform.analytics.utils.AnalyticsUtils;
 import org.exoplatform.commons.api.persistence.ExoTransactional;
-import org.exoplatform.services.listener.Asynchronous;
+import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.services.listener.Event;
 import org.exoplatform.services.listener.Listener;
 import org.exoplatform.social.attachment.AttachmentPlugin;
@@ -29,48 +29,33 @@ import org.exoplatform.social.attachment.AttachmentService;
 import org.exoplatform.social.attachment.model.ObjectAttachmentId;
 import org.exoplatform.social.core.space.model.Space;
 import org.exoplatform.social.core.space.spi.SpaceService;
-import org.exoplatform.social.core.manager.ActivityManager;
-import org.exoplatform.social.core.activity.model.ExoSocialActivity;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 import static org.exoplatform.analytics.utils.AnalyticsUtils.addSpaceStatistics;
 import static org.exoplatform.analytics.utils.AnalyticsUtils.addStatisticData;
 
-@Asynchronous
-public class AnalyticsAttachmentListener extends Listener<String, ObjectAttachmentId> {
+public abstract class BaseAttachmentAnalyticsListener extends Listener<String, ObjectAttachmentId> {
+  public static final String      STATISTICS_ATTACH_OPERATION = "attachImages";
 
-  public static final String      TASK_COMMENT_OBJECT_TYPE     = "taskComment";
+  public static final String      STATISTICS_DETACH_OPERATION = "removeImageAttachments";
 
-  public static final String      ACTIVITY_COMMENT_OBJECT_TYPE = "comment";
+  public static final String      ATTACHMENT_CREATED_EVENT    = "attachment.created";
 
-  public static final String      TASK_OBJECT_TYPE             = "task";
-
-  public static final String      ACTIVITY_OBJECT_TYPE         = "activity";
-
-  public static final String      RULE_OBJECT_TYPE             = "rule";
-
-  public static final String      STATISTICS_ATTACH_OPERATION  = "attachImages";
-
-  public static final String      STATISTICS_DETACH_OPERATION  = "removeImageAttachments";
-
-  public static final String      ATTACHMENT_CREATED_EVENT     = "attachment.created";
-
-  public static final String      ATTACHMENT_DELETED_EVENT     = "attachment.deleted";
+  public static final String      ATTACHMENT_DELETED_EVENT    = "attachment.deleted";
 
   private final AttachmentService attachmentService;
 
   private SpaceService            spaceService;
 
-  private final ActivityManager   activityManager;
+  private List<String>            supportedObjectType;
 
-  public AnalyticsAttachmentListener(ActivityManager activityManager,
-                                     AttachmentService attachmentService,
-                                     SpaceService spaceService) {
+  public BaseAttachmentAnalyticsListener(AttachmentService attachmentService, SpaceService spaceService, InitParams initParams) {
     this.attachmentService = attachmentService;
     this.spaceService = spaceService;
-    this.activityManager = activityManager;
+    this.supportedObjectType = initParams.getValuesParam("supported-type").getValues();
   }
 
   @Override
@@ -80,7 +65,7 @@ public class AnalyticsAttachmentListener extends Listener<String, ObjectAttachme
     String username = event.getSource();
     ObjectAttachmentId objectAttachment = event.getData();
 
-    if (objectAttachment == null) {
+    if (objectAttachment == null || !supportedObjectType.contains(objectAttachment.getObjectType())) {
       return;
     }
 
@@ -90,63 +75,40 @@ public class AnalyticsAttachmentListener extends Listener<String, ObjectAttachme
 
     long userId = AnalyticsUtils.getUserIdentityId(username);
 
-    String objectId = objectAttachment.getObjectId();
-    String objectType = objectAttachment.getObjectType();
-
+    StatisticData statisticData;
     switch (event.getEventName()) {
     case ATTACHMENT_CREATED_EVENT: {
-      buildStatisticData(STATISTICS_ATTACH_OPERATION,objectId, objectType, spaceId, userId);
+      statisticData = buildStatisticData(STATISTICS_ATTACH_OPERATION, objectAttachment, spaceId, userId);
       break;
     }
     case ATTACHMENT_DELETED_EVENT: {
-      buildStatisticData(STATISTICS_DETACH_OPERATION,objectId, objectType, spaceId, userId);
+      statisticData = buildStatisticData(STATISTICS_DETACH_OPERATION, objectAttachment, spaceId, userId);
       break;
     }
     default:
       throw new IllegalArgumentException("Unexpected listener event name: " + event.getEventName());
     }
+    extendStatisticData(statisticData, objectAttachment);
+    addStatisticData(statisticData);
   }
 
-  private void buildStatisticData(String operation,String objectId, String objectType, long spaceId, long userId) {
+  private StatisticData buildStatisticData(String operation, ObjectAttachmentId objectAttachment, long spaceId, long userId) {
     Space space = spaceService.getSpaceById(String.valueOf(spaceId));
     StatisticData statisticData = new StatisticData();
-    statisticData.setModule(getModule(objectType));
-    statisticData.setSubModule(getSubModule(objectType, objectId));
+    statisticData.setModule(getModule());
+    statisticData.setSubModule(getSubModule());
     statisticData.setOperation(operation);
     statisticData.setTimestamp(new Date().getTime());
     statisticData.setUserId(userId);
     addSpaceStatistics(statisticData, space);
-    addStatisticData(statisticData);
+    return statisticData;
   }
 
-  private String getModule(String objectType) {
-    return switch (objectType) {
-    case TASK_COMMENT_OBJECT_TYPE, TASK_OBJECT_TYPE -> "tasks";
-    case ACTIVITY_OBJECT_TYPE -> "social";
-    case RULE_OBJECT_TYPE -> "gamification";
-    default -> "";
-    };
+  protected void extendStatisticData(StatisticData statisticData, ObjectAttachmentId objectAttachment) {
   }
 
-  private String getSubModule(String objectType, String objectId) {
-    switch (objectType) {
-    case ACTIVITY_OBJECT_TYPE:
-      ExoSocialActivity activity = activityManager.getActivity(objectId);
-      String objectSubModule;
-      if (activity.getType() == null) {
-        objectSubModule = activity.isComment() ? ACTIVITY_COMMENT_OBJECT_TYPE : ACTIVITY_OBJECT_TYPE;
-      } else {
-        objectSubModule = activity.getType();
-      }
-      return objectSubModule;
-    case TASK_OBJECT_TYPE:
-      return "task";
-    case TASK_COMMENT_OBJECT_TYPE:
-      return "comment";
-    case RULE_OBJECT_TYPE:
-      return "rule";
-    default:
-      return objectType;
-    }
-  }
+  protected abstract String getModule();
+
+  protected abstract String getSubModule();
+
 }
