@@ -40,6 +40,7 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.exoplatform.social.core.activity.model.ExoSocialActivity;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -102,6 +103,10 @@ public class AnalyticsUtils {
   public static final String            IMAGE_SIZE                       = "imageSize";
 
   public static final String            IMAGE_TYPE                       = "imageType";
+
+  public static final String            LINK_ACTIVITY_TYPE               = "LINK_ACTIVITY";
+
+  public static final String            FILE_SPACES_ACTIVITY_TYPE        = "files:spaces";
 
   public static final List<String>      COMPUTED_CHART_LABEL             = Arrays.asList(FIELD_MODIFIER_USER_SOCIAL_ID,                                 // NOSONAR
                                                                                          FIELD_SOCIAL_IDENTITY_ID,
@@ -430,7 +435,42 @@ public class AnalyticsUtils {
     statisticData.addParameter("spacePendingCount", getSize(space.getPendingUsers()));
   }
 
+  public static void addActivityStatisticsData(StatisticData statisticData, ExoSocialActivity activity) {
+    if (activity == null || StringUtils.isBlank(activity.getId())) {
+      return;
+    }
+    String activityId = activity.getParentId() == null ? activity.getId() : activity.getParentId();
+    String commentId = activity.getParentCommentId() == null ? activity.getId() : activity.getParentCommentId();
+    String subCommentId = activity.getParentCommentId() == null ? null : activity.getId();
+    statisticData.addParameter("activityType", getActivityType(activity));
+    if (StringUtils.isNotBlank(activityId)) {
+      statisticData.addParameter("activityId", activityId);
+    }
+    if (StringUtils.isNotBlank(commentId)) {
+      commentId = commentId.replace("comment", "");
+      statisticData.addParameter("comment", commentId);
+    }
+    if (StringUtils.isNotBlank(subCommentId)) {
+      subCommentId = subCommentId.replace("comment", "");
+      statisticData.addParameter("subCommentId", subCommentId);
+    }
+  }
+
   private static int getSize(String[] array) {
     return array == null ? 0 : (int) Arrays.stream(array).filter(Objects::nonNull).distinct().count();
+  }
+
+  private static String getActivityType(ExoSocialActivity activity) {
+    String type = activity.getType();
+    if (type == null || type.isEmpty()) {
+      if (activity.getFiles() != null && !activity.getFiles().isEmpty()) {
+        type = FILE_SPACES_ACTIVITY_TYPE;
+      } else if ((activity.getFiles() == null || activity.getFiles().isEmpty()) && activity.getTemplateParams() != null
+          && !activity.getTemplateParams().isEmpty() && activity.getTemplateParams().get("link") != null
+          && !activity.getTemplateParams().get("link").equals("-")) {
+        type = LINK_ACTIVITY_TYPE;
+      }
+    }
+    return type;
   }
 }

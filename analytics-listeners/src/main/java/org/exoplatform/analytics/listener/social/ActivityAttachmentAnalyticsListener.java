@@ -18,6 +18,8 @@
  */
 package org.exoplatform.analytics.listener.social;
 
+import static org.exoplatform.analytics.utils.AnalyticsUtils.addActivityStatisticsData;
+
 import org.exoplatform.analytics.model.StatisticData;
 import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.services.listener.Asynchronous;
@@ -40,20 +42,14 @@ public class ActivityAttachmentAnalyticsListener extends BaseAttachmentAnalytics
     this.activityManager = activityManager;
   }
 
-
   @Override
   protected void extendStatisticData(StatisticData statisticData, ObjectAttachmentId objectAttachment) {
     ExoSocialActivity activity = activityManager.getActivity(objectAttachment.getObjectId());
-    if (activity != null) {
-      String objectType;
-      if (activity.getType() == null) {
-        objectType = activity.isComment() ? "activityComment" : "activity";
-      } else {
-        objectType = activity.getType();
-      }
-      statisticData.addParameter("activityType", objectType);
+    if (activity != null ) {
+      addActivityStatisticsData(statisticData, activity);
     }
   }
+
   @Override
   protected String getModule(ObjectAttachmentId objectAttachment) {
     return "social";
