@@ -52,7 +52,7 @@ public abstract class BaseAttachmentAnalyticsListener extends Listener<String, O
 
   private List<String>            supportedObjectType;
 
-  public BaseAttachmentAnalyticsListener(AttachmentService attachmentService, SpaceService spaceService, InitParams initParams) {
+  protected BaseAttachmentAnalyticsListener(AttachmentService attachmentService, SpaceService spaceService, InitParams initParams) {
     this.attachmentService = attachmentService;
     this.spaceService = spaceService;
     this.supportedObjectType = initParams.getValuesParam("supported-type").getValues();
