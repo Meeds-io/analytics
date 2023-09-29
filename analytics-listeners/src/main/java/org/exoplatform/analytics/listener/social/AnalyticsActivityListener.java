@@ -194,13 +194,14 @@ public class AnalyticsActivityListener extends ActivityListenerPlugin {
         Space space = spaceService.getSpaceByPrettyName(streamIdentity.getRemoteId());
         addSpaceStatistics(statisticData, space);
       }
+      statisticData.addParameter("streamIdentityId", Long.parseLong(streamIdentity.getId()));
     }
 
     statisticData.setModule("social");
     statisticData.setSubModule("activity");
     statisticData.setOperation(operation);
     statisticData.setUserId(modifierUserId);
-    statisticData.addParameter("streamIdentityId", Long.parseLong(streamIdentity.getId()));
+
     addActivityStatisticsData(statisticData, activity);
     return statisticData;
   }

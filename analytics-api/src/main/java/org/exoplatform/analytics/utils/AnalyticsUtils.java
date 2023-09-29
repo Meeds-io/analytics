@@ -108,6 +108,8 @@ public class AnalyticsUtils {
 
   public static final String            FILE_SPACES_ACTIVITY_TYPE        = "files:spaces";
 
+  public static final String            ACTIVITY_COMMENT                 = "comment";
+
   public static final List<String>      COMPUTED_CHART_LABEL             = Arrays.asList(FIELD_MODIFIER_USER_SOCIAL_ID,                                 // NOSONAR
                                                                                          FIELD_SOCIAL_IDENTITY_ID,
                                                                                          FIELD_USER_ID,
@@ -447,11 +449,11 @@ public class AnalyticsUtils {
       statisticData.addParameter("activityId", activityId);
     }
     if (StringUtils.isNotBlank(commentId)) {
-      commentId = commentId.replace("comment", "");
-      statisticData.addParameter("comment", commentId);
+      commentId = commentId.replace(ACTIVITY_COMMENT, "");
+      statisticData.addParameter(ACTIVITY_COMMENT, commentId);
     }
     if (StringUtils.isNotBlank(subCommentId)) {
-      subCommentId = subCommentId.replace("comment", "");
+      subCommentId = subCommentId.replace(ACTIVITY_COMMENT, "");
       statisticData.addParameter("subCommentId", subCommentId);
     }
   }
