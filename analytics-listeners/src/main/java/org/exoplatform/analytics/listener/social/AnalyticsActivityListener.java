@@ -40,10 +40,6 @@ public class AnalyticsActivityListener extends ActivityListenerPlugin {
 
   private static final Log   LOG                       = ExoLogger.getLogger(AnalyticsActivityListener.class);
 
-  public static final String LINK_ACTIVITY_TYPE        = "LINK_ACTIVITY";
-
-  public static final String FILE_SPACES_ACTIVITY_TYPE = "files:spaces";
-
   @Override
   public void saveActivity(ActivityLifeCycleEvent event) {
     try {
@@ -147,10 +143,6 @@ public class AnalyticsActivityListener extends ActivityListenerPlugin {
   private StatisticData addActivityStatisticEvent(ActivityLifeCycleEvent event, String operation) { // NOSONAR
     ExoSocialActivity activity = event.getActivity();
 
-    String activityId = activity.getParentId() == null ? activity.getId() : activity.getParentId();
-    String commentId = activity.getParentCommentId() == null ? activity.getId() : activity.getParentCommentId();
-    String subCommentId = activity.getParentCommentId() == null ? null : activity.getId();
-
     long modifierUserId = getCurrentUserIdentityId();
     if (modifierUserId == 0) {
       try {
@@ -208,33 +200,9 @@ public class AnalyticsActivityListener extends ActivityListenerPlugin {
     statisticData.setSubModule("activity");
     statisticData.setOperation(operation);
     statisticData.setUserId(modifierUserId);
-    statisticData.addParameter("streamIdentityId", streamIdentityId);
-    statisticData.addParameter("activityType", getActivityType(activity));
-    if (StringUtils.isNotBlank(activityId)) {
-      statisticData.addParameter("activityId", activityId);
-    }
-    if (StringUtils.isNotBlank(commentId)) {
-      commentId = commentId.replace("comment", "");
-      statisticData.addParameter("comment", commentId);
-    }
-    if (StringUtils.isNotBlank(subCommentId)) {
-      subCommentId = subCommentId.replace("comment", "");
-      statisticData.addParameter("subCommentId", subCommentId);
-    }
+    statisticData.addParameter("streamIdentityId", Long.parseLong(streamIdentity.getId()));
+    addActivityStatisticsData(statisticData, activity);
     return statisticData;
   }
 
-  private String getActivityType(ExoSocialActivity activity) {
-    String type = activity.getType();
-    if (type == null || type.isEmpty()) {
-      if (activity.getFiles() != null && !activity.getFiles().isEmpty()) {
-        type = FILE_SPACES_ACTIVITY_TYPE;
-      } else if ((activity.getFiles() == null || activity.getFiles().isEmpty()) && activity.getTemplateParams() != null
-          && !activity.getTemplateParams().isEmpty() && activity.getTemplateParams().get("link") != null
-          && !activity.getTemplateParams().get("link").equals("-")) {
-        type = LINK_ACTIVITY_TYPE;
-      }
-    }
-    return type;
-  }
 }

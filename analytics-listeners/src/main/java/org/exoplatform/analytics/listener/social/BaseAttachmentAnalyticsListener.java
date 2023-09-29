@@ -21,7 +21,7 @@ package org.exoplatform.analytics.listener.social;
 import org.exoplatform.analytics.model.StatisticData;
 import org.exoplatform.analytics.utils.AnalyticsUtils;
 import org.exoplatform.commons.api.persistence.ExoTransactional;
-import org.exoplatform.services.listener.Asynchronous;
+import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.services.listener.Event;
 import org.exoplatform.services.listener.Listener;
 import org.exoplatform.social.attachment.AttachmentPlugin;
@@ -31,13 +31,13 @@ import org.exoplatform.social.core.space.model.Space;
 import org.exoplatform.social.core.space.spi.SpaceService;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 import static org.exoplatform.analytics.utils.AnalyticsUtils.addSpaceStatistics;
 import static org.exoplatform.analytics.utils.AnalyticsUtils.addStatisticData;
 
-@Asynchronous
-public class AnalyticsAttachmentListener extends Listener<String, ObjectAttachmentId> {
+public abstract class BaseAttachmentAnalyticsListener extends Listener<String, ObjectAttachmentId> {
   public static final String      STATISTICS_ATTACH_OPERATION = "attachImages";
 
   public static final String      STATISTICS_DETACH_OPERATION = "removeImageAttachments";
@@ -50,9 +50,12 @@ public class AnalyticsAttachmentListener extends Listener<String, ObjectAttachme
 
   private SpaceService            spaceService;
 
-  public AnalyticsAttachmentListener(AttachmentService attachmentService, SpaceService spaceService) {
+  private List<String>            supportedObjectType;
+
+  public BaseAttachmentAnalyticsListener(AttachmentService attachmentService, SpaceService spaceService, InitParams initParams) {
     this.attachmentService = attachmentService;
     this.spaceService = spaceService;
+    this.supportedObjectType = initParams.getValuesParam("supported-type").getValues();
   }
 
   @Override
@@ -62,7 +65,7 @@ public class AnalyticsAttachmentListener extends Listener<String, ObjectAttachme
     String username = event.getSource();
     ObjectAttachmentId objectAttachment = event.getData();
 
-    if (objectAttachment == null) {
+    if (objectAttachment == null || !supportedObjectType.contains(objectAttachment.getObjectType())) {
       return;
     }
 
@@ -72,29 +75,40 @@ public class AnalyticsAttachmentListener extends Listener<String, ObjectAttachme
 
     long userId = AnalyticsUtils.getUserIdentityId(username);
 
+    StatisticData statisticData;
     switch (event.getEventName()) {
     case ATTACHMENT_CREATED_EVENT: {
-      buildStatisticData(STATISTICS_ATTACH_OPERATION, spaceId, userId);
+      statisticData = buildStatisticData(STATISTICS_ATTACH_OPERATION, objectAttachment, spaceId, userId);
       break;
     }
     case ATTACHMENT_DELETED_EVENT: {
-      buildStatisticData(STATISTICS_DETACH_OPERATION, spaceId, userId);
+      statisticData = buildStatisticData(STATISTICS_DETACH_OPERATION, objectAttachment, spaceId, userId);
       break;
     }
     default:
       throw new IllegalArgumentException("Unexpected listener event name: " + event.getEventName());
     }
+    extendStatisticData(statisticData, objectAttachment);
+    addStatisticData(statisticData);
   }
 
-  private void buildStatisticData(String operation, long spaceId, long userId) {
+  private StatisticData buildStatisticData(String operation, ObjectAttachmentId objectAttachment, long spaceId, long userId) {
     Space space = spaceService.getSpaceById(String.valueOf(spaceId));
     StatisticData statisticData = new StatisticData();
-    statisticData.setModule("social");
-    statisticData.setSubModule("attachment");
+    statisticData.setModule(getModule(objectAttachment));
+    statisticData.setSubModule(getSubModule(objectAttachment));
     statisticData.setOperation(operation);
     statisticData.setTimestamp(new Date().getTime());
     statisticData.setUserId(userId);
     addSpaceStatistics(statisticData, space);
-    addStatisticData(statisticData);
+    return statisticData;
   }
+
+  protected void extendStatisticData(StatisticData statisticData, ObjectAttachmentId objectAttachment) {
+  }
+
+  protected abstract String getModule(ObjectAttachmentId objectAttachment);
+
+  protected abstract String getSubModule(ObjectAttachmentId objectAttachment);
+
 }
