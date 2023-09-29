@@ -21,6 +21,32 @@
   </external-component-plugins>
 
   <external-component-plugins>
+    <target-component>org.exoplatform.services.listener.ListenerService</target-component>
+    <component-plugin>
+      <name>attachment.created</name>
+      <set-method>addListener</set-method>
+      <type>org.exoplatform.analytics.listener.social.ActivityAttachmentAnalyticsListener</type>
+      <init-params>
+        <values-param>
+          <name>supported-type</name>
+          <value>activity</value>
+        </values-param>
+      </init-params>
+    </component-plugin>
+    <component-plugin>
+      <name>attachment.deleted</name>
+      <set-method>addListener</set-method>
+      <type>org.exoplatform.analytics.listener.social.ActivityAttachmentAnalyticsListener</type>
+      <init-params>
+        <values-param>
+          <name>supported-type</name>
+          <value>activity</value>
+        </values-param>
+      </init-params>
+    </component-plugin>
+  </external-component-plugins>
+
+  <external-component-plugins>
     <target-component>org.exoplatform.services.organization.OrganizationService</target-component>
     <component-plugin>
       <name>new.user.event.listener</name>
