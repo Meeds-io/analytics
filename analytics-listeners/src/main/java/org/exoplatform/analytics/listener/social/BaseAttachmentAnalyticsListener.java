@@ -95,8 +95,8 @@ public abstract class BaseAttachmentAnalyticsListener extends Listener<String, O
   private StatisticData buildStatisticData(String operation, ObjectAttachmentId objectAttachment, long spaceId, long userId) {
     Space space = spaceService.getSpaceById(String.valueOf(spaceId));
     StatisticData statisticData = new StatisticData();
-    statisticData.setModule(getModule());
-    statisticData.setSubModule(getSubModule());
+    statisticData.setModule(getModule(objectAttachment));
+    statisticData.setSubModule(getSubModule(objectAttachment));
     statisticData.setOperation(operation);
     statisticData.setTimestamp(new Date().getTime());
     statisticData.setUserId(userId);
@@ -107,8 +107,8 @@ public abstract class BaseAttachmentAnalyticsListener extends Listener<String, O
   protected void extendStatisticData(StatisticData statisticData, ObjectAttachmentId objectAttachment) {
   }
 
-  protected abstract String getModule();
+  protected abstract String getModule(ObjectAttachmentId objectAttachment);
 
-  protected abstract String getSubModule();
+  protected abstract String getSubModule(ObjectAttachmentId objectAttachment);
 
 }

@@ -55,12 +55,12 @@ public class ActivityAttachmentAnalyticsListener extends BaseAttachmentAnalytics
     }
   }
   @Override
-  protected String getModule() {
+  protected String getModule(ObjectAttachmentId objectAttachment) {
     return "social";
   }
 
   @Override
-  protected String getSubModule() {
+  protected String getSubModule(ObjectAttachmentId objectAttachment) {
     return "activity";
   }
 }
