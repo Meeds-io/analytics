@@ -45,7 +45,7 @@ public class ActivityAttachmentAnalyticsListener extends BaseAttachmentAnalytics
   @Override
   protected void extendStatisticData(StatisticData statisticData, ObjectAttachmentId objectAttachment) {
     ExoSocialActivity activity = activityManager.getActivity(objectAttachment.getObjectId());
-    if (activity != null ) {
+    if (activity != null) {
       addActivityStatisticsData(statisticData, activity);
     }
   }
