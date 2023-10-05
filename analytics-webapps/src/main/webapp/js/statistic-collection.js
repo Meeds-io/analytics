@@ -50,19 +50,21 @@ function() {
 
       if (!this.cometdSubscription) {
         // First time init, install listener
-        document.addEventListener('exo-statistic-message', event => this.sendMessage(event && event.detail));
-        document.addEventListener('search-connector-selected', event => this.addStatisticSearchFilter(event && event.detail));
-        document.addEventListener('activity-stream-type-filter-applied', event => this.addStatisticStreamFilter(event && event.detail));
-        document.addEventListener('favorite-added', event => this.addStatisticFavorite(true, event && event.detail));
-        document.addEventListener('favorite-removed', event => this.addStatisticFavorite(false, event && event.detail));
-        document.addEventListener('download-file', event => this.addStatisticDownload(event && event.detail));
-        document.addEventListener('document-change', event => this.addStatisticDocument(event && event.detail));
+        document.addEventListener('exo-statistic-message', event => this.sendMessage(event?.detail));
+        document.addEventListener('search-connector-selected', event => this.addStatisticSearchFilter(event?.detail));
+        document.addEventListener('activity-stream-type-filter-applied', event => this.addStatisticStreamFilter(event?.detail));
+        document.addEventListener('favorite-added', event => this.addStatisticFavorite(true, event?.detail));
+        document.addEventListener('favorite-removed', event => this.addStatisticFavorite(false, event?.detail));
+        document.addEventListener('space-muted', event => this.addStatisticSpaceMute(true, event?.detail));
+        document.addEventListener('space-unmuted', event => this.addStatisticSpaceMute(false, event?.detail));
+        document.addEventListener('download-file', event => this.addStatisticDownload(event?.detail));
+        document.addEventListener('document-change', event => this.addStatisticDocument(event?.detail));
         document.addEventListener('search-tag', () => this.addStatisticSearchByTag());
-        document.addEventListener('editors-options-opened', event => this.addStatisticEditorOptionsOpened(event && event.detail));
-        document.addEventListener('manage-access', event => this.addStatisticManageAccess(event && event.detail));
-        document.addEventListener('editor-option-added', event => this.addStatisticEditorOptionAdded(event && event.detail));
-        document.addEventListener('space-topbar-popover-action', event => this.addStatisticSpaceTopbarPopover(event && event.detail));
-        document.addEventListener('space-left-navigation-action', event => this.addStatisticSpaceLeftNavigation(event && event.detail));
+        document.addEventListener('editors-options-opened', event => this.addStatisticEditorOptionsOpened(event?.detail));
+        document.addEventListener('manage-access', event => this.addStatisticManageAccess(event?.detail));
+        document.addEventListener('editor-option-added', event => this.addStatisticEditorOptionAdded(event?.detail));
+        document.addEventListener('space-topbar-popover-action', event => this.addStatisticSpaceTopbarPopover(event?.detail));
+        document.addEventListener('space-left-navigation-action', event => this.addStatisticSpaceLeftNavigation(event?.detail));
         document.addEventListener('search-favorites-selected', () => this.sendMessage({
           'module': 'portal',
           'subModule': 'ui',
@@ -72,9 +74,9 @@ function() {
           'name': 'search by favorite',
           'timestamp': Date.now()
         }));
-        document.addEventListener('activity-pinned', event => this.addStatisticActivityPin(true, event && event.detail));
-        document.addEventListener('activity-unpinned', event => this.addStatisticActivityPin(false, event && event.detail));
-        document.addEventListener('left-menu-stickiness', event => this.addStatisticMenuStickiness(event && event.detail));
+        document.addEventListener('activity-pinned', event => this.addStatisticActivityPin(true, event?.detail));
+        document.addEventListener('activity-unpinned', event => this.addStatisticActivityPin(false, event?.detail));
+        document.addEventListener('left-menu-stickiness', event => this.addStatisticMenuStickiness(event?.detail));
       }
       this.cometdSubscription = cCometd.subscribe(this.settings.cometdChannel, null, event => {}, null, (subscribeReply) => {
         self_.connected = subscribeReply && subscribeReply.successful;
@@ -188,6 +190,20 @@ function() {
           'contentId': eventDetail.id,
           'spaceId': eventDetail.spaceId,
           'entityType': entityType,
+        },
+      });
+    },
+    addStatisticSpaceMute: function (mute, eventDetail) {
+      this.sendMessage({
+        'module': 'notification',
+        'subModule': 'spaceMute',
+        'userId': eXo.env.portal.userIdentityId,
+        'userName': eXo.env.portal.userName,
+        'operation': mute && 'muteSpace' || 'unmuteSpace',
+        'name': eventDetail.name,
+        'timestamp': Date.now(),
+        'parameters': {
+          'spaceId': eventDetail.spaceId,
         },
       });
     },
@@ -460,7 +476,7 @@ function() {
       });
     } else if (eXo.developing) {
       document.addEventListener('vue-app-loading-start', event => {
-        const detail = event && event.detail;
+        const detail = event?.detail;
         const appName = detail.appName;
         const time = detail.time;
         if (eXo.env.portal.requestStartTime && appName && !eXo.env.portal.loadingAppsStartTime[appName]) {
@@ -518,7 +534,7 @@ function() {
       }, false);
 
       document.addEventListener('vue-app-loading-end', event => {
-        const detail = event && event.detail;
+        const detail = event?.detail;
         const appName = detail.appName;
         const time = detail.time;
         if (!appName) {
