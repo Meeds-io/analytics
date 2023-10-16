@@ -17,7 +17,7 @@
 <template>
   <v-app 
     :id="appId"
-    class="analytics-application"
+    class="analytics-application card-border-radius overflow-hidden"
     flat>
     <template v-if="canEdit">
       <analytics-chart-setting
