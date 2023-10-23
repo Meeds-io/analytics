@@ -17,7 +17,7 @@
 <template>
   <v-app
     :id="appId"
-    class="analytics-application"
+    class="analytics-application card-border-radius overflow-hidden"
     flat>
     <div class="d-flex px-3 pb-2 pt-1 white analytics-table-header" flat>
       <analytics-select-period
