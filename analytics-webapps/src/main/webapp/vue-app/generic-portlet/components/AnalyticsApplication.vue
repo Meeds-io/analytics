@@ -17,7 +17,7 @@
 <template>
   <v-app 
     :id="appId"
-    class="analytics-application card-border-radius overflow-hidden"
+    class="analytics-application card-border-radius"
     flat>
     <template v-if="canEdit">
       <analytics-chart-setting
@@ -37,7 +37,7 @@
         :retrieve-samples-url="retrieveChartSamplesUrl"
         class="mt-0" />
     </template>
-    <v-card class="ma-auto analytics-chart-parent white" flat>
+    <v-card class="ma-auto analytics-chart-parent transparent" flat>
       <div class="d-flex pa-3 analytics-chart-header" flat>
         <v-toolbar-title class="d-flex">
           <v-tooltip bottom>
