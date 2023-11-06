@@ -26,7 +26,7 @@
     hide-default-footer
     disable-pagination
     disable-filtering
-    class="analytics-table border-box-sizing px-2">
+    class="analytics-table border-box-sizing px-2 card-border-radius">
     <template
       v-for="header in headers"
       #[`item.${header.value}`]="{item}">

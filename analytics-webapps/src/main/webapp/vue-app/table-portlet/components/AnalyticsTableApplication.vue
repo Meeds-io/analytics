@@ -17,9 +17,9 @@
 <template>
   <v-app
     :id="appId"
-    class="analytics-application card-border-radius overflow-hidden"
+    class="analytics-application white card-border-radius"
     flat>
-    <div class="d-flex px-3 pb-2 pt-1 white analytics-table-header" flat>
+    <div class="d-flex px-3 pb-2 pt-1 analytics-table-header" flat>
       <analytics-select-period
         v-model="selectedPeriod"
         hide-time
