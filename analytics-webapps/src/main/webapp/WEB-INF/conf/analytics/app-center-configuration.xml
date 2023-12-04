@@ -60,9 +60,6 @@
             <field name="active">
               <boolean>true</boolean>
             </field>
-            <field name="isMandatory">
-              <boolean>true</boolean>
-            </field>
             <field name="isMobile">
               <boolean>true</boolean>
             </field>
