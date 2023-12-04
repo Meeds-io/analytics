@@ -45,8 +45,13 @@
   </scm>
   <properties>
     <!-- 3rd party libraries versions -->
+<<<<<<< HEAD
     <org.exoplatform.social.version>6.6.x-exo-SNAPSHOT</org.exoplatform.social.version>
     <org.exoplatform.platform-ui.version>6.6.x-exo-SNAPSHOT</org.exoplatform.platform-ui.version>
+=======
+    <org.exoplatform.social.version>6.6.x-SNAPSHOT</org.exoplatform.social.version>
+    <org.exoplatform.platform-ui.version>6.6.x-SNAPSHOT</org.exoplatform.platform-ui.version>
+>>>>>>> e666d6d7 (Update Project version and Dependencies to 1.5.x-SNAPSHOT)
 
     <!-- Sonar properties -->
     <sonar.organization>meeds-io</sonar.organization>
