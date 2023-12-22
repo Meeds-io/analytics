@@ -168,7 +168,6 @@ public class AnalyticsActivityListener extends ActivityListenerPlugin {
       activityStream = parentActivity.getActivityStream();
     }
 
-    long streamIdentityId = 0;
     Identity streamIdentity = null;
     if (activityStream != null) {
       Type type = activityStream.getType();
@@ -188,7 +187,6 @@ public class AnalyticsActivityListener extends ActivityListenerPlugin {
 
     StatisticData statisticData = new StatisticData();
     if (streamIdentity != null) {
-      streamIdentityId = Long.parseLong(streamIdentity.getId());
       if (StringUtils.equals(streamIdentity.getProviderId(), SpaceIdentityProvider.NAME)) {
         SpaceService spaceService = CommonsUtils.getService(SpaceService.class);
         Space space = spaceService.getSpaceByPrettyName(streamIdentity.getRemoteId());
