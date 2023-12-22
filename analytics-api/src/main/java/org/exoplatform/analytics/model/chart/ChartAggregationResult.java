@@ -18,7 +18,7 @@ package org.exoplatform.analytics.model.chart;
 
 import java.io.Serializable;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import lombok.*;
 import lombok.EqualsAndHashCode.Exclude;

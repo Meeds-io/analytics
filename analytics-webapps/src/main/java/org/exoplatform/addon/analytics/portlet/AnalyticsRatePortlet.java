@@ -23,7 +23,7 @@ import java.time.LocalDate;
 import javax.portlet.*;
 import javax.ws.rs.core.MediaType;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
 
 import org.exoplatform.analytics.model.filter.*;
