@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 import javax.portlet.*;
 import javax.ws.rs.core.MediaType;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.json.*;
 
 import org.exoplatform.analytics.api.service.AnalyticsService;

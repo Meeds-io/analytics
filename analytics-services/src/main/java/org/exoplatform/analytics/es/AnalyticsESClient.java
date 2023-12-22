@@ -21,16 +21,23 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.ResolverStyle;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.httpclient.HttpStatus;
-import org.apache.commons.lang.StringUtils;
-import org.apache.http.conn.HttpClientConnectionManager;
-import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
+import org.apache.hc.client5.http.io.HttpClientConnectionManager;
 import org.json.JSONException;
 
 import org.exoplatform.analytics.model.StatisticDataQueueEntry;
-import org.exoplatform.commons.search.es.client.*;
+import org.exoplatform.commons.search.es.client.ElasticClient;
+import org.exoplatform.commons.search.es.client.ElasticClientException;
+import org.exoplatform.commons.search.es.client.ElasticIndexingAuditTrail;
+import org.exoplatform.commons.search.es.client.ElasticResponse;
 import org.exoplatform.commons.utils.IOUtil;
 import org.exoplatform.container.configuration.ConfigurationManager;
 import org.exoplatform.container.xml.InitParams;
@@ -83,7 +90,7 @@ public class AnalyticsESClient extends ElasticClient {
 
   private String                                password;
 
-  public AnalyticsESClient(ConfigurationManager configurationManager,
+  public AnalyticsESClient(ConfigurationManager configurationManager, // NOSONAR
                            AnalyticsElasticContentRequestBuilder elasticContentRequestBuilder,
                            AnalyticsIndexingServiceConnector analyticsIndexingConnector,
                            ElasticIndexingAuditTrail auditTrail,

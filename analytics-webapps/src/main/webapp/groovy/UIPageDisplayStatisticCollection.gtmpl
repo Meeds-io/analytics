@@ -19,7 +19,7 @@
 <%
   import org.exoplatform.commons.api.settings.ExoFeatureService;
   import org.exoplatform.commons.utils.HTMLEntityEncoder;
-  import org.apache.commons.lang.StringUtils;
+  import org.apache.commons.lang3.StringUtils;
   import org.exoplatform.commons.utils.PropertyManager;
 
   def rcontext = _ctx.getRequestContext() ;
