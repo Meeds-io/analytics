@@ -169,6 +169,9 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
         String[] fieldNames = JSONObject.getNames(mappingObject);
         for (String fieldName : fieldNames) {
           JSONObject esField = mappingObject.getJSONObject(fieldName);
+          if (esField == null || !esField.has("type")) {
+            continue;
+          }
           String fieldType = esField.getString("type");
           JSONObject keywordField = getJSONObject(esField, 0, "fields", "keyword");
           StatisticFieldMapping esFieldMapping = new StatisticFieldMapping(fieldName, fieldType, keywordField != null);
