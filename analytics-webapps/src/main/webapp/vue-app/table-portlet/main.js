@@ -72,5 +72,5 @@ export function init(dataId) {
         vuetify,
         i18n
       }).$mount(`#${dataId}`);
-    });
+    }).finally(() => Vue.prototype.$utils.includeExtensions('AnalyticsTableExtension'));
 }
