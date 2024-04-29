@@ -30,6 +30,9 @@ function() {
       }
     },
     initCometd : function() {
+      if (!this.settings?.cometdToken) {
+        return;
+      }
       const self_ = this;
       cCometd.addListener('/meta/connect', function (message) {
         self_.connected = !cCometd.isDisconnected();
@@ -344,7 +347,7 @@ function() {
       }
     },
     sendMessage : function(statisticMessage) {
-      if (statisticMessage) {
+      if (statisticMessage && this.settings?.cometdToken) {
         statisticMessage.token = this.settings.cometdToken;
         cCometd.publish(this.settings.cometdChannel, JSON.stringify(statisticMessage));
       }
