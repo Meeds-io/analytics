@@ -23,7 +23,7 @@
   <parent>
     <groupId>io.meeds.analytics</groupId>
     <artifactId>analytics-parent</artifactId>
-    <version>7.0.x-exo-SNAPSHOT</version>
+    <version>7.0.x-maintenance-SNAPSHOT</version>
   </parent>
   <artifactId>analytics-webapps</artifactId>
   <packaging>war</packaging>
