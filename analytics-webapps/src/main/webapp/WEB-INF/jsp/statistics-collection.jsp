@@ -16,11 +16,8 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 %>
-<script>
-  require(['PORTLET/analytics/StatisticsCollection'], (stats) => {
-    stats.init.call(stats,
-      <%=request.getAttribute("userSettings")%>,
-      <%=request.getAttribute("uiWatchers")%>
-    );
+<script type="text/javascript">
+  window.require(['PORTLET/analytics/StatisticsCollection'], (stats) => {
+    stats.init.call(stats, <%=request.getAttribute("uiWatchers")%>);
   });
 </script>
