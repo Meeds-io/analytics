@@ -17,9 +17,10 @@
 <template>
   <exo-drawer
     ref="samplesDrawer"
-    right
     body-classes="hide-scroll"
     class="samplesDrawer"
+    right
+    allow-expand
     @closed="$emit('cancel')">
     <template slot="title">
       {{ title }}
