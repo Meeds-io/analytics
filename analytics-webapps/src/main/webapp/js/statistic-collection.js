@@ -16,23 +16,23 @@
  */
 function() {
   const api = {
-    init : function (settings, watchers) {
-      if (settings && watchers && !this.watchers) {
-        this.watchers = watchers;
-        this.settings = settings;
-
+    init : function (watchers) {
+      if (!this.settings) {
+        this.settings = {
+          cometdContext: eXo.env.portal.cometdContext,
+          cometdToken: eXo.env.portal.cometdToken,
+          cometdChannel: '/service/analytics',
+        };
         this.initCometd();
+      }
+
+      if (watchers && !this.watchers?.length) {
+        this.watchers = watchers;
         this.installWatchers();
-        const _self = this;
-        document.addEventListener("analytics-install-watchers", function() {
-          _self.installWatchers();
-        });
+        document.addEventListener("analytics-install-watchers", () => this.installWatchers());
       }
     },
     initCometd : function() {
-      if (!this.settings?.cometdToken) {
-        return;
-      }
       const self_ = this;
       cCometd.addListener('/meta/connect', function (message) {
         self_.connected = !cCometd.isDisconnected();
@@ -347,7 +347,7 @@ function() {
       }
     },
     sendMessage : function(statisticMessage) {
-      if (statisticMessage && this.settings?.cometdToken) {
+      if (statisticMessage) {
         statisticMessage.token = this.settings.cometdToken;
         cCometd.publish(this.settings.cometdChannel, JSON.stringify(statisticMessage));
       }
@@ -595,6 +595,6 @@ function() {
       });
     }
   });
-
+  api.init.call(api, []);
   return api;
 }();

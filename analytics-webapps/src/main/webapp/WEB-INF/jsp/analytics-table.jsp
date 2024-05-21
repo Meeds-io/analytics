@@ -50,6 +50,6 @@
          data-save-settings-url="<%=saveSettingsURL%>">
     </div>
     <script type="text/javascript">
-        require(['PORTLET/analytics/AnalyticsTablePortlet'], app => app.init('analytics-<%= generatedId %>'));
+      window.require(['PORTLET/analytics/AnalyticsTablePortlet'], app => app.init('analytics-<%= generatedId %>'));
     </script>
 </div>
