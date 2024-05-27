@@ -23,7 +23,6 @@
   <import>war:/conf/analytics/analytics-ui-watchers-configuration.xml</import>
   <import>war:/conf/analytics/dynamic-container-configuration.xml</import>
   <import>war:/conf/analytics/app-center-configuration.xml</import>
-  <import>war:/conf/analytics/application-registry-configuration.xml</import>
   <import>war:/conf/analytics/listeners-configuration.xml</import>
 
 </configuration>
