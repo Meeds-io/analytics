@@ -1,0 +1,18 @@
+{
+  "descriptors":[
+    {
+      "nameId":"analytics",
+      "names":{
+        "en":"layout.portletInstance.category.analytics.name"
+      },
+      "descriptions":{
+        "en":"layout.portletInstance.category.analytics.description"
+      },
+      "icon":"fa-chart-pie",
+      "permissions":[
+        "*:/platform/users"
+      ],
+      "system":true
+    }
+  ]
+}
