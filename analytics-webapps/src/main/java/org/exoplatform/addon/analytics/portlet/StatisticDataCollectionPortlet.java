@@ -47,9 +47,6 @@ public class StatisticDataCollectionPortlet extends GenericPortlet {
   @Override
   protected void doView(RenderRequest request, RenderResponse response) throws IOException, PortletException {
     if (StringUtils.isNotBlank(request.getRemoteUser())) {
-      UserSettings userSettings = getAnalyticsWebSocketService().getUserSettings(request.getRemoteUser());
-      request.setAttribute("userSettings", AnalyticsUtils.toJsonString(userSettings));
-
       List<StatisticWatcher> uiWatchers = getAnalyticsService().getUIWatchers();
       request.setAttribute("uiWatchers", AnalyticsUtils.toJsonString(uiWatchers));
 
