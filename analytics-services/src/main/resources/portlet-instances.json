@@ -62,7 +62,7 @@
     },
     {
       "nameId":"AnalyticsDashboardBreadcrumb",
-      "categoryNameId":"analytics",
+      "categoryNameId":"others",
       "portletName":"AnalyticsDashboardBreadcrumb",
       "names":{
         "en":"layout.portletInstance.AnalyticsDashboardBreadcrumb.name"
