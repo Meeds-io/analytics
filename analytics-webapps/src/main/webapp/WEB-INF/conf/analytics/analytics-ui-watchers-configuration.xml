@@ -1,16 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   This file is part of the Meeds project (https://meeds.io/).
-  Copyright (C) 2022 Meeds Association
-  contact@meeds.io
+
+  Copyright (C) 2020 - 2024 Meeds Association contact@meeds.io
+
   This program is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
   License as published by the Free Software Foundation; either
   version 3 of the License, or (at your option) any later version.
+
   This program is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
   Lesser General Public License for more details.
+
   You should have received a copy of the GNU Lesser General Public License
   along with this program; if not, write to the Free Software Foundation,
   Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
@@ -18,15 +21,15 @@
 <configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.exoplatform.org/xml/ns/kernel_1_2.xsd http://www.exoplatform.org/xml/ns/kernel_1_2.xsd" xmlns="http://www.exoplatform.org/xml/ns/kernel_1_2.xsd">
 
   <external-component-plugins>
-    <target-component>org.exoplatform.analytics.api.service.AnalyticsService</target-component>
+    <target-component>io.meeds.analytics.api.service.AnalyticsService</target-component>
     <component-plugin>
       <name>Home page link</name>
       <set-method>addUIWatcherPlugin</set-method>
-      <type>org.exoplatform.analytics.api.service.StatisticUIWatcherPlugin</type>
+      <type>io.meeds.analytics.api.service.StatisticUIWatcherPlugin</type>
       <init-params>
         <object-param>
           <name>watcher</name>
-          <object type="org.exoplatform.analytics.api.service.StatisticWatcher">
+          <object type="io.meeds.analytics.api.service.StatisticWatcher">
             <!-- Statistic data: name field -->
             <field name="name">
               <string>Home page link</string>
@@ -99,11 +102,11 @@
     <component-plugin>
       <name>Hamburger menu site navigation link</name>
       <set-method>addUIWatcherPlugin</set-method>
-      <type>org.exoplatform.analytics.api.service.StatisticUIWatcherPlugin</type>
+      <type>io.meeds.analytics.api.service.StatisticUIWatcherPlugin</type>
       <init-params>
         <object-param>
           <name>watcher</name>
-          <object type="org.exoplatform.analytics.api.service.StatisticWatcher">
+          <object type="io.meeds.analytics.api.service.StatisticWatcher">
             <!-- Statistic data: name field -->
             <field name="name">
               <string>Hamburger menu site navigation link</string>
@@ -173,11 +176,11 @@
     <component-plugin>
       <name>Hamburger menu spaces navigation link</name>
       <set-method>addUIWatcherPlugin</set-method>
-      <type>org.exoplatform.analytics.api.service.StatisticUIWatcherPlugin</type>
+      <type>io.meeds.analytics.api.service.StatisticUIWatcherPlugin</type>
       <init-params>
         <object-param>
           <name>watcher</name>
-          <object type="org.exoplatform.analytics.api.service.StatisticWatcher">
+          <object type="io.meeds.analytics.api.service.StatisticWatcher">
             <!-- Statistic data: name field -->
             <field name="name">
               <string>Hamburger menu spaces navigation link</string>
@@ -247,11 +250,11 @@
     <component-plugin>
       <name>Hamburger menu icon</name>
       <set-method>addUIWatcherPlugin</set-method>
-      <type>org.exoplatform.analytics.api.service.StatisticUIWatcherPlugin</type>
+      <type>io.meeds.analytics.api.service.StatisticUIWatcherPlugin</type>
       <init-params>
         <object-param>
           <name>watcher</name>
-          <object type="org.exoplatform.analytics.api.service.StatisticWatcher">
+          <object type="io.meeds.analytics.api.service.StatisticWatcher">
             <!-- Statistic data: name field -->
             <field name="name">
               <string>Hamburger menu icon</string>
@@ -310,11 +313,11 @@
     <component-plugin>
       <name>Activity Link click</name>
       <set-method>addUIWatcherPlugin</set-method>
-      <type>org.exoplatform.analytics.api.service.StatisticUIWatcherPlugin</type>
+      <type>io.meeds.analytics.api.service.StatisticUIWatcherPlugin</type>
       <init-params>
         <object-param>
           <name>watcher</name>
-          <object type="org.exoplatform.analytics.api.service.StatisticWatcher">
+          <object type="io.meeds.analytics.api.service.StatisticWatcher">
             <!-- Statistic data: name field -->
             <field name="name">
               <string>Activity Link click</string>
@@ -359,11 +362,11 @@
     <component-plugin>
       <name>Activity Poster click</name>
       <set-method>addUIWatcherPlugin</set-method>
-      <type>org.exoplatform.analytics.api.service.StatisticUIWatcherPlugin</type>
+      <type>io.meeds.analytics.api.service.StatisticUIWatcherPlugin</type>
       <init-params>
         <object-param>
           <name>watcher</name>
-          <object type="org.exoplatform.analytics.api.service.StatisticWatcher">
+          <object type="io.meeds.analytics.api.service.StatisticWatcher">
             <!-- Statistic data: name field -->
             <field name="name">
               <string>Activity Poster click</string>
@@ -408,11 +411,11 @@
     <component-plugin>
       <name>Activity Space click</name>
       <set-method>addUIWatcherPlugin</set-method>
-      <type>org.exoplatform.analytics.api.service.StatisticUIWatcherPlugin</type>
+      <type>io.meeds.analytics.api.service.StatisticUIWatcherPlugin</type>
       <init-params>
         <object-param>
           <name>watcher</name>
-          <object type="org.exoplatform.analytics.api.service.StatisticWatcher">
+          <object type="io.meeds.analytics.api.service.StatisticWatcher">
             <!-- Statistic data: name field -->
             <field name="name">
               <string>Activity Space click</string>
@@ -458,11 +461,11 @@
     <component-plugin>
       <name>Unified search click</name>
       <set-method>addUIWatcherPlugin</set-method>
-      <type>org.exoplatform.analytics.api.service.StatisticUIWatcherPlugin</type>
+      <type>io.meeds.analytics.api.service.StatisticUIWatcherPlugin</type>
       <init-params>
         <object-param>
           <name>watcher</name>
-          <object type="org.exoplatform.analytics.api.service.StatisticWatcher">
+          <object type="io.meeds.analytics.api.service.StatisticWatcher">
             <!-- Statistic data: name field -->
             <field name="name">
               <string>Unified search click</string>

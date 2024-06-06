@@ -1,4 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  This file is part of the Meeds project (https://meeds.io/).
+
+  Copyright (C) 2020 - 2024 Meeds Association contact@meeds.io
+
+  This program is free software; you can redistribute it and/or
+  modify it under the terms of the GNU Lesser General Public
+  License as published by the Free Software Foundation; either
+  version 3 of the License, or (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+  Lesser General Public License for more details.
+
+  You should have received a copy of the GNU Lesser General Public License
+  along with this program; if not, write to the Free Software Foundation,
+  Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+-->
 <configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.exoplatform.org/xml/ns/kernel_1_3.xsd http://www.exoplatform.org/xml/ns/kernel_1_3.xsd" xmlns="http://www.exoplatform.org/xml/ns/kernel_1_3.xsd">
 
   <!-- Statistic listeners -->
@@ -7,7 +26,7 @@
     <component-plugin>
       <name>AnalyticsSpaceListener</name>
       <set-method>addSpaceListener</set-method>
-      <type>org.exoplatform.analytics.listener.social.AnalyticsSpaceListener</type>
+      <type>io.meeds.analytics.listener.social.AnalyticsSpaceListener</type>
     </component-plugin>
   </external-component-plugins>
 
@@ -16,7 +35,7 @@
     <component-plugin>
       <name>metadata.tag.added</name>
       <set-method>addListener</set-method>
-      <type>org.exoplatform.analytics.listener.social.AnalyticsActivityTagsListener</type>
+      <type>io.meeds.analytics.listener.social.AnalyticsActivityTagsListener</type>
     </component-plugin>
   </external-component-plugins>
 
@@ -25,7 +44,7 @@
     <component-plugin>
       <name>attachment.created</name>
       <set-method>addListener</set-method>
-      <type>org.exoplatform.analytics.listener.social.ActivityAttachmentAnalyticsListener</type>
+      <type>io.meeds.analytics.listener.social.ActivityAttachmentAnalyticsListener</type>
       <init-params>
         <values-param>
           <name>supported-type</name>
@@ -36,7 +55,7 @@
     <component-plugin>
       <name>attachment.deleted</name>
       <set-method>addListener</set-method>
-      <type>org.exoplatform.analytics.listener.social.ActivityAttachmentAnalyticsListener</type>
+      <type>io.meeds.analytics.listener.social.ActivityAttachmentAnalyticsListener</type>
       <init-params>
         <values-param>
           <name>supported-type</name>
@@ -51,7 +70,7 @@
     <component-plugin>
       <name>new.user.event.listener</name>
       <set-method>addListenerPlugin</set-method>
-      <type>org.exoplatform.analytics.listener.portal.UserAnalyticsEventListener</type>
+      <type>io.meeds.analytics.listener.portal.UserAnalyticsEventListener</type>
       <description>This listener will compute again users count each time a new user is added/deleted</description>
     </component-plugin>
   </external-component-plugins>
@@ -61,13 +80,13 @@
     <component-plugin>
       <name>exo.core.security.ConversationRegistry.register</name>
       <set-method>addListener</set-method>
-      <type>org.exoplatform.analytics.listener.portal.LoginAnalyticsListener</type>
+      <type>io.meeds.analytics.listener.portal.LoginAnalyticsListener</type>
       <description>Listener for user login event statistics</description>
     </component-plugin>
     <component-plugin>
       <name>exo.core.security.ConversationRegistry.unregister</name>
       <set-method>addListener</set-method>
-      <type>org.exoplatform.analytics.listener.portal.LoginAnalyticsListener</type>
+      <type>io.meeds.analytics.listener.portal.LoginAnalyticsListener</type>
       <description>Listener for user logout event statistics</description>
     </component-plugin>
   </external-component-plugins>
@@ -77,7 +96,7 @@
     <component-plugin>
       <name>login.failed</name>
       <set-method>addListener</set-method>
-      <type>org.exoplatform.analytics.listener.portal.LoginFailedAnalyticsListener</type>
+      <type>io.meeds.analytics.listener.portal.LoginFailedAnalyticsListener</type>
       <description>Listener for user login failed event statistics</description>
     </component-plugin>
   </external-component-plugins>
@@ -88,7 +107,7 @@
     <component-plugin>
       <name>AnalyticsActivityListener</name>
       <set-method>addActivityEventListener</set-method>
-      <type>org.exoplatform.analytics.listener.social.AnalyticsActivityListener</type>
+      <type>io.meeds.analytics.listener.social.AnalyticsActivityListener</type>
     </component-plugin>
   </external-component-plugins>
 
@@ -97,7 +116,7 @@
     <component-plugin>
       <name>AnalyticsProfileListener</name>
       <set-method>registerProfileListener</set-method>
-      <type>org.exoplatform.analytics.listener.social.AnalyticsProfileListener</type>
+      <type>io.meeds.analytics.listener.social.AnalyticsProfileListener</type>
     </component-plugin>
   </external-component-plugins>
 
@@ -106,7 +125,7 @@
     <component-plugin>
       <name>AnalyticsRelationshipListener</name>
       <set-method>addListenerPlugin</set-method>
-      <type>org.exoplatform.analytics.listener.social.AnalyticsRelationshipListener</type>
+      <type>io.meeds.analytics.listener.social.AnalyticsRelationshipListener</type>
     </component-plugin>
   </external-component-plugins>
 
@@ -115,7 +134,7 @@
     <component-plugin>
       <name>PageAccessListener</name>
       <set-method>addPortalApplicationLifecycle</set-method>
-      <type>org.exoplatform.analytics.listener.portal.PageAccessListener</type>
+      <type>io.meeds.analytics.listener.portal.PageAccessListener</type>
       <init-params>
         <value-param>
           <name>collectAjaxQueries</name>
@@ -131,7 +150,7 @@
     <component-plugin>
       <name>exo.analytics.websocket.messageReceived</name>
       <set-method>addListener</set-method>
-      <type>org.exoplatform.analytics.listener.websocket.WebSocketUIStatisticListener</type>
+      <type>io.meeds.analytics.listener.websocket.WebSocketUIStatisticListener</type>
     </component-plugin>
   </external-component-plugins>
 
@@ -140,17 +159,17 @@
     <component-plugin>
       <name>notification.read.item</name>
       <set-method>addListener</set-method>
-      <type>org.exoplatform.analytics.listener.social.AnalyticsSpaceWebNotificationListener</type>
+      <type>io.meeds.analytics.listener.social.AnalyticsSpaceWebNotificationListener</type>
     </component-plugin>
     <component-plugin>
       <name>notification.unread.item</name>
       <set-method>addListener</set-method>
-      <type>org.exoplatform.analytics.listener.social.AnalyticsSpaceWebNotificationListener</type>
+      <type>io.meeds.analytics.listener.social.AnalyticsSpaceWebNotificationListener</type>
     </component-plugin>
     <component-plugin>
       <name>notification.read.allItems</name>
       <set-method>addListener</set-method>
-      <type>org.exoplatform.analytics.listener.social.AnalyticsSpaceWebNotificationListener</type>
+      <type>io.meeds.analytics.listener.social.AnalyticsSpaceWebNotificationListener</type>
     </component-plugin>
   </external-component-plugins>
 
@@ -166,7 +185,7 @@
           <name>job.info</name>
           <property name="jobName" value="UsersStatisticsCountJob" />
           <property name="groupName" value="Analytics" />
-          <property name="job" value="org.exoplatform.analytics.job.UsersStatisticsCountJob" />
+          <property name="job" value="io.meeds.analytics.job.UsersStatisticsCountJob" />
           <!-- REPEAT_INDEFINITELY -->
           <property name="repeatCount" value="0" />
           <!--
@@ -190,7 +209,7 @@
           <name>job.info</name>
           <property name="jobName" value="SpacesStatisticsCountJob" />
           <property name="groupName" value="Analytics" />
-          <property name="job" value="org.exoplatform.analytics.job.SpacesStatisticsCountJob" />
+          <property name="job" value="io.meeds.analytics.job.SpacesStatisticsCountJob" />
           <!-- REPEAT_INDEFINITELY -->
           <property name="repeatCount" value="0" />
           <!--

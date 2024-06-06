@@ -1,16 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   This file is part of the Meeds project (https://meeds.io/).
-  Copyright (C) 2022 Meeds Association
-  contact@meeds.io
+
+  Copyright (C) 2020 - 2024 Meeds Association contact@meeds.io
+
   This program is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
   License as published by the Free Software Foundation; either
   version 3 of the License, or (at your option) any later version.
+
   This program is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
   Lesser General Public License for more details.
+
   You should have received a copy of the GNU Lesser General Public License
   along with this program; if not, write to the Free Software Foundation,
   Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
@@ -24,12 +27,11 @@
     <version>18-M03</version>
     <relativePath/>
   </parent>
-  <groupId>org.exoplatform.addons.analytics</groupId>
+  <groupId>io.meeds.analytics</groupId>
   <artifactId>analytics-parent</artifactId>
   <version>7.0.x-whitepaper-SNAPSHOT</version>
   <packaging>pom</packaging>
-  <name>eXo Analytics - Parent POM</name>
-  <description>eXo Analytics Addon</description>
+  <name>Meeds:: Analytics - Parent POM</name>
   <modules>
     <module>analytics-api</module>
     <module>analytics-services</module>
@@ -38,9 +40,9 @@
     <module>analytics-packaging</module>
   </modules>
   <scm>
-    <connection>scm:git:git://github.com/exoplatform/analytics.git</connection>
-    <developerConnection>scm:git:ssh://git@github.com/exoplatform/analytics.git</developerConnection>
-    <url>https://github.com/exoplatform/analytics</url>
+    <connection>scm:git:git://github.com/meeds-io/analytics.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/meeds-io/analytics.git</developerConnection>
+    <url>https://github.com/meeds-io/analytics</url>
     <tag>HEAD</tag>
   </scm>
   <properties>
@@ -50,6 +52,7 @@
 
     <!-- Sonar properties -->
     <sonar.organization>meeds-io</sonar.organization>
+    <exo.snapshots.repo.url>https://repository.exoplatform.org/content/repositories/meeds-snapshots</exo.snapshots.repo.url>
   </properties>
   <dependencyManagement>
     <dependencies>
