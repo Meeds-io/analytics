@@ -26,19 +26,34 @@ import static io.meeds.analytics.utils.AnalyticsUtils.IMAGE_TYPE;
 import static io.meeds.analytics.utils.AnalyticsUtils.addStatisticData;
 import static io.meeds.analytics.utils.AnalyticsUtils.getIdentity;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.exoplatform.social.core.identity.model.Identity;
 import org.exoplatform.social.core.identity.provider.OrganizationIdentityProvider;
+import org.exoplatform.social.core.manager.IdentityManager;
 import org.exoplatform.social.core.model.AvatarAttachment;
 import org.exoplatform.social.core.profile.ProfileLifeCycleEvent;
 import org.exoplatform.social.core.profile.ProfileListenerPlugin;
 
 import io.meeds.analytics.model.StatisticData;
 
+import jakarta.annotation.PostConstruct;
+
+@Component
 public class AnalyticsProfileListener extends ProfileListenerPlugin {
 
   private static final Log LOG = ExoLogger.getLogger(AnalyticsProfileListener.class);
+
+  @Autowired
+  private IdentityManager  identityManager;
+
+  @PostConstruct
+  public void init() {
+    identityManager.registerProfileListener(this);
+  }
 
   @Override
   public void avatarUpdated(ProfileLifeCycleEvent event) {

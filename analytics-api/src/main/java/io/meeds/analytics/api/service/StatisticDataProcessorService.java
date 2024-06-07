@@ -21,41 +21,53 @@ package io.meeds.analytics.api.service;
 
 import static io.meeds.analytics.utils.AnalyticsUtils.MAX_BULK_DOCUMENTS;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
-import org.picocontainer.Startable;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
+import org.springframework.stereotype.Service;
 
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 
-import io.meeds.analytics.api.processor.StatisticDataProcessorPlugin;
 import io.meeds.analytics.model.StatisticDataQueueEntry;
+import io.meeds.analytics.plugin.StatisticDataProcessorPlugin;
 
-public class StatisticDataProcessorService implements Startable {
+import jakarta.annotation.PostConstruct;
 
-  private static final Log                        LOG                        =
-                                                      ExoLogger.getLogger(StatisticDataProcessorService.class);
+@Service
+public class StatisticDataProcessorService implements ApplicationContextAware {
 
-  private static final short                      MAX_PROCESS_ATTEMPTS_COUNT = 5;
+  private static final Log                         LOG                        =
+                                                       ExoLogger.getLogger(StatisticDataProcessorService.class);
 
-  private ArrayList<StatisticDataProcessorPlugin> dataProcessorPlugins       = new ArrayList<>();
+  private static final short                       MAX_PROCESS_ATTEMPTS_COUNT = 5;
+
+  private ApplicationContext                       applicationContext;
+
+  private Collection<StatisticDataProcessorPlugin> dataProcessorPlugins       = new ArrayList<>();
 
   @Override
-  public void start() {
-    for (StatisticDataProcessorPlugin statisticDataProcessorPlugin : dataProcessorPlugins) {
-      try {
-        statisticDataProcessorPlugin.init();
-      } catch (Exception e) {
-        LOG.error("Error initializing processor with id {}", statisticDataProcessorPlugin.getId(), e);
-      }
-    }
+  public void setApplicationContext(ApplicationContext applicationContext) {
+    this.applicationContext = applicationContext;
   }
 
-  @Override
-  public void stop() {
-    // Nothing to stop
+  @PostConstruct
+  public void init() {
+    this.dataProcessorPlugins = this.applicationContext.getBeansOfType(StatisticDataProcessorPlugin.class).values();
+    this.dataProcessorPlugins.forEach(plugin -> {
+      try {
+        plugin.init();
+      } catch (Exception e) {
+        LOG.warn("Error initializing processor with id {}", plugin.getId(), e);
+      }
+    });
   }
 
   public void addProcessor(StatisticDataProcessorPlugin dataProcessorPlugin) {
@@ -87,7 +99,7 @@ public class StatisticDataProcessorService implements Startable {
     return processor != null && processor.isInitialized();
   }
 
-  public List<StatisticDataProcessorPlugin> getProcessors() {
+  public Collection<StatisticDataProcessorPlugin> getProcessors() {
     return this.dataProcessorPlugins;
   }
 
@@ -98,16 +110,17 @@ public class StatisticDataProcessorService implements Startable {
                                     .orElse(null);
   }
 
-  public void process(List<? extends StatisticDataQueueEntry> queueEntries) {
+  public void process(List<? extends StatisticDataQueueEntry> queueEntries) { // NOSONAR
     if (queueEntries == null || queueEntries.isEmpty()) {
       return;
     }
 
     List<? extends StatisticDataQueueEntry> queueEntriesToProcess = queueEntries.stream()
                                                                                 .filter(queueEntry -> !queueEntry.isProcessed()
-                                                                                    && (!queueEntry.isError()
-                                                                                        || queueEntry.getAttemptCount() < MAX_PROCESS_ATTEMPTS_COUNT))
-                                                                                .collect(Collectors.toList());
+                                                                                                      && (!queueEntry.isError()
+                                                                                                          || queueEntry.getAttemptCount()
+                                                                                                              < MAX_PROCESS_ATTEMPTS_COUNT))
+                                                                                .toList();
     if (queueEntriesToProcess.isEmpty()) {
       return;
     } else if (queueEntriesToProcess.size() > MAX_BULK_DOCUMENTS) {
@@ -119,14 +132,20 @@ public class StatisticDataProcessorService implements Startable {
         List<? extends StatisticDataQueueEntry> subList = queueEntriesToProcess.stream()
                                                                                .skip(index)
                                                                                .limit(MAX_BULK_DOCUMENTS)
-                                                                               .collect(Collectors.toList());
+                                                                               .toList();
         process(subList);
         index += subList.size();
       } while (index < queueEntriesToProcess.size());
       return;
     }
 
-    for (StatisticDataProcessorPlugin statisticDataProcessorPlugin : dataProcessorPlugins) {// NOSONAR need more than one continue statement
+    for (StatisticDataProcessorPlugin statisticDataProcessorPlugin : dataProcessorPlugins) {// NOSONAR
+                                                                                            // need
+                                                                                            // more
+                                                                                            // than
+                                                                                            // one
+                                                                                            // continue
+                                                                                            // statement
       if (statisticDataProcessorPlugin.isPaused()) {
         LOG.debug("Statistic Data Processor with id '{}' is paused, ignore processing queue items",
                   statisticDataProcessorPlugin.getId());
@@ -175,7 +194,7 @@ public class StatisticDataProcessorService implements Startable {
 
   private void markProcessorAsSuccess(StatisticDataQueueEntry dataQueueEntry,
                                       String processorId,
-                                      List<StatisticDataProcessorPlugin> processors) {
+                                      Collection<StatisticDataProcessorPlugin> processors) {
     if (dataQueueEntry.getProcessingStatus() == null) {
       dataQueueEntry.setProcessingStatus(new HashMap<>());
     }
@@ -198,7 +217,7 @@ public class StatisticDataProcessorService implements Startable {
     }
   }
 
-  private boolean isProcessedForAll(StatisticDataQueueEntry dataQueueEntry, List<StatisticDataProcessorPlugin> processors) {
+  private boolean isProcessedForAll(StatisticDataQueueEntry dataQueueEntry, Collection<StatisticDataProcessorPlugin> processors) {
     if (processors == null || processors.isEmpty()) {
       return true;
     }
@@ -212,9 +231,9 @@ public class StatisticDataProcessorService implements Startable {
 
   private boolean isProcessorRun(StatisticDataQueueEntry dataQueueEntry, String processorId) {
     Boolean processorStatus =
-                            dataQueueEntry.getProcessingStatus() == null ? null
-                                                                         : dataQueueEntry.getProcessingStatus().get(processorId);
-    return processorStatus != null && processorStatus;
+                            dataQueueEntry.getProcessingStatus() == null ? null :
+                                                                         dataQueueEntry.getProcessingStatus().get(processorId);
+    return processorStatus != null && processorStatus.booleanValue();
   }
 
 }

@@ -21,8 +21,15 @@ package io.meeds.analytics.listener.social;
 
 import static io.meeds.analytics.utils.AnalyticsUtils.addActivityStatisticsData;
 
-import org.exoplatform.container.xml.InitParams;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
 import org.exoplatform.services.listener.Asynchronous;
+import org.exoplatform.services.listener.ListenerService;
 import org.exoplatform.social.attachment.AttachmentService;
 import org.exoplatform.social.attachment.model.ObjectAttachmentId;
 import org.exoplatform.social.core.activity.model.ExoSocialActivity;
@@ -31,17 +38,34 @@ import org.exoplatform.social.core.space.spi.SpaceService;
 
 import io.meeds.analytics.model.StatisticData;
 
+import jakarta.annotation.PostConstruct;
+import lombok.Getter;
+
 @Asynchronous
+@Component
 public class ActivityAttachmentAnalyticsListener extends BaseAttachmentAnalyticsListener {
 
-  private ActivityManager activityManager;
+  private static final List<String> SUPPORTED_OBJECT_TYPES = Collections.singletonList("activity");
 
-  public ActivityAttachmentAnalyticsListener(AttachmentService attachmentService,
-                                             SpaceService spaceService,
-                                             ActivityManager activityManager,
-                                             InitParams initParam) {
-    super(attachmentService, spaceService, initParam);
-    this.activityManager = activityManager;
+  private static final List<String> EVENT_NAMES            = Arrays.asList("attachment.created", "attachment.deleted");
+
+  @Getter
+  @Autowired
+  private AttachmentService         attachmentService;
+
+  @Getter
+  @Autowired
+  private SpaceService              spaceService;
+
+  @Autowired
+  private ActivityManager           activityManager;
+
+  @Autowired
+  private ListenerService           listenerService;
+
+  @PostConstruct
+  public void init() {
+    EVENT_NAMES.forEach(name -> listenerService.addListener(name, this));
   }
 
   @Override
@@ -50,6 +74,11 @@ public class ActivityAttachmentAnalyticsListener extends BaseAttachmentAnalytics
     if (activity != null) {
       addActivityStatisticsData(statisticData, activity);
     }
+  }
+
+  @Override
+  protected List<String> getSupportedObjectType() {
+    return SUPPORTED_OBJECT_TYPES;
   }
 
   @Override

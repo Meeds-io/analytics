@@ -17,77 +17,88 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package io.meeds.analytics.es;
+package io.meeds.analytics.elasticsearch;
 
-import static io.meeds.analytics.utils.AnalyticsUtils.*;
+import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_DURATION;
+import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_ERROR_CODE;
+import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_ERROR_MESSAGE;
+import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_IS_ANALYTICS;
+import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_MODULE;
+import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_OPERATION;
+import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_SPACE_ID;
+import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_STATUS;
+import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_SUB_MODULE;
+import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_TIMESTAMP;
+import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_USER_ID;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
-import org.picocontainer.Startable;
+import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 import org.exoplatform.commons.api.settings.SettingService;
 import org.exoplatform.commons.api.settings.SettingValue;
 import org.exoplatform.commons.api.settings.data.Context;
 import org.exoplatform.commons.api.settings.data.Scope;
 import org.exoplatform.commons.search.domain.Document;
-import org.exoplatform.commons.search.index.impl.ElasticIndexingServiceConnector;
-import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 
 import io.meeds.analytics.api.service.StatisticDataQueueService;
 import io.meeds.analytics.model.StatisticData;
 
-public class AnalyticsIndexingServiceConnector extends ElasticIndexingServiceConnector implements Startable {
+import jakarta.annotation.PostConstruct;
+import lombok.Getter;
 
-  private static final Log          LOG                             =
-                                        ExoLogger.getLogger(AnalyticsIndexingServiceConnector.class);
+@Component
+public class AnalyticsIndexingConnector {
+//  extends ElasticIndexingServiceConnector
+  private static final Log          LOG                         =
+                                        ExoLogger.getLogger(AnalyticsIndexingConnector.class);
 
-  public static final String        DEFAULT_ES_INDEX_TEMPLATE       = "analytics_template";
+  public static final String        DEFAULT_ES_INDEX_TEMPLATE   = "analytics_template";
 
-  public static final String        DEFAULT_ES_ANALYTICS_INDEX_NAME = "analytics";
+  public static final String        ES_ANALYTICS_INDEX_PREFIX   = "exo.es.analytics.index.prefix";
 
-  public static final String        ES_ANALYTICS_INDEX_PREFIX       = "exo.es.analytics.index.prefix";
+  public static final String        ES_ANALYTICS_INDEX_TEMPLATE = "exo.es.analytics.index.template";
 
-  public static final String        ES_ANALYTICS_INDEX_TEMPLATE     = "exo.es.analytics.index.template";
+  public static final Context       ES_ANALYTICS_CONTEXT        = Context.GLOBAL.id("analytics");
 
-  public static final Context       ES_ANALYTICS_CONTEXT            = Context.GLOBAL.id("analytics");
+  public static final Scope         ES_ANALYTICS_SCOPE          = Scope.APPLICATION.id("analytics");
 
-  public static final Scope         ES_ANALYTICS_SCOPE              = Scope.APPLICATION.id("analytics");
-
+  @Autowired
   private SettingService            settingService;
 
+  @Autowired
   private StatisticDataQueueService analyticsQueueService;
 
+  @Getter
+  @Value("${analytics.es.index.prefix:analytics}")
   private String                    indexPrefix;
 
+  @Getter
+  @Value("${analytics.es.index.template:analytics_template}")
   private String                    indexTemplate;
 
-  public AnalyticsIndexingServiceConnector(StatisticDataQueueService analyticsQueueService,
-                                           SettingService settingService,
-                                           InitParams initParams) {
-    super(initParams);
-    this.settingService = settingService;
-    this.analyticsQueueService = analyticsQueueService;
-    if (initParams != null) {
-      if (initParams.containsKey(ES_ANALYTICS_INDEX_PREFIX)) {
-        this.indexPrefix = initParams.getValueParam(ES_ANALYTICS_INDEX_PREFIX).getValue();
-      }
-      if (initParams.containsKey(ES_ANALYTICS_INDEX_TEMPLATE)) {
-        this.indexTemplate = initParams.getValueParam(ES_ANALYTICS_INDEX_TEMPLATE).getValue();
-      }
-    }
-    if (StringUtils.isBlank(this.indexPrefix)) {
-      this.indexPrefix = DEFAULT_ES_ANALYTICS_INDEX_NAME;
-    }
-    if (StringUtils.isBlank(this.indexTemplate)) {
-      this.indexTemplate = DEFAULT_ES_INDEX_TEMPLATE;
-    }
-  }
+  @Getter
+  @Value("${analytics.es.index.alias:analytics_alias}")
+  protected String                  indexAlias;
 
-  @Override
-  public void start() {
+  @Getter
+  @Value("${analytics.es.replicas:0}")
+  protected int                     replicas;
+
+  @Getter
+  @Value("${analytics.es.shards:1}")
+  protected int                     shards;
+
+  @PostConstruct
+  public void init() {
     SettingValue<?> indexTemplateValue = this.settingService.get(ES_ANALYTICS_CONTEXT,
                                                                  ES_ANALYTICS_SCOPE,
                                                                  ES_ANALYTICS_INDEX_TEMPLATE);
@@ -100,22 +111,48 @@ public class AnalyticsIndexingServiceConnector extends ElasticIndexingServiceCon
     }
   }
 
-  @Override
-  public void stop() {
-    // Nothing to stop
+  public String getCreateIndexRequestContent() {
+    return " {" +
+        "\"aliases\": {" +
+        "  \"" + indexAlias + "\": {" +
+        "    \"is_write_index\" : true" +
+        "  }" +
+        "}" +
+        "}";
   }
 
-  @Override
-  public String getConnectorName() {
-    throw new UnsupportedOperationException();
+  public String getTurnOffWriteOnAllAnalyticsIndexes() {
+    return "{" +
+        "\"actions\": [" +
+        "  {" +
+        "    \"add\": {" +
+        "      \"index\": \"" + indexPrefix + "*\"," +
+        "      \"alias\": \"" + indexAlias + "\"," +
+        "      \"is_write_index\": false" +
+        "    }" +
+        "  }" +
+        "]" +
+        "}";
   }
 
-  @Override
-  public String getMapping() {
-    throw new UnsupportedOperationException();
+  public String getCreateDocumentRequestContent(String id) {
+    JSONObject jsonObject = createCUDHeaderRequestContent(id);
+    Document document = create(id);
+    if (document == null) {
+      return null;
+    }
+    JSONObject createRequest = new JSONObject();
+    createRequest.put("create", jsonObject);
+    return createRequest.toString(2) + "\n" + document.toJSON() + "\n";
   }
 
-  @Override
+  private JSONObject createCUDHeaderRequestContent(String id) {
+    JSONObject cudHeader = new JSONObject();
+    cudHeader.put("_index", indexAlias);
+    cudHeader.put("_id", id);
+    return cudHeader;
+  }
+
   public Document create(String idString) {
     if (StringUtils.isBlank(idString)) {
       throw new IllegalArgumentException("id is mandatory");
@@ -153,24 +190,6 @@ public class AnalyticsIndexingServiceConnector extends ElasticIndexingServiceCon
       esDocument.setListFields(data.getListParameters());
     }
     return esDocument;
-  }
-
-  @Override
-  public Document update(String id) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public List<String> getAllIds(int offset, int limit) {
-    throw new UnsupportedOperationException();
-  }
-
-  public String getIndexPrefix() {
-    return indexPrefix;
-  }
-
-  public String getIndexTemplate() {
-    return indexTemplate;
   }
 
   public void storeCreatedIndexTemplate() {

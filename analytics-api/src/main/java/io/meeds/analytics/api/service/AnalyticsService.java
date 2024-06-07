@@ -22,10 +22,13 @@ package io.meeds.analytics.api.service;
 import java.util.List;
 import java.util.Set;
 
+import org.springframework.stereotype.Service;
+
 import io.meeds.analytics.model.*;
 import io.meeds.analytics.model.chart.*;
 import io.meeds.analytics.model.filter.*;
 
+@Service
 public interface AnalyticsService {
 
   /**
@@ -133,10 +136,9 @@ public interface AnalyticsService {
   StatisticWatcher getUIWatcher(String name);
 
   /**
-   * Add watcher plugin
-   * 
-   * @param uiWatcherPlugin Kernel component plugin to add
+   * @param uiWatcher {@link StatisticWatcher} containing DOM selector of
+   *          elements to watch
    */
-  void addUIWatcherPlugin(StatisticUIWatcherPlugin uiWatcherPlugin);
+  void addUIWatcher(StatisticWatcher uiWatcher);
 
 }

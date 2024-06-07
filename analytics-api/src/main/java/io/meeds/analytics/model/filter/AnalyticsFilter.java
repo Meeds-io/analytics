@@ -19,11 +19,18 @@
  */
 package io.meeds.analytics.model.filter;
 
-import static io.meeds.analytics.model.filter.search.AnalyticsFieldFilterType.*;
+import static io.meeds.analytics.model.filter.search.AnalyticsFieldFilterType.EQUAL;
+import static io.meeds.analytics.model.filter.search.AnalyticsFieldFilterType.GREATER;
+import static io.meeds.analytics.model.filter.search.AnalyticsFieldFilterType.IN_SET;
+import static io.meeds.analytics.model.filter.search.AnalyticsFieldFilterType.LESS;
+import static io.meeds.analytics.model.filter.search.AnalyticsFieldFilterType.NOT_EQUAL;
+import static io.meeds.analytics.model.filter.search.AnalyticsFieldFilterType.NOT_IN_SET;
+import static io.meeds.analytics.model.filter.search.AnalyticsFieldFilterType.RANGE;
 
 import java.io.Serializable;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -32,7 +39,11 @@ import io.meeds.analytics.model.filter.aggregation.AnalyticsAggregationType;
 import io.meeds.analytics.model.filter.search.AnalyticsFieldFilter;
 import io.meeds.analytics.utils.AnalyticsUtils;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 @Data
 @ToString(callSuper = true)
@@ -224,10 +235,10 @@ public class AnalyticsFilter extends AbstractAnalyticsFilter {
   public AnalyticsFilter clone() { // NOSONAR
     List<AnalyticsFieldFilter> cloneFilters = new ArrayList<>(filters).stream()
                                                                       .map(AnalyticsFieldFilter::clone)
-                                                                      .collect(Collectors.toList());
+                                                                      .toList();
     List<AnalyticsAggregation> cloneXAggs = new ArrayList<>(xAxisAggregations).stream()
                                                                               .map(AnalyticsAggregation::clone)
-                                                                              .collect(Collectors.toList());
+                                                                              .toList();
     AnalyticsAggregation cloneyAggregation = yAxisAggregation == null ? null : yAxisAggregation.clone();
     return new AnalyticsFilter(getTitle(),
                                getTimeZone(),

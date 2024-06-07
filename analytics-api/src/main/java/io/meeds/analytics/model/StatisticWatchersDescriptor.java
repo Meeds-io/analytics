@@ -17,17 +17,15 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package io.meeds.analytics.api.websocket;
+package io.meeds.analytics.model;
+
+import java.util.List;
 
 import lombok.Data;
 
 @Data
-public class UserSettings {
+public class StatisticWatchersDescriptor {
 
-  private String cometdChannel = AnalyticsWebSocketService.COMETD_CHANNEL;
-
-  private String cometdToken;
-
-  private String cometdContext;
+  List<StatisticWatcher> descriptors;
 
 }

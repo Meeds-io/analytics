@@ -22,9 +22,10 @@ package io.meeds.analytics.model.chart;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.ToString;
 
 @Data
 @ToString
@@ -42,8 +43,7 @@ public class ChartData implements Serializable {
   private String                       chartLabel;
 
   public String getChartKey() {
-    return key == null || key.getAggregation() == null ? null
-                                                       : key.getAggregation().getField();
+    return key == null || key.getAggregation() == null ? null : key.getAggregation().getField();
   }
 
   public void addAggregationResult(ChartAggregationResult aggregationResult, int index, boolean replaceIfExists) {
@@ -69,7 +69,9 @@ public class ChartData implements Serializable {
   }
 
   public List<String> getValues() {
-    return aggregationResults.stream().map(ChartAggregationResult::getValue).collect(Collectors.toList());
+    return aggregationResults.stream()
+                             .map(ChartAggregationResult::getValue)
+                             .toList();
   }
 
 }

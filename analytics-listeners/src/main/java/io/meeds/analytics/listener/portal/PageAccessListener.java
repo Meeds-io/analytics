@@ -19,13 +19,17 @@
  */
 package io.meeds.analytics.listener.portal;
 
+import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import static io.meeds.analytics.utils.AnalyticsUtils.*;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
 import org.exoplatform.container.component.BaseComponentPlugin;
-import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.portal.application.PortalRequestContext;
 import org.exoplatform.portal.mop.user.UserNode;
 import org.exoplatform.portal.webui.portal.UIPortal;
@@ -40,18 +44,22 @@ import org.exoplatform.webui.application.WebuiRequestContext;
 import io.meeds.analytics.model.StatisticData;
 import io.meeds.analytics.model.StatisticData.StatisticStatus;
 
+@Component
 public class PageAccessListener extends BaseComponentPlugin implements ApplicationLifecycle<WebuiRequestContext> {
 
-  private static final Log  LOG                = ExoLogger.getLogger(PageAccessListener.class);
+  private static final Log              LOG                = ExoLogger.getLogger(PageAccessListener.class);
 
-  private ThreadLocal<Long> operationStartTime = new ThreadLocal<>();
+  @Autowired
+  private ApplicationLifecycleExtension applicationLifecycleExtension;
 
-  private boolean           collectAjaxQueries = false;
+  @Value("${analytics.collectAjaxQueries:false}")
+  private boolean                       collectAjaxQueries = false;
 
-  public PageAccessListener(InitParams params) {
-    if (params != null && params.containsKey("collectAjaxQueries")) {
-      this.collectAjaxQueries = Boolean.parseBoolean(params.getValueParam("collectAjaxQueries").getValue());
-    }
+  private ThreadLocal<Long>             operationStartTime = new ThreadLocal<>();
+
+  @PostConstruct
+  public void init() {
+    applicationLifecycleExtension.addPortalApplicationLifecycle(this);
   }
 
   @Override

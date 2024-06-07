@@ -22,11 +22,18 @@ package io.meeds.analytics.listener.social;
 import static io.meeds.analytics.utils.AnalyticsUtils.addSpaceStatistics;
 import static io.meeds.analytics.utils.AnalyticsUtils.addStatisticData;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import org.exoplatform.commons.api.persistence.ExoTransactional;
+import org.exoplatform.services.listener.Asynchronous;
 import org.exoplatform.services.listener.Event;
 import org.exoplatform.services.listener.Listener;
+import org.exoplatform.services.listener.ListenerService;
 import org.exoplatform.social.core.space.model.Space;
 import org.exoplatform.social.core.space.spi.SpaceService;
 import org.exoplatform.social.notification.model.SpaceWebNotificationItem;
@@ -35,12 +42,25 @@ import org.exoplatform.social.notification.service.SpaceWebNotificationService;
 
 import io.meeds.analytics.model.StatisticData;
 
+import jakarta.annotation.PostConstruct;
+
+@Asynchronous
+@Component
 public class AnalyticsSpaceWebNotificationListener extends Listener<SpaceWebNotificationItem, Long> {
 
-  private SpaceService spaceService;
+  private static final List<String> EVENT_NAMES = Arrays.asList("notification.read.item",
+                                                                "notification.unread.item",
+                                                                "notification.read.allItems");
 
-  public AnalyticsSpaceWebNotificationListener(SpaceService spaceService) {
-    this.spaceService = spaceService;
+  @Autowired
+  private SpaceService              spaceService;
+
+  @Autowired
+  private ListenerService           listenerService;
+
+  @PostConstruct
+  public void init() {
+    EVENT_NAMES.forEach(name -> listenerService.addListener(name, this));
   }
 
   @Override

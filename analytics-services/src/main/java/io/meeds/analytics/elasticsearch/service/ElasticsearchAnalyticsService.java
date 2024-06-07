@@ -17,140 +17,163 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package io.meeds.analytics.es.service;
+package io.meeds.analytics.elasticsearch.service;
 
-import static io.meeds.analytics.utils.AnalyticsUtils.*;
+import static io.meeds.analytics.utils.AnalyticsUtils.DEFAULT_FIELDS;
+import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_TIMESTAMP;
+import static io.meeds.analytics.utils.AnalyticsUtils.collectionToJSONString;
+import static io.meeds.analytics.utils.AnalyticsUtils.fixJSONStringFormat;
+import static io.meeds.analytics.utils.AnalyticsUtils.fromJsonString;
+import static io.meeds.analytics.utils.AnalyticsUtils.getJSONObject;
+import static io.meeds.analytics.utils.AnalyticsUtils.toJsonString;
 
 import java.time.ZoneId;
 import java.time.ZoneOffset;
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.StringUtils;
-import org.json.*;
-import org.picocontainer.Startable;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Primary;
+import org.springframework.stereotype.Service;
 
 import org.exoplatform.commons.api.settings.SettingService;
 import org.exoplatform.commons.api.settings.SettingValue;
 import org.exoplatform.commons.api.settings.data.Context;
 import org.exoplatform.commons.api.settings.data.Scope;
-import org.exoplatform.container.ExoContainerContext;
-import org.exoplatform.container.PortalContainer;
-import org.exoplatform.container.component.RequestLifeCycle;
-import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 
-import io.meeds.analytics.api.service.*;
-import io.meeds.analytics.es.AnalyticsESClient;
-import io.meeds.analytics.model.*;
+import io.meeds.analytics.api.service.AnalyticsService;
+import io.meeds.analytics.elasticsearch.AnalyticsESClient;
+import io.meeds.analytics.model.StatisticData;
 import io.meeds.analytics.model.StatisticData.StatisticStatus;
-import io.meeds.analytics.model.chart.*;
-import io.meeds.analytics.model.filter.*;
+import io.meeds.analytics.model.StatisticFieldMapping;
+import io.meeds.analytics.model.StatisticFieldValue;
+import io.meeds.analytics.model.StatisticWatcher;
+import io.meeds.analytics.model.chart.ChartAggregationLabel;
+import io.meeds.analytics.model.chart.ChartAggregationResult;
+import io.meeds.analytics.model.chart.ChartAggregationValue;
+import io.meeds.analytics.model.chart.ChartData;
+import io.meeds.analytics.model.chart.ChartDataList;
+import io.meeds.analytics.model.chart.PercentageChartResult;
+import io.meeds.analytics.model.chart.PercentageChartValue;
+import io.meeds.analytics.model.chart.TableColumnItemValue;
+import io.meeds.analytics.model.chart.TableColumnResult;
+import io.meeds.analytics.model.filter.AnalyticsFilter;
 import io.meeds.analytics.model.filter.AnalyticsFilter.Range;
-import io.meeds.analytics.model.filter.aggregation.*;
+import io.meeds.analytics.model.filter.AnalyticsPercentageFilter;
+import io.meeds.analytics.model.filter.AnalyticsPeriod;
+import io.meeds.analytics.model.filter.AnalyticsPeriodType;
+import io.meeds.analytics.model.filter.AnalyticsTableColumnFilter;
+import io.meeds.analytics.model.filter.AnalyticsTableFilter;
+import io.meeds.analytics.model.filter.aggregation.AnalyticsAggregation;
+import io.meeds.analytics.model.filter.aggregation.AnalyticsAggregationType;
+import io.meeds.analytics.model.filter.aggregation.AnalyticsPercentageLimit;
 import io.meeds.analytics.model.filter.search.AnalyticsFieldFilter;
+import io.meeds.common.ContainerTransactional;
 
-public class ESAnalyticsService implements AnalyticsService, Startable {
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import lombok.Getter;
 
-  private static final Log                   LOG                                        =
-                                                 ExoLogger.getLogger(ESAnalyticsService.class);
+@Primary
+@Service
+public class ElasticsearchAnalyticsService implements AnalyticsService {
 
-  private static final String                ANALYTICS_ADMIN_PERMISSION_PARAM_NAME      = "exo.analytics.admin.permissions";
+  private static final String                VALUE_REQUEST_BODY_PARAM                 = "$value";
 
-  private static final String                ANALYTICS_VIEW_ALL_PERMISSION_PARAM_NAME   = "exo.analytics.viewall.permissions";
+  private static final String                NAME_REQUEST_BODY_PARAM                  = "$name";
 
-  private static final String                ANALYTICS_VIEW_PERMISSION_PARAM_NAME       = "exo.analytics.view.permissions";
+  private static final String                BUCKETS_RESPONSE_BODY                    = "buckets";
 
-  private static final String                RETURNED_AGGREGATION_DOCS_COUNT_PARAM_NAME =
-                                                                                        "exo.analytics.aggregation.terms.doc_size";
+  private static final String                AGGREGATIONS_RESPONSE_BODY               = "aggregations";
 
-  private static final String                AGGREGATION_KEYS_SEPARATOR                 = "-";
+  private static final String                ERROR_PARSING_RESULTS_MESSAGE            =
+                                                                           "Error parsing results with - filter: %s - query: %s  - response: %s";
 
-  private static final String                AGGREGATION_RESULT_PARAM                   = "aggregation_result";
+  private static final String                FILTER_AGGREGATIONS_IS_MANDATORY_MESSAGE = "Filter aggregations is mandatory";
 
-  private static final String                AGGREGATION_RESULT_VALUE_PARAM             = "aggregation_result_value";
+  private static final String                FILTER_IS_MANDATORY_MESSAGE              = "Filter is mandatory";
 
-  private static final String                AGGREGATION_BUCKETS_VALUE_PARAM            = "aggregation_buckets_value";
+  private static final Log                   LOG                                      =
+                                                 ExoLogger.getLogger(ElasticsearchAnalyticsService.class);
 
-  private static final Context               CONTEXT                                    = Context.GLOBAL.id("ANALYTICS");
+  private static final String                AGGREGATION_KEYS_SEPARATOR               = "-";
 
-  private static final Scope                 ES_SCOPE                                   = Scope.GLOBAL.id("elasticsearch");
+  private static final String                AGGREGATION_RESULT_PARAM                 = "aggregation_result";
 
-  private static final String                ES_AGGREGATED_MAPPING                      = "ES_AGGREGATED_MAPPING";
+  private static final String                AGGREGATION_RESULT_VALUE_PARAM           = "aggregation_result_value";
 
-  private List<StatisticUIWatcherPlugin>     uiWatcherPlugins                           = new ArrayList<>();
+  private static final String                AGGREGATION_BUCKETS_VALUE_PARAM          = "aggregation_buckets_value";
 
-  private List<StatisticWatcher>             uiWatchers                                 = new ArrayList<>();
+  private static final Context               CONTEXT                                  = Context.GLOBAL.id("ANALYTICS");
 
+  private static final Scope                 ES_SCOPE                                 = Scope.GLOBAL.id("elasticsearch");
+
+  private static final String                ES_AGGREGATED_MAPPING                    = "ES_AGGREGATED_MAPPING";
+
+  @Autowired
   private AnalyticsESClient                  esClient;
 
+  @Autowired
   private SettingService                     settingService;
 
-  private Map<String, StatisticFieldMapping> esMappings                                 = new HashMap<>();
+  private List<StatisticWatcher>             uiWatchers;
 
-  private ScheduledExecutorService           esMappingUpdater                           = Executors.newScheduledThreadPool(1);
+  private Map<String, StatisticFieldMapping> esMappings                               = new HashMap<>();
 
-  private List<String>                       administratorsPermissions;
+  private ScheduledExecutorService           esMappingUpdater                         = Executors.newScheduledThreadPool(1);
 
-  private List<String>                       viewAllPermissions;
+  @Value("${analytics.aggregation.terms.doc_size:200}")
+  private int                                aggregationReturnedDocumentsSize;
 
-  private List<String>                       viewPermissions;
+  @Getter
+  @Value("${analytics.admin.permission:*:/platform/analytics}")
+  List<String>                               administratorsPermissions;
 
-  private int                                aggregationReturnedDocumentsSize           = 1000;
+  @Getter
+  @Value("${analytics.viewall.permissions}")
+  List<String>                               viewAllPermissions;
 
-  public ESAnalyticsService(AnalyticsESClient esClient,
-                            SettingService settingService,
-                            InitParams params) {
-    this.esClient = esClient;
-    this.settingService = settingService;
+  @Getter
+  @Value("${analytics.view.permission:*:/platform/users}")
+  List<String>                               viewPermissions;
 
-    if (params != null && params.containsKey(ANALYTICS_ADMIN_PERMISSION_PARAM_NAME)) {
-      this.administratorsPermissions = params.getValuesParam(ANALYTICS_ADMIN_PERMISSION_PARAM_NAME).getValues();
-    } else {
-      this.administratorsPermissions = Collections.emptyList();
-    }
-    if (params != null && params.containsKey(ANALYTICS_VIEW_ALL_PERMISSION_PARAM_NAME)) {
-      this.viewAllPermissions = params.getValuesParam(ANALYTICS_VIEW_ALL_PERMISSION_PARAM_NAME).getValues();
-    } else {
-      this.viewAllPermissions = Collections.emptyList();
-    }
-    if (params != null && params.containsKey(ANALYTICS_VIEW_PERMISSION_PARAM_NAME)) {
-      this.viewPermissions = params.getValuesParam(ANALYTICS_VIEW_PERMISSION_PARAM_NAME).getValues();
-    } else {
-      this.viewPermissions = Collections.emptyList();
-    }
-    if (params != null && params.containsKey(RETURNED_AGGREGATION_DOCS_COUNT_PARAM_NAME)) {
-      this.aggregationReturnedDocumentsSize = Integer.parseInt(params.getValueParam(RETURNED_AGGREGATION_DOCS_COUNT_PARAM_NAME)
-                                                                     .getValue());
-    }
-  }
-
-  @Override
+  @PostConstruct
   public void start() {
     // Can't be job, because the mapping retrival must be executed on each
     // cluster node
-    esMappingUpdater.scheduleAtFixedRate(() -> {
-      PortalContainer container = PortalContainer.getInstance();
-      ExoContainerContext.setCurrentContainer(container);
-      RequestLifeCycle.begin(container);
-      try {
-        retrieveMapping(true);
-      } catch (Exception e) {
-        LOG.warn("Error while getting mapping from elasticsearch", e);
-      } finally {
-        RequestLifeCycle.end();
-      }
-    }, 1, 2, TimeUnit.MINUTES);
+    esMappingUpdater.scheduleAtFixedRate(() -> retrieveMapping(true),
+                                         1,
+                                         2,
+                                         TimeUnit.MINUTES);
   }
 
-  @Override
+  @PreDestroy
   public void stop() {
     esMappingUpdater.shutdown();
   }
 
   @Override
+  @ContainerTransactional
   public Set<StatisticFieldMapping> retrieveMapping(boolean forceRefresh) {
     if (!forceRefresh) {
       if (esMappings.isEmpty()) {
@@ -224,7 +247,7 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
   @Override
   public PercentageChartResult computePercentageChartData(AnalyticsPercentageFilter percentageFilter) {
     if (percentageFilter == null) {
-      throw new IllegalArgumentException("Filter is mandatory");
+      throw new IllegalArgumentException(FILTER_IS_MANDATORY_MESSAGE);
     }
     AnalyticsPeriod currentPeriod = percentageFilter.getCurrentAnalyticsPeriod();
     AnalyticsPeriod previousPeriod = percentageFilter.getPreviousAnalyticsPeriod();
@@ -283,10 +306,10 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
                                                   int columnIndex,
                                                   boolean isValue) {
     if (filter == null) {
-      throw new IllegalArgumentException("Filter is mandatory");
+      throw new IllegalArgumentException(FILTER_IS_MANDATORY_MESSAGE);
     }
     if (filter.getAggregations() == null || filter.getAggregations().isEmpty()) {
-      throw new IllegalArgumentException("Filter aggregations is mandatory");
+      throw new IllegalArgumentException(FILTER_AGGREGATIONS_IS_MANDATORY_MESSAGE);
     }
 
     String esQueryString = buildAnalyticsQuery(filter.getAggregations(),
@@ -306,18 +329,21 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
                                                 jsonResponse,
                                                 filter.getLimit());
     } catch (JSONException e) {
-      throw new IllegalStateException("Error parsing results with - filter: " + filter + " - query: " + esQueryString
-          + " - response: " + jsonResponse, e);
+      throw new IllegalStateException(String.format(ERROR_PARSING_RESULTS_MESSAGE,
+                                                    filter,
+                                                    esQueryString,
+                                                    jsonResponse),
+                                      e);
     }
   }
 
   @Override
   public ChartDataList computeChartData(AnalyticsFilter filter) {
     if (filter == null) {
-      throw new IllegalArgumentException("Filter is mandatory");
+      throw new IllegalArgumentException(FILTER_IS_MANDATORY_MESSAGE);
     }
     if (filter.getAggregations() == null || filter.getAggregations().isEmpty()) {
-      throw new IllegalArgumentException("Filter aggregations is mandatory");
+      throw new IllegalArgumentException(FILTER_AGGREGATIONS_IS_MANDATORY_MESSAGE);
     }
 
     String esQueryString = buildAnalyticsQuery(filter.getAggregations(),
@@ -330,8 +356,11 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
     try {
       return buildChartDataFromESResponse(filter, jsonResponse);
     } catch (JSONException e) {
-      throw new IllegalStateException("Error parsing results with - filter: " + filter + " - query: " + esQueryString
-          + " - response: " + jsonResponse, e);
+      throw new IllegalStateException(String.format(ERROR_PARSING_RESULTS_MESSAGE,
+                                                    filter,
+                                                    esQueryString,
+                                                    jsonResponse),
+                                      e);
     }
   }
 
@@ -341,14 +370,14 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
                                                          AnalyticsPeriod previousPeriod,
                                                          boolean hasLimitAggregation) {
     if (filter == null) {
-      throw new IllegalArgumentException("Filter is mandatory");
+      throw new IllegalArgumentException(FILTER_IS_MANDATORY_MESSAGE);
     }
     if (filter.getAggregations() == null || filter.getAggregations().isEmpty()) {
-      throw new IllegalArgumentException("Filter aggregations is mandatory");
+      throw new IllegalArgumentException(FILTER_AGGREGATIONS_IS_MANDATORY_MESSAGE);
     }
     AnalyticsAggregation yAxisAggregation = filter.getYAxisAggregation();
-    AnalyticsAggregationType aggregationType = yAxisAggregation == null ? AnalyticsAggregationType.COUNT
-                                                                        : yAxisAggregation.getType();
+    AnalyticsAggregationType aggregationType = yAxisAggregation == null ? AnalyticsAggregationType.COUNT :
+                                                                        yAxisAggregation.getType();
     String esQueryString = buildAnalyticsQuery(filter.getAggregations(),
                                                filter.getFilters(),
                                                aggregationType,
@@ -361,8 +390,11 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
     try {
       return buildPercentageChartValuesFromESResponse(jsonResponse, currentPeriod, previousPeriod);
     } catch (JSONException e) {
-      throw new IllegalStateException("Error parsing results with - filter: " + filter + " - query: " + esQueryString
-          + " - response: " + jsonResponse, e);
+      throw new IllegalStateException(String.format(ERROR_PARSING_RESULTS_MESSAGE,
+                                                    filter,
+                                                    esQueryString,
+                                                    jsonResponse),
+                                      e);
     }
   }
 
@@ -382,39 +414,26 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
   }
 
   @Override
-  public List<String> getAdministratorsPermissions() {
-    return administratorsPermissions;
-  }
-
-  @Override
-  public List<String> getViewAllPermissions() {
-    return viewAllPermissions;
-  }
-
-  @Override
-  public List<String> getViewPermissions() {
-    return viewPermissions;
-  }
-
-  @Override
   public List<StatisticWatcher> getUIWatchers() {
     return uiWatchers;
   }
 
   @Override
   public StatisticWatcher getUIWatcher(String name) {
-    return getUIWatchers().stream().filter(watcher -> StringUtils.equals(name, watcher.getName())).findFirst().orElse(null);
+    return uiWatchers.stream()
+                     .filter(watcher -> StringUtils.equals(name, watcher.getName()))
+                     .findFirst()
+                     .orElse(null);
   }
 
   @Override
-  public void addUIWatcherPlugin(StatisticUIWatcherPlugin uiWatcherPlugin) {
-    uiWatcherPlugins.add(uiWatcherPlugin);
-    uiWatchers.add(uiWatcherPlugin.getStatisticWatcher());
+  public void addUIWatcher(StatisticWatcher uiWatcher) {
+    uiWatchers.add(uiWatcher);
   }
 
   private List<StatisticFieldValue> buildFieldValuesResponse(String jsonResponse) throws JSONException {
     JSONObject json = new JSONObject(jsonResponse);
-    JSONObject aggregations = json.has("aggregations") ? json.getJSONObject("aggregations") : null;
+    JSONObject aggregations = json.has(AGGREGATIONS_RESPONSE_BODY) ? json.getJSONObject(AGGREGATIONS_RESPONSE_BODY) : null;
     if (aggregations == null) {
       return Collections.emptyList();
     }
@@ -422,7 +441,7 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
     if (result == null) {
       return Collections.emptyList();
     }
-    JSONArray buckets = result.has("buckets") ? result.getJSONArray("buckets") : null;
+    JSONArray buckets = result.has(BUCKETS_RESPONSE_BODY) ? result.getJSONArray(BUCKETS_RESPONSE_BODY) : null;
     if (buckets == null) {
       return Collections.emptyList();
     }
@@ -510,11 +529,12 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
     } else {
       filters = new ArrayList<>(filters);
     }
-
-    esQuery.append(",");
-    esQuery.append("    \"query\": {");
-    esQuery.append("      \"bool\" : {");
-    esQuery.append("        \"must\" : [");
+    esQuery.append("""
+        ,
+        "query": {
+          "bool" : {
+            "must" : [
+        """);
     for (AnalyticsFieldFilter fieldFilter : filters) {
       String esFieldName = fieldFilter.getField();
       StatisticFieldMapping fieldMapping = this.esMappings.get(esFieldName);
@@ -522,83 +542,77 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
         esFieldName = fieldMapping.getAggregationFieldName();
       }
 
-      String esQueryValue = fieldMapping == null ? StatisticFieldMapping.computeESQueryValue(fieldFilter.getValueString())
-                                                 : fieldMapping.getESQueryValue(fieldFilter.getValueString());
+      String esQueryValue = fieldMapping == null ? StatisticFieldMapping.computeESQueryValue(fieldFilter.getValueString()) :
+                                                 fieldMapping.getESQueryValue(fieldFilter.getValueString());
       switch (fieldFilter.getType()) {
-        case NOT_NULL:
-          esQuery.append("        {\"exists\" : {\"")
-                 .append("field")
-                 .append("\" : \"")
-                 .append(esFieldName)
-                 .append("\"      }},");
-          break;
-        case IS_NULL:
-          esQuery.append("        {\"bool\": {\"must_not\": {\"exists\": {\"field\": \"")
-                 .append(esFieldName)
-                 .append("\"      }}}},");
-          break;
-        case EQUAL:
-          esQuery.append("        {\"match\" : {\"")
-                 .append(esFieldName)
-                 .append("\" : ")
-                 .append(esQueryValue)
-                 .append("        }},");
-          break;
-        case NOT_EQUAL:
-          esQuery.append("        {\"bool\": {\"must_not\": {\"match\" : {\"")
-                 .append(esFieldName)
-                 .append("\" : ")
-                 .append(esQueryValue)
-                 .append("        }}}},");
-          break;
-        case GREATER:
-          esQuery.append("        {\"range\" : {\"")
-                 .append(esFieldName)
-                 .append("\" : {")
-                 .append("\"gte\" : ")
-                 .append(esQueryValue)
-                 .append("        }}},");
-          break;
-        case LESS:
-          esQuery.append("        {\"range\" : {\"")
-                 .append(esFieldName)
-                 .append("\" : {")
-                 .append("\"lte\" : ")
-                 .append(esQueryValue)
-                 .append("        }}},");
-          break;
-        case RANGE:
-          Range range = fieldFilter.getRange();
-          esQuery.append("        {\"range\" : {\"")
-                 .append(esFieldName)
-                 .append("\" : {")
-                 .append("\"gte\" : ")
-                 .append(range.getMin())
-                 .append(",\"lte\" : ")
-                 .append(range.getMax())
-                 .append("        }}},");
-          break;
-        case IN_SET:
-          esQuery.append("        {\"terms\" : {\"")
-                 .append(esFieldName)
-                 .append("\" : ")
-                 .append(collectionToJSONString(fieldFilter.getValueString()))
-                 .append("        }},");
-          break;
-        case NOT_IN_SET:
-          esQuery.append("        {\"bool\": {\"must_not\": {\"terms\" : {\"")
-                 .append(esFieldName)
-                 .append("\" : ")
-                 .append(collectionToJSONString(fieldFilter.getValueString()))
-                 .append("        }}}},");
-          break;
-        default:
-          break;
+      case NOT_NULL:
+        esQuery.append("""
+            {"exists" : {"field": "$name"}},
+            """.replace(NAME_REQUEST_BODY_PARAM, esFieldName));
+        break;
+      case IS_NULL:
+        esQuery.append("""
+            {"bool" : {"must_not": {"exists": {"field": "$name"}}}},
+            """.replace(NAME_REQUEST_BODY_PARAM, esFieldName));
+        break;
+      case EQUAL:
+        esQuery.append("""
+            {"match" : {"$name": "$value"}},
+            """.replace(NAME_REQUEST_BODY_PARAM, esFieldName)
+               .replace(VALUE_REQUEST_BODY_PARAM, esQueryValue));
+        break;
+      case NOT_EQUAL:
+        esQuery.append("""
+            {"bool": {"must_not": {"match" : {"$name": "$value"}}}},
+            """.replace(NAME_REQUEST_BODY_PARAM, esFieldName)
+               .replace(VALUE_REQUEST_BODY_PARAM, esQueryValue));
+        break;
+      case GREATER:
+        esQuery.append("""
+            {"range": {"$name": {"gte": $value}}},
+            """.replace(NAME_REQUEST_BODY_PARAM, esFieldName)
+               .replace(VALUE_REQUEST_BODY_PARAM, esQueryValue));
+        break;
+      case LESS:
+        esQuery.append("""
+            {"range": {"$name": {"lte": $value}}},
+            """.replace(NAME_REQUEST_BODY_PARAM, esFieldName)
+               .replace(VALUE_REQUEST_BODY_PARAM, esQueryValue));
+        break;
+      case RANGE:
+        Range range = fieldFilter.getRange();
+        esQuery.append("""
+            {"range": {
+              "$name": {
+                "gte": $min,
+                "lte": $max
+              }
+            }},
+            """.replace(NAME_REQUEST_BODY_PARAM, esFieldName)
+               .replace("$min", range.getMin())
+               .replace("$max", range.getMax()));
+        break;
+      case IN_SET:
+        esQuery.append("""
+            {"terms": {"$name": $value}},
+            """.replace(NAME_REQUEST_BODY_PARAM, esFieldName)
+               .replace(VALUE_REQUEST_BODY_PARAM, collectionToJSONString(fieldFilter.getValueString())));
+        break;
+      case NOT_IN_SET:
+        esQuery.append("""
+            {"bool": {"must_not": {"terms": {"$name": $value}}}},
+            """.replace(NAME_REQUEST_BODY_PARAM, esFieldName)
+               .replace(VALUE_REQUEST_BODY_PARAM, collectionToJSONString(fieldFilter.getValueString())));
+        break;
+      default:
+        break;
       }
     }
-    esQuery.append("        ],");
-    esQuery.append("      },");
-    esQuery.append("     },");
+    esQuery.append("""
+                ],
+              },
+            },
+        """);
   }
 
   private void buildAggregationQuery(StringBuilder esQuery,
@@ -614,8 +628,8 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
 
         AnalyticsAggregationType aggregationType = aggregation.getType();
         if (aggregationType.isUseInterval() && StringUtils.isBlank(aggregation.getInterval())) {
-          throw new IllegalStateException("Analytics aggregation type '" + aggregationType
-              + "' is using intervals while it has empty interval");
+          throw new IllegalStateException("Analytics aggregation type '" + aggregationType +
+              "' is using intervals while it has empty interval");
         }
 
         String fieldName = getAggregationFieldName(aggregationType);
@@ -720,17 +734,17 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
           if (i == (aggregationsSize - 2)) {
             String bucketAggregationType = null;
             switch (percentageAggregationType) {
-              case MIN:
-                bucketAggregationType = "min_bucket";
-                break;
-              case MAX:
-                bucketAggregationType = "max_bucket";
-                break;
-              case AVG:
-                bucketAggregationType = "avg_bucket";
-                break;
-              default:
-                bucketAggregationType = "sum_bucket";
+            case MIN:
+              bucketAggregationType = "min_bucket";
+              break;
+            case MAX:
+              bucketAggregationType = "max_bucket";
+              break;
+            case AVG:
+              bucketAggregationType = "avg_bucket";
+              break;
+            default:
+              bucketAggregationType = "sum_bucket";
             }
             String aggregationResultBucketName = AGGREGATION_RESULT_PARAM + ">" + AGGREGATION_RESULT_VALUE_PARAM + ".value";
             endOfQuery.append("     },");
@@ -786,10 +800,8 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
     percentageChartResult.setCurrentPeriodLimit(currentPeriodLimit);
     percentageChartResult.setPreviousPeriodLimit(previousPeriodLimit);
 
-    percentageFilter.setCurrentPeriodLimit(Math.round(currentPeriodLimit * percentageLimit.getPercentage()
-        / 100));
-    percentageFilter.setPreviousPeriodLimit(Math.round(previousPeriodLimit * percentageLimit.getPercentage()
-        / 100));
+    percentageFilter.setCurrentPeriodLimit(Math.round(currentPeriodLimit * percentageLimit.getPercentage() / 100));
+    percentageFilter.setPreviousPeriodLimit(Math.round(previousPeriodLimit * percentageLimit.getPercentage() / 100));
   }
 
   private void computePercentageValuesPerPeriod(PercentageChartResult percentageResult,
@@ -829,7 +841,7 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
       tableColumnResult = new TableColumnResult();
     }
     JSONObject json = new JSONObject(jsonResponse);
-    JSONObject aggregations = json.has("aggregations") ? json.getJSONObject("aggregations") : null;
+    JSONObject aggregations = json.has(AGGREGATIONS_RESPONSE_BODY) ? json.getJSONObject(AGGREGATIONS_RESPONSE_BODY) : null;
     if (aggregations == null) {
       return tableColumnResult;
     }
@@ -837,7 +849,7 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
     if (result == null) {
       return tableColumnResult;
     }
-    JSONArray buckets = result.has("buckets") ? result.getJSONArray("buckets") : null;
+    JSONArray buckets = result.has(BUCKETS_RESPONSE_BODY) ? result.getJSONArray(BUCKETS_RESPONSE_BODY) : null;
     if (buckets == null) {
       return tableColumnResult;
     }
@@ -854,8 +866,8 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
         if (!isCurrent && !previousPeriod.isInPeriod(timestamp)) {
           continue;
         }
-        if (bucket.has(AGGREGATION_RESULT_PARAM) && bucket.getJSONObject(AGGREGATION_RESULT_PARAM).has("buckets")) {
-          JSONArray subBuckets = bucket.getJSONObject(AGGREGATION_RESULT_PARAM).getJSONArray("buckets");
+        if (bucket.has(AGGREGATION_RESULT_PARAM) && bucket.getJSONObject(AGGREGATION_RESULT_PARAM).has(BUCKETS_RESPONSE_BODY)) {
+          JSONArray subBuckets = bucket.getJSONObject(AGGREGATION_RESULT_PARAM).getJSONArray(BUCKETS_RESPONSE_BODY);
           for (int j = 0; j < subBuckets.length(); j++) {
             JSONObject subBucket = subBuckets.getJSONObject(j);
             String key = getResultKeyAsString(subBucket);
@@ -885,7 +897,7 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
     }
     List<TableColumnItemValue> itemsList = null;
     if (limit > 0) {
-      itemsList = itemValues.values().stream().limit(limit).collect(Collectors.toList());
+      itemsList = itemValues.values().stream().limit(limit).toList();
     } else {
       itemsList = new ArrayList<>(itemValues.values());
     }
@@ -903,8 +915,8 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
     } else if (bucket.has(AGGREGATION_RESULT_PARAM)) {
       JSONObject subAggregationResult = bucket.getJSONObject(AGGREGATION_RESULT_PARAM);
       List<String> values = new ArrayList<>();
-      if (subAggregationResult.has("buckets")) {
-        JSONArray subAggregationBuckets = subAggregationResult.getJSONArray("buckets");
+      if (subAggregationResult.has(BUCKETS_RESPONSE_BODY)) {
+        JSONArray subAggregationBuckets = subAggregationResult.getJSONArray(BUCKETS_RESPONSE_BODY);
         for (int j = 0; j < subAggregationBuckets.length(); j++) {
           JSONObject subAggregationBucket = subAggregationBuckets.getJSONObject(j);
           values.add(getResultKeyAsString(subAggregationBucket));
@@ -936,7 +948,7 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
                                                                         AnalyticsPeriod previousPeriod) throws JSONException {
     PercentageChartValue percentageChartValue = new PercentageChartValue();
     JSONObject json = new JSONObject(jsonResponse);
-    JSONObject aggregations = json.getJSONObject("aggregations");
+    JSONObject aggregations = json.getJSONObject(AGGREGATIONS_RESPONSE_BODY);
     if (aggregations == null) {
       return percentageChartValue;
     }
@@ -954,7 +966,7 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
         percentageChartValue.setPreviousPeriodValue(valueDouble);
       }
     } else if (aggregations.has(AGGREGATION_RESULT_PARAM)) {
-      JSONArray buckets = aggregations.getJSONObject(AGGREGATION_RESULT_PARAM).getJSONArray("buckets");
+      JSONArray buckets = aggregations.getJSONObject(AGGREGATION_RESULT_PARAM).getJSONArray(BUCKETS_RESPONSE_BODY);
       Map<Long, Double> values = new HashMap<>();
       if (buckets.length() > 0) {
         for (int i = 0; i < buckets.length(); i++) {
@@ -979,7 +991,7 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
                                             .filter(aggregationValue -> {
                                               long timestamp = aggregationValue.getKey();
                                               return timestamp < currentPeriod.getToInMS()
-                                                  && timestamp >= currentPeriod.getFromInMS();
+                                                     && timestamp >= currentPeriod.getFromInMS();
 
                                             })
                                             .map(Map.Entry::getValue)
@@ -994,7 +1006,7 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
                                              .filter(aggregationValue -> {
                                                long timestamp = aggregationValue.getKey();
                                                return timestamp < previousPeriod.getToInMS()
-                                                   && timestamp >= previousPeriod.getFromInMS();
+                                                      && timestamp >= previousPeriod.getFromInMS();
 
                                              })
                                              .map(Map.Entry::getValue)
@@ -1013,7 +1025,7 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
 
     ChartDataList chartsData = new ChartDataList(lang);
     JSONObject json = new JSONObject(jsonResponse);
-    JSONObject aggregations = json.getJSONObject("aggregations");
+    JSONObject aggregations = json.getJSONObject(AGGREGATIONS_RESPONSE_BODY);
     if (aggregations == null) {
       return chartsData;
     }
@@ -1038,7 +1050,7 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
     String lang = filter.getLang();
 
     JSONObject aggsResult = aggregations.getJSONObject(AGGREGATION_RESULT_PARAM);
-    JSONArray buckets = aggsResult.getJSONArray("buckets");
+    JSONArray buckets = aggsResult.getJSONArray(BUCKETS_RESPONSE_BODY);
     if (buckets.length() > 0) {
       int nextLevel = level + 1;
       for (int i = 0; i < buckets.length(); i++) {
@@ -1063,7 +1075,7 @@ public class ESAnalyticsService implements AnalyticsService, Startable {
 
           List<String> labels = childAggregationValues.stream()
                                                       .map(ChartAggregationValue::getFieldLabel)
-                                                      .collect(Collectors.toList());
+                                                      .toList();
           String label = StringUtils.join(labels, AGGREGATION_KEYS_SEPARATOR);
 
           ChartAggregationLabel chartLabel = new ChartAggregationLabel(childAggregationValues, label, lang);

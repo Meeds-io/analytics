@@ -17,26 +17,54 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package io.meeds.analytics.api.service;
+package io.meeds.analytics.plugin;
+
+import java.util.List;
 
 import org.exoplatform.container.component.BaseComponentPlugin;
-import org.exoplatform.container.xml.InitParams;
 
-import lombok.Getter;
-import lombok.Setter;
+import io.meeds.analytics.model.StatisticDataQueueEntry;
 
-public class StatisticUIWatcherPlugin extends BaseComponentPlugin {
+public abstract class StatisticDataProcessorPlugin extends BaseComponentPlugin {
 
-  private static final String PARAM_NAME = "watcher";
+  protected boolean initialized;
 
-  @Getter
-  @Setter
-  private StatisticWatcher    statisticWatcher;
+  protected boolean paused;
 
-  public StatisticUIWatcherPlugin(InitParams params) {
-    if (params == null || !params.containsKey(PARAM_NAME)) {
-      throw new IllegalStateException("'watcher' init param is mandatory");
-    }
-    this.statisticWatcher = (StatisticWatcher) params.getObjectParam(PARAM_NAME).getObject();
+  /**
+   * @return processor identifier
+   */
+  public abstract String getId();
+
+  /**
+   * Process statistic data
+   * 
+   * @param processorQueueEntries {@link List} of
+   *          {@link StatisticDataQueueEntry}
+   */
+  public abstract void process(List<StatisticDataQueueEntry> processorQueueEntries);
+
+  /**
+   * initializes the processor
+   */
+  public void init() {
+    this.initialized = true;
   }
+
+  public boolean isInitialized() {
+    return this.initialized;
+  }
+
+  public void setInitialized(boolean initialized) {
+    this.initialized = initialized;
+  }
+
+  public boolean isPaused() {
+    return this.paused;
+  }
+
+  public void setPaused(boolean paused) {
+    this.paused = paused;
+  }
+
 }

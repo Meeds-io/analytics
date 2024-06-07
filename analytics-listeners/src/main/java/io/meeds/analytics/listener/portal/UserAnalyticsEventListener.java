@@ -19,56 +19,76 @@
  */
 package io.meeds.analytics.listener.portal;
 
-import static io.meeds.analytics.utils.AnalyticsUtils.*;
+import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_SOCIAL_IDENTITY_ID;
+import static io.meeds.analytics.utils.AnalyticsUtils.addStatisticData;
+import static io.meeds.analytics.utils.AnalyticsUtils.getCurrentUserIdentityId;
+import static io.meeds.analytics.utils.AnalyticsUtils.getUserIdentityId;
 
-import org.exoplatform.commons.api.persistence.ExoTransactional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
+import org.exoplatform.services.organization.OrganizationService;
 import org.exoplatform.services.organization.User;
 import org.exoplatform.services.organization.UserEventListener;
 
 import io.meeds.analytics.model.StatisticData;
+import io.meeds.common.ContainerTransactional;
 
+import jakarta.annotation.PostConstruct;
+import lombok.SneakyThrows;
+
+@Component
 public class UserAnalyticsEventListener extends UserEventListener {
 
-  private static final Log  LOG                = ExoLogger.getLogger(UserAnalyticsEventListener.class);
+  private static final Log    LOG                = ExoLogger.getLogger(UserAnalyticsEventListener.class);
 
-  private ThreadLocal<Long> operationStartTime = new ThreadLocal<>();
+  private ThreadLocal<Long>   operationStartTime = new ThreadLocal<>();
+
+  @Autowired
+  private OrganizationService organizationService;
+
+  @SneakyThrows
+  @PostConstruct
+  public void init() {
+    organizationService.addListenerPlugin(this);
+  }
 
   @Override
-  @ExoTransactional
+  @ContainerTransactional
   public void preSave(User user, boolean isNew) throws Exception {
     operationStartTime.set(System.currentTimeMillis());
   }
 
   @Override
-  @ExoTransactional
+  @ContainerTransactional
   public void preSetEnabled(User user) throws Exception {
     operationStartTime.set(System.currentTimeMillis());
   }
 
   @Override
-  @ExoTransactional
+  @ContainerTransactional
   public void preDelete(User user) throws Exception {
     operationStartTime.set(System.currentTimeMillis());
   }
 
   @Override
-  @ExoTransactional
+  @ContainerTransactional
   public void postSave(User user, boolean isNew) throws Exception {
     StatisticData statisticData = buildStatisticData(isNew ? "createUser" : "saveUser", user);
     addStatisticData(statisticData);
   }
 
   @Override
-  @ExoTransactional
+  @ContainerTransactional
   public void postSetEnabled(User user) throws Exception {
     StatisticData statisticData = buildStatisticData("enableUser", user);
     addStatisticData(statisticData);
   }
 
   @Override
-  @ExoTransactional
+  @ContainerTransactional
   public void postDelete(User user) throws Exception {
     StatisticData statisticData = buildStatisticData("deleteUser", user);
     addStatisticData(statisticData);

@@ -19,67 +19,45 @@
  */
 package io.meeds.analytics.job;
 
-import org.quartz.*;
+import java.util.concurrent.TimeUnit;
 
-import org.exoplatform.commons.utils.ListAccess;
-import org.exoplatform.container.*;
-import org.exoplatform.container.component.RequestLifeCycle;
-import org.exoplatform.services.log.ExoLogger;
-import org.exoplatform.services.log.Log;
-import org.exoplatform.social.core.space.model.Space;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
+
 import org.exoplatform.social.core.space.spi.SpaceService;
 
 import io.meeds.analytics.model.StatisticData;
 import io.meeds.analytics.utils.AnalyticsUtils;
+import io.meeds.common.ContainerTransactional;
+
+import lombok.SneakyThrows;
 
 /**
  * A job to collect statistics of users count
  */
-@DisallowConcurrentExecution
-public class SpacesStatisticsCountJob implements Job {
+@Configuration
+@EnableScheduling
+public class SpacesStatisticsCountJob {
 
-  private static final Log LOG = ExoLogger.getLogger(SpacesStatisticsCountJob.class);
+  @Autowired
+  private SpaceService spaceService;
 
-  private ExoContainer     container;
-
-  private SpaceService     spaceService;
-
-  public SpacesStatisticsCountJob() {
-    this.container = PortalContainer.getInstance();
-  }
-
-  @Override
-  public void execute(JobExecutionContext context) throws JobExecutionException {
+  @SneakyThrows
+  @ContainerTransactional
+  @Scheduled(initialDelay = 2, fixedDelay = 180, timeUnit = TimeUnit.MINUTES)
+  public void run() {
     long startTime = System.currentTimeMillis();
-
-    ExoContainer currentContainer = ExoContainerContext.getCurrentContainer();
-    ExoContainerContext.setCurrentContainer(container);
-    RequestLifeCycle.begin(this.container);
-    try {
-      ListAccess<Space> allSpaces = getSpaceService().getAllSpacesWithListAccess();
-      int allSpacesCount = allSpaces.getSize();
-
-      StatisticData statisticData = new StatisticData();
-      statisticData.setModule("social");
-      statisticData.setSubModule("space");
-      statisticData.setOperation("spacesCount");
-      statisticData.setDuration(System.currentTimeMillis() - startTime);
-      statisticData.addParameter("countType", "allSpaces");
-      statisticData.addParameter("count", allSpacesCount);
-      AnalyticsUtils.addStatisticData(statisticData);
-    } catch (Exception e) {
-      LOG.error("Error while computing spaces statistics", e);
-    } finally {
-      RequestLifeCycle.end();
-      ExoContainerContext.setCurrentContainer(currentContainer);
-    }
-  }
-
-  private SpaceService getSpaceService() {
-    if (spaceService == null) {
-      spaceService = this.container.getComponentInstanceOfType(SpaceService.class);
-    }
-    return spaceService;
+    int allSpacesCount = spaceService.getAllSpacesWithListAccess().getSize();
+    StatisticData statisticData = new StatisticData();
+    statisticData.setModule("social");
+    statisticData.setSubModule("space");
+    statisticData.setOperation("spacesCount");
+    statisticData.setDuration(System.currentTimeMillis() - startTime);
+    statisticData.addParameter("countType", "allSpaces");
+    statisticData.addParameter("count", allSpacesCount);
+    AnalyticsUtils.addStatisticData(statisticData);
   }
 
 }

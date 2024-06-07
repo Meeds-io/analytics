@@ -22,15 +22,19 @@ package io.meeds.analytics.portlet;
 import java.io.IOException;
 import java.util.List;
 
-import javax.portlet.*;
+import javax.portlet.GenericPortlet;
+import javax.portlet.PortletException;
+import javax.portlet.PortletRequestDispatcher;
+import javax.portlet.RenderRequest;
+import javax.portlet.RenderResponse;
 
 import org.apache.commons.lang3.StringUtils;
 
 import org.exoplatform.container.ExoContainerContext;
 
 import io.meeds.analytics.api.service.AnalyticsService;
-import io.meeds.analytics.api.service.StatisticWatcher;
 import io.meeds.analytics.api.websocket.AnalyticsWebSocketService;
+import io.meeds.analytics.model.StatisticWatcher;
 import io.meeds.analytics.utils.AnalyticsUtils;
 
 public class StatisticDataCollectionPortlet extends GenericPortlet {

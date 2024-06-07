@@ -19,11 +19,17 @@
  */
 package io.meeds.analytics.listener.social;
 
-import static io.meeds.analytics.utils.AnalyticsUtils.*;
+import static io.meeds.analytics.utils.AnalyticsUtils.addActivityStatisticsData;
+import static io.meeds.analytics.utils.AnalyticsUtils.addSpaceStatistics;
+import static io.meeds.analytics.utils.AnalyticsUtils.addStatisticData;
+import static io.meeds.analytics.utils.AnalyticsUtils.getCurrentUserIdentityId;
+import static io.meeds.analytics.utils.AnalyticsUtils.getIdentity;
+import static io.meeds.analytics.utils.AnalyticsUtils.getUserIdentityId;
 
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
-import org.exoplatform.commons.utils.CommonsUtils;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.exoplatform.social.core.activity.ActivityLifeCycleEvent;
@@ -40,9 +46,23 @@ import org.exoplatform.social.core.space.spi.SpaceService;
 
 import io.meeds.analytics.model.StatisticData;
 
+import jakarta.annotation.PostConstruct;
+
+@Component
 public class AnalyticsActivityListener extends ActivityListenerPlugin {
 
-  private static final Log   LOG                       = ExoLogger.getLogger(AnalyticsActivityListener.class);
+  private static final Log LOG = ExoLogger.getLogger(AnalyticsActivityListener.class);
+
+  @Autowired
+  private ActivityManager  activityManager;
+
+  @Autowired
+  private SpaceService     spaceService;
+
+  @PostConstruct
+  public void init() {
+    activityManager.addActivityEventListener(this);
+  }
 
   @Override
   public void saveActivity(ActivityLifeCycleEvent event) {
@@ -63,15 +83,17 @@ public class AnalyticsActivityListener extends ActivityListenerPlugin {
       handleErrorProcessingOperation(event, e);
     }
   }
+
   @Override
   public void deleteActivity(ActivityLifeCycleEvent event) {
     try {
-      StatisticData statisticData = addActivityStatisticEvent(event,"deleteActivity");
+      StatisticData statisticData = addActivityStatisticEvent(event, "deleteActivity");
       addStatisticData(statisticData);
     } catch (Exception e) {
       handleErrorProcessingOperation(event, e);
     }
   }
+
   @Override
   public void shareActivity(ActivityLifeCycleEvent event) {
     try {
@@ -101,15 +123,17 @@ public class AnalyticsActivityListener extends ActivityListenerPlugin {
       handleErrorProcessingOperation(event, e);
     }
   }
+
   @Override
   public void deleteComment(ActivityLifeCycleEvent event) {
     try {
-      StatisticData statisticData = addActivityStatisticEvent(event,"deleteComment");
+      StatisticData statisticData = addActivityStatisticEvent(event, "deleteComment");
       addStatisticData(statisticData);
     } catch (Exception e) {
       handleErrorProcessingOperation(event, e);
     }
   }
+
   @Override
   public void likeActivity(ActivityLifeCycleEvent event) {
     try {
@@ -167,7 +191,6 @@ public class AnalyticsActivityListener extends ActivityListenerPlugin {
     ActivityStream activityStream = activity.getActivityStream();
     if ((activityStream == null || activityStream.getType() == null || activityStream.getPrettyId() == null)
         && StringUtils.isNotBlank(activity.getParentId())) {
-      ActivityManager activityManager = CommonsUtils.getService(ActivityManager.class);
       ExoSocialActivity parentActivity = activityManager.getActivity(activity.getParentId());
       activityStream = parentActivity.getActivityStream();
     }
@@ -192,7 +215,6 @@ public class AnalyticsActivityListener extends ActivityListenerPlugin {
     StatisticData statisticData = new StatisticData();
     if (streamIdentity != null) {
       if (StringUtils.equals(streamIdentity.getProviderId(), SpaceIdentityProvider.NAME)) {
-        SpaceService spaceService = CommonsUtils.getService(SpaceService.class);
         Space space = spaceService.getSpaceByPrettyName(streamIdentity.getRemoteId());
         addSpaceStatistics(statisticData, space);
       }

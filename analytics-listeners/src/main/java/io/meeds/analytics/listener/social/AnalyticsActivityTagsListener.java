@@ -23,12 +23,15 @@ import java.util.Date;
 import java.util.Set;
 
 import org.apache.commons.lang3.Validate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import org.apache.commons.lang3.StringUtils;
 
 import org.exoplatform.commons.api.persistence.ExoTransactional;
 import org.exoplatform.services.listener.Asynchronous;
 import org.exoplatform.services.listener.Event;
 import org.exoplatform.services.listener.Listener;
+import org.exoplatform.services.listener.ListenerService;
 import org.exoplatform.social.core.activity.model.ExoSocialActivity;
 import org.exoplatform.social.core.activity.model.ExoSocialActivityImpl;
 import org.exoplatform.social.core.identity.model.Identity;
@@ -40,16 +43,26 @@ import org.exoplatform.social.metadata.tag.model.TagObject;
 import io.meeds.analytics.model.StatisticData;
 import io.meeds.analytics.utils.AnalyticsUtils;
 
+import jakarta.annotation.PostConstruct;
+
 @Asynchronous
+@Component
 public class AnalyticsActivityTagsListener extends Listener<TagObject, Set<TagName>> {
 
-  private ActivityManager activityManager;
+  private static final String EVENT_NAME = "metadata.tag.added";
 
-  private IdentityManager identityManager;
+  @Autowired
+  private ActivityManager     activityManager;
 
-  public AnalyticsActivityTagsListener(ActivityManager activityManager, IdentityManager identityManager) {
-    this.activityManager = activityManager;
-    this.identityManager = identityManager;
+  @Autowired
+  private IdentityManager     identityManager;
+
+  @Autowired
+  private ListenerService     listenerService;
+
+  @PostConstruct
+  public void init() {
+    listenerService.addListener(EVENT_NAME, this);
   }
 
   @Override

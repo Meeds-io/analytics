@@ -22,10 +22,17 @@ package io.meeds.analytics.model;
 import java.io.Serializable;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
 @ToString
 @AllArgsConstructor
@@ -99,7 +106,7 @@ public class StatisticData implements Serializable {
       Collection<String> values = collection.stream()
                                             .filter(Objects::nonNull)
                                             .map(this::getFieldValue)
-                                            .collect(Collectors.toList());
+                                            .toList();
       if (listParameters == null) {
         listParameters = new HashMap<>();
       }

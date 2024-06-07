@@ -21,15 +21,16 @@ package io.meeds.analytics.queue.service;
 
 import java.math.BigInteger;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
-import org.picocontainer.Startable;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Primary;
+import org.springframework.stereotype.Service;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
-import org.exoplatform.container.ExoContainerContext;
-import org.exoplatform.container.PortalContainer;
-import org.exoplatform.container.component.RequestLifeCycle;
 import org.exoplatform.services.cache.CacheService;
 import org.exoplatform.services.cache.ExoCache;
 import org.exoplatform.services.log.ExoLogger;
@@ -39,21 +40,31 @@ import io.meeds.analytics.api.service.StatisticDataProcessorService;
 import io.meeds.analytics.api.service.StatisticDataQueueService;
 import io.meeds.analytics.model.StatisticData;
 import io.meeds.analytics.model.StatisticDataQueueEntry;
+import io.meeds.common.ContainerTransactional;
 
-public class DummyStatisticDataQueueService implements StatisticDataQueueService, Startable {
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+
+@Primary
+@Service
+public class DummyStatisticDataQueueService implements StatisticDataQueueService {
 
   private static final Log                        LOG                        =
                                                       ExoLogger.getLogger(DummyStatisticDataQueueService.class);
 
   private static final String                     ANALYTICS_QUEUE_CACHE_NAME = "analytics.queue";
 
-  private ExoCache<Long, StatisticDataQueueEntry> statisticQueueCache        = null;
-
+  @Autowired
   private StatisticDataProcessorService           statisticDataProcessorService;
 
-  private ScheduledExecutorService                queueProcessingExecutor    = null;
+  @Autowired
+  private CacheService                            cacheService               = null;
 
-  private PortalContainer                         container                  = null;
+  private ExoCache<Long, StatisticDataQueueEntry> statisticQueueCache        = null;
+
+  private ScheduledExecutorService                queueProcessingExecutor    =
+                                                                          Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setNameFormat("Analytics-ingestor-%d")
+                                                                                                                                               .build());
 
   private BigInteger                              totalExecutionTime         = BigInteger.ZERO;
 
@@ -61,29 +72,21 @@ public class DummyStatisticDataQueueService implements StatisticDataQueueService
 
   private long                                    executionCount             = 0;
 
-  public DummyStatisticDataQueueService(PortalContainer container,
-                                        StatisticDataProcessorService statisticDataProcessorService,
-                                        CacheService cacheService) {
-    this.statisticDataProcessorService = statisticDataProcessorService;
-    this.container = container;
+  @PostConstruct
+  public void init() {
     this.statisticQueueCache = cacheService.getCacheInstance(ANALYTICS_QUEUE_CACHE_NAME);
-
-    ThreadFactory namedThreadFactory = new ThreadFactoryBuilder().setNameFormat("Analytics-ingestor-%d").build();
-    this.queueProcessingExecutor = Executors.newSingleThreadScheduledExecutor(namedThreadFactory);
+    // Can't be job, because each cluster node must process its in-memory queue
+    this.queueProcessingExecutor.scheduleAtFixedRate(this::processQueueTransactional, 0, 10, TimeUnit.SECONDS);
   }
 
-  @Override
-  public void start() {
-    // Can't be job, because each cluster node must process its in-memory queue
-    queueProcessingExecutor.scheduleAtFixedRate(() -> {
-      ExoContainerContext.setCurrentContainer(this.container);
-      RequestLifeCycle.begin(this.container);
-      try {
-        processQueue();
-      } finally {
-        RequestLifeCycle.end();
-      }
-    }, 0, 10, TimeUnit.SECONDS);
+  @PreDestroy
+  public void shutdown() {
+    queueProcessingExecutor.shutdown();
+  }
+
+  @ContainerTransactional
+  public void processQueueTransactional() {
+    processQueue();
   }
 
   @Override
@@ -105,11 +108,6 @@ public class DummyStatisticDataQueueService implements StatisticDataQueueService
       this.lastExecutionTime = System.currentTimeMillis() - startTime;
       this.totalExecutionTime = this.totalExecutionTime.add(BigInteger.valueOf(this.lastExecutionTime));
     }
-  }
-
-  @Override
-  public void stop() {
-    queueProcessingExecutor.shutdown();
   }
 
   @Override

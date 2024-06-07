@@ -22,7 +22,12 @@ package io.meeds.analytics.listener.portal;
 import static io.meeds.analytics.utils.AnalyticsUtils.addStatisticData;
 import static io.meeds.analytics.utils.AnalyticsUtils.getUserIdentityId;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import org.exoplatform.services.listener.*;
 import org.exoplatform.services.log.ExoLogger;
@@ -32,9 +37,24 @@ import org.exoplatform.services.security.ConversationState;
 
 import io.meeds.analytics.model.StatisticData;
 
+import jakarta.annotation.PostConstruct;
+
 @Asynchronous
+@Component
 public class LoginAnalyticsListener extends Listener<ConversationRegistry, ConversationState> {
-  private static final Log LOG = ExoLogger.getLogger(LoginAnalyticsListener.class);
+
+  private static final Log          LOG         = ExoLogger.getLogger(LoginAnalyticsListener.class);
+
+  private static final List<String> EVENT_NAMES = Arrays.asList("exo.core.security.ConversationRegistry.register",
+                                                                "exo.core.security.ConversationRegistry.unregister");
+
+  @Autowired
+  private ListenerService           listenerService;
+
+  @PostConstruct
+  public void init() {
+    EVENT_NAMES.forEach(name -> listenerService.addListener(name, this));
+  }
 
   @Override
   public void onEvent(Event<ConversationRegistry, ConversationState> event) throws Exception {

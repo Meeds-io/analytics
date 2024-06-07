@@ -25,6 +25,8 @@ import java.util.*;
 import java.util.Map.Entry;
 
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import org.exoplatform.services.listener.*;
 import org.exoplatform.services.log.ExoLogger;
@@ -32,23 +34,34 @@ import org.exoplatform.services.log.Log;
 import org.exoplatform.social.core.space.model.Space;
 
 import io.meeds.analytics.api.service.AnalyticsService;
-import io.meeds.analytics.api.service.StatisticWatcher;
-import io.meeds.analytics.api.websocket.AnalyticsWebSocketMessage;
 import io.meeds.analytics.api.websocket.AnalyticsWebSocketService;
+import io.meeds.analytics.api.websocket.listener.AnalyticsWebSocketListener;
+import io.meeds.analytics.model.AnalyticsWebSocketMessage;
 import io.meeds.analytics.model.StatisticData;
+import io.meeds.analytics.model.StatisticWatcher;
+
+import jakarta.annotation.PostConstruct;
 
 @Asynchronous
+@Component
 public class WebSocketUIStatisticListener extends Listener<AnalyticsWebSocketService, AnalyticsWebSocketMessage> {
-  private static final Log LOG = ExoLogger.getLogger(WebSocketUIStatisticListener.class);
+  private static final Log          LOG         = ExoLogger.getLogger(WebSocketUIStatisticListener.class);
 
-  private AnalyticsService analyticsService;
+  private static final List<String> EVENT_NAMES = Arrays.asList(AnalyticsWebSocketListener.EXO_ANALYTICS_MESSAGE_EVENT);
 
-  public WebSocketUIStatisticListener(AnalyticsService analyticsService) {
-    this.analyticsService = analyticsService;
+  @Autowired
+  private AnalyticsService          analyticsService;
+
+  @Autowired
+  private ListenerService           listenerService;
+
+  @PostConstruct
+  public void init() {
+    EVENT_NAMES.forEach(name -> listenerService.addListener(name, this));
   }
 
   @Override
-  public void onEvent(Event<AnalyticsWebSocketService, AnalyticsWebSocketMessage> event) throws Exception {
+  public void onEvent(Event<AnalyticsWebSocketService, AnalyticsWebSocketMessage> event) throws Exception { // NOSONAR
     AnalyticsWebSocketMessage message = event.getData();
     long userId = getUserIdentityId(message.getUserName());
     if (userId <= 0) {

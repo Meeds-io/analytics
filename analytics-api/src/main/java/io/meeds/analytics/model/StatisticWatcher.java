@@ -17,68 +17,60 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package io.meeds.analytics.api.websocket;
+package io.meeds.analytics.model;
 
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-
-import io.meeds.analytics.api.service.StatisticWatcher;
 
 import lombok.Data;
 
 @Data
-public class AnalyticsWebSocketMessage {
+public class StatisticWatcher {
 
   /**
-   * Watcher name from {@link StatisticWatcher#getName()}
+   * Statistic data: name field
    */
   private String              name;
 
   /**
-   * statistic module
+   * Statistic data: module field
    */
   private String              module;
 
   /**
-   * statistic subModule
+   * Statistic data: subModule field
    */
   private String              subModule;
 
   /**
-   * statistic operation
+   * Statistic data: operation field
    */
   private String              operation;
 
   /**
-   * User login name
+   * Statistic data: additional embedded parameters
    */
-  private String              userName;
+  private Map<String, String> parameters;
 
   /**
-   * Current technical space pretty name
+   * DOM jquery selector, used to search elements
    */
-  private String              spacePrettyName;
+  private String              domSelector;
 
   /**
-   * Current technical space id
+   * DOM jquery event to listen, used to trigger storing new statistic data
    */
-  private String              spaceId;
+  private String              domEvent;
 
   /**
-   * Current portalUri
+   * DOM jquery element attributes ('attr' method) or data ('data' method) to
+   * collect and store in statistic data
    */
-  private String              portalUri;
+  private List<String>        domProperties;
 
   /**
-   * User cometd Token
+   * DOM triggered event attributes to collect and store in statistic data
    */
-  private String              token;
-
-  /**
-   * Collected DOM properties switch {@link StatisticWatcher#getDomProperties()}
-   * and DOM event properties collected using
-   * {@link StatisticWatcher#getDomEventProperties()}
-   */
-  private Map<String, String> parameters = new HashMap<>();
+  private List<String>        domEventProperties;
 
 }

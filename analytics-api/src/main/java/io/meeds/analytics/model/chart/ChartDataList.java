@@ -20,8 +20,9 @@
 package io.meeds.analytics.model.chart;
 
 import java.io.Serializable;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
 
 import io.meeds.analytics.utils.AnalyticsUtils;
 
@@ -57,7 +58,7 @@ public class ChartDataList implements Serializable {
 
     ChartData chartData = charts.stream()
                                 .filter(data -> (data.getKey() == null && chartParentAggregation == null)
-                                    || (data.getKey() != null && data.getKey().equals(chartParentAggregation)))
+                                                || (data.getKey() != null && data.getKey().equals(chartParentAggregation)))
                                 .findFirst()
                                 .orElse(null);
     if (chartData == null) {
@@ -77,7 +78,9 @@ public class ChartDataList implements Serializable {
   }
 
   public List<String> getLabels() {
-    return aggregationLabels.stream().map(result -> result.getLabel()).collect(Collectors.toList());
+    return aggregationLabels.stream()
+                            .map(result -> result.getLabel())
+                            .toList();
   }
 
 }

@@ -23,7 +23,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -33,7 +32,11 @@ import io.meeds.analytics.model.filter.aggregation.AnalyticsAggregationType;
 import io.meeds.analytics.model.filter.search.AnalyticsFieldFilter;
 import io.meeds.analytics.model.filter.search.AnalyticsFieldFilterType;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 @Data
 @ToString(callSuper = true)
@@ -172,7 +175,7 @@ public class AnalyticsTableFilter extends AbstractAnalyticsFilter {
     List<AnalyticsTableColumnFilter> clonedColumns = columns == null ? null
                                                                      : columns.stream()
                                                                               .map(AnalyticsTableColumnFilter::clone)
-                                                                              .collect(Collectors.toList());
+                                                                              .toList();
     return new AnalyticsTableFilter(getTitle(), getTimeZone(), clonedMainColumn, clonedColumns, pageSize, sortBy, sortDirection);
   }
 

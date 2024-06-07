@@ -22,12 +22,13 @@ package io.meeds.analytics.model.filter;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import io.meeds.analytics.model.filter.aggregation.AnalyticsAggregation;
 import io.meeds.analytics.model.filter.search.AnalyticsFieldFilter;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
@@ -47,7 +48,7 @@ public class AnalyticsTableColumnAggregation implements Serializable, Cloneable 
     AnalyticsAggregation clonedAggregation = aggregation == null ? null : aggregation.clone();
     List<AnalyticsFieldFilter> clonedFilters = filters.stream()
                                                       .map(AnalyticsFieldFilter::clone)
-                                                      .collect(Collectors.toList());
+                                                      .toList();
     return new AnalyticsTableColumnAggregation(clonedAggregation, clonedFilters, periodIndependent);
   }
 }

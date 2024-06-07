@@ -17,54 +17,33 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package io.meeds.analytics.api.processor;
+package io.meeds.analytics.elasticsearch.processor;
+
+import static io.meeds.analytics.utils.AnalyticsUtils.ES_ANALYTICS_PROCESSOR_ID;
 
 import java.util.List;
 
-import org.exoplatform.container.component.BaseComponentPlugin;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
+import io.meeds.analytics.elasticsearch.AnalyticsESClient;
 import io.meeds.analytics.model.StatisticDataQueueEntry;
+import io.meeds.analytics.plugin.StatisticDataProcessorPlugin;
 
-public abstract class StatisticDataProcessorPlugin extends BaseComponentPlugin {
+@Component
+public class ElasticSearchStatisticDataProcessor extends StatisticDataProcessorPlugin {
 
-  protected boolean initialized;
+  @Autowired
+  private AnalyticsESClient esClient;
 
-  protected boolean paused;
-
-  /**
-   * @return processor identifier
-   */
-  public abstract String getId();
-
-  /**
-   * Process statistic data
-   * 
-   * @param processorQueueEntries {@link List} of
-   *          {@link StatisticDataQueueEntry}
-   */
-  public abstract void process(List<StatisticDataQueueEntry> processorQueueEntries);
-
-  /**
-   * initializes the processor
-   */
-  public void init() {
-    this.initialized = true;
+  @Override
+  public String getId() {
+    return ES_ANALYTICS_PROCESSOR_ID;
   }
 
-  public boolean isInitialized() {
-    return this.initialized;
-  }
-
-  public void setInitialized(boolean initialized) {
-    this.initialized = initialized;
-  }
-
-  public boolean isPaused() {
-    return this.paused;
-  }
-
-  public void setPaused(boolean paused) {
-    this.paused = paused;
+  @Override
+  public void process(List<StatisticDataQueueEntry> processorQueueEntries) {
+    esClient.sendCreateBulkDocumentsRequest(processorQueueEntries);
   }
 
 }

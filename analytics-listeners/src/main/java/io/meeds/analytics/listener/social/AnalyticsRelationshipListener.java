@@ -22,17 +22,33 @@ package io.meeds.analytics.listener.social;
 import static io.meeds.analytics.utils.AnalyticsUtils.addStatisticData;
 import static io.meeds.analytics.utils.AnalyticsUtils.getCurrentUserIdentityId;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
+import org.exoplatform.social.core.manager.RelationshipManager;
+import org.exoplatform.social.core.manager.RelationshipManagerImpl;
 import org.exoplatform.social.core.relationship.RelationshipEvent;
 import org.exoplatform.social.core.relationship.RelationshipListenerPlugin;
 import org.exoplatform.social.core.relationship.model.Relationship;
 
 import io.meeds.analytics.model.StatisticData;
 
+import jakarta.annotation.PostConstruct;
+
+@Component
 public class AnalyticsRelationshipListener extends RelationshipListenerPlugin {
 
-  private static final Log LOG = ExoLogger.getLogger(AnalyticsRelationshipListener.class);
+  private static final Log    LOG = ExoLogger.getLogger(AnalyticsRelationshipListener.class);
+
+  @Autowired
+  private RelationshipManager relationshipManager;
+
+  @PostConstruct
+  public void init() {
+    ((RelationshipManagerImpl) relationshipManager).addListenerPlugin(this);
+  }
 
   @Override
   public void requested(RelationshipEvent event) {

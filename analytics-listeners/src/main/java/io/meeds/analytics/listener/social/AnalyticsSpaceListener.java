@@ -23,17 +23,32 @@ import static io.meeds.analytics.utils.AnalyticsUtils.addSpaceStatistics;
 import static io.meeds.analytics.utils.AnalyticsUtils.addStatisticData;
 import static io.meeds.analytics.utils.AnalyticsUtils.getCurrentUserIdentityId;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.exoplatform.social.core.space.SpaceListenerPlugin;
 import org.exoplatform.social.core.space.model.Space;
 import org.exoplatform.social.core.space.spi.SpaceLifeCycleEvent;
+import org.exoplatform.social.core.space.spi.SpaceService;
 
 import io.meeds.analytics.model.StatisticData;
 
+import jakarta.annotation.PostConstruct;
+
+@Component
 public class AnalyticsSpaceListener extends SpaceListenerPlugin {
 
   private static final Log LOG = ExoLogger.getLogger(AnalyticsSpaceListener.class);
+
+  @Autowired
+  private SpaceService     spaceService;
+
+  @PostConstruct
+  public void init() {
+    spaceService.registerSpaceListenerPlugin(this);
+  }
 
   @Override
   public void spaceAccessEdited(SpaceLifeCycleEvent event) {
