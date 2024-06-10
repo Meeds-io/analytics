@@ -99,7 +99,7 @@ public class ElasticsearchAnalyticsStorage {
   public void init() {
     try {
       checkIndexTemplateExistence();
-      sendRolloverRequest();
+      CompletableFuture.runAsync(this::sendRolloverRequest);
     } catch (Exception e) {
       LOG.warn("Error while initializing Elasticsearch connection", e);
     }
