@@ -405,10 +405,12 @@ public class ElasticsearchAnalyticsStorage {
                                              .skip(elasticsearchConfiguration.getMaxIndexCount())
                                              .filter(Objects::nonNull)
                                              .toList();
-    if (!outdatedIndices.isEmpty()) {
-      String outdatedIndiceNames = StringUtils.join(outdatedIndices, ",");
-      LOG.info("Deleting {} outdated analytics Indices: [{}]", outdatedIndices.size(), outdatedIndiceNames);
+    while (!outdatedIndices.isEmpty()) {
+      List<String> outdatedIndicesSubList = outdatedIndices.stream().limit(10).toList();
+      String outdatedIndiceNames = StringUtils.join(outdatedIndicesSubList, ",");
+      LOG.info("Deleting {} outdated analytics Indices: [{}]", outdatedIndicesSubList.size(), outdatedIndiceNames);
       sendDeleteRequest(outdatedIndiceNames);
+      outdatedIndices = outdatedIndices.stream().skip(10).toList();
     }
     LOG.info("Analytics Indices rollover process finished successfully.");
   }
