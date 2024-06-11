@@ -17,7 +17,7 @@
 <template>
   <v-app>
     <v-card
-      class="card-border-radius"
+      class="card-border-radius app-background-color"
       flat>
       <v-list>
         <v-list-item>
