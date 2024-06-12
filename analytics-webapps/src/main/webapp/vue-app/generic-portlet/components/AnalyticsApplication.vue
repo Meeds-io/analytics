@@ -17,7 +17,7 @@
 <template>
   <v-app 
     :id="appId"
-    class="analytics-application card-border-radius"
+    class="analytics-application card-border-radius app-background-color"
     flat>
     <template v-if="canEdit">
       <analytics-chart-setting
