@@ -1,0 +1,14 @@
+{
+   "descriptors":[
+      {
+         "name":"Unified search click",
+         "operation":"click",
+         "parameters":{
+            "ui":"toolbar",
+            "application":"SearchPortlet"
+         },
+         "domSelector":"#SearchApplication",
+         "domEvent":"mousedown"
+      }
+   ]
+}
