@@ -27,6 +27,10 @@
      <portlet-name>AnalyticsPortlet</portlet-name>
      <display-name xml:lang="EN">Analytics Application</display-name>
      <portlet-class>io.meeds.analytics.portlet.AnalyticsPortlet</portlet-class>
+     <init-param>
+       <name>layout-content-editable</name>
+       <value>true</value>
+     </init-param>
      <expiration-cache>-1</expiration-cache>
      <cache-scope>PUBLIC</cache-scope>
      <supports>
@@ -78,6 +82,10 @@
     <portlet-name>AnalyticsTablePortlet</portlet-name>
     <display-name xml:lang="EN">Analytics Table Application</display-name>
     <portlet-class>io.meeds.analytics.portlet.AnalyticsTablePortlet</portlet-class>
+     <init-param>
+       <name>layout-content-editable</name>
+       <value>true</value>
+     </init-param>
     <expiration-cache>-1</expiration-cache>
     <cache-scope>PUBLIC</cache-scope>
     <supports>
@@ -129,6 +137,10 @@
     <portlet-name>AnalyticsRatePortlet</portlet-name>
     <display-name xml:lang="EN">Analytics Rate Application</display-name>
     <portlet-class>io.meeds.analytics.portlet.AnalyticsRatePortlet</portlet-class>
+     <init-param>
+       <name>layout-content-editable</name>
+       <value>true</value>
+     </init-param>
     <expiration-cache>-1</expiration-cache>
     <cache-scope>PUBLIC</cache-scope>
     <supports>
