@@ -10,7 +10,7 @@
       "descriptions":{
         "en":"layout.portletInstance.AnalyticsPortlet.description"
       },
-      "illustrationPath":"war:/../skin/DefaultSkin/portletIcons/AnalyticsPortlet.png",
+      "illustrationPath":"war:/../skin/images/chartApplication.webp",
       "preferences":[
         
       ],
@@ -30,7 +30,7 @@
       "descriptions":{
         "en":"layout.portletInstance.AnalyticsRatePortlet.description"
       },
-      "illustrationPath":"war:/../skin/DefaultSkin/portletIcons/AnalyticsRatePortlet.png",
+      "illustrationPath":"war:/../skin/images/rateApplication.webp",
       "preferences":[
         
       ],
@@ -50,7 +50,7 @@
       "descriptions":{
         "en":"layout.portletInstance.AnalyticsTablePortlet.description"
       },
-      "illustrationPath":"war:/../skin/DefaultSkin/portletIcons/AnalyticsTablePortlet.png",
+      "illustrationPath":"war:/../skin/images/tableAnalytics.webp",
       "preferences":[
         
       ],
@@ -70,7 +70,7 @@
       "descriptions":{
         "en":"layout.portletInstance.AnalyticsDashboardBreadcrumb.description"
       },
-      "illustrationPath":"war:/../skin/DefaultSkin/portletIcons/AnalyticsDashboardBreadcrumb.png",
+      "illustrationPath":"war:/../skin/images/analyticsbreadcrumb.webp",
       "preferences":[
         
       ],
