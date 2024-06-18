@@ -1,0 +1,24 @@
+{
+    "descriptors": [
+        {
+            "name": "Analytics",
+            "imagePath": "war:/../skin/images/analytics.png",
+            "overrideMode": "merge",
+            "override": false,
+            "enabled": true,
+            "application": {
+                "title": "Analytics",
+                "description": "Analytics applications",
+                "url": "./analytics",
+                "system": true,
+                "active": true,
+                "mandatory": false,
+                "mobile": true,
+                "permissions": [
+                    "*:/platform/administrators",
+                    "*:/platform/analytics"
+                ]
+            }
+        }
+    ]
+}
