@@ -20,7 +20,7 @@
   <parent>
     <groupId>org.exoplatform.addons.analytics</groupId>
     <artifactId>analytics-parent</artifactId>
-    <version>1.4.3-exo</version>
+    <version>1.4.3-exo-patched</version>
   </parent>
   <artifactId>analytics-webapps</artifactId>
   <packaging>war</packaging>
