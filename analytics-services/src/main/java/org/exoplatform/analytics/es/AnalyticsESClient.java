@@ -22,12 +22,14 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.ResolverStyle;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.conn.HttpClientConnectionManager;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.json.JSONException;
+import org.json.JSONObject;
 
 import org.exoplatform.analytics.model.StatisticDataQueueEntry;
 import org.exoplatform.commons.search.es.client.*;
@@ -60,6 +62,8 @@ public class AnalyticsESClient extends ElasticClient {
 
   private static final String                   ES_ANALYTICS_INDEX_PER_DAYS    = "exo.es.analytics.index.per.days";
 
+  private static final String                   ES_ANALYTICS_MAX_INDEX_COUNT   = "analytics.es.index.maxCount";
+
   private static final long                     DAY_IN_MS                      = 86400000L;
 
   private static final String                   DAY_DATE_FORMAT                = "yyyy-MM-dd";
@@ -76,6 +80,8 @@ public class AnalyticsESClient extends ElasticClient {
   private Map<Long, String>                     indexSuffixPerDayIndice        = new HashMap<>();
 
   private int                                   indexPerDays;
+
+  private int                                   maxIndexCount;
 
   private String                                esIndexTemplateQuery;
 
@@ -111,7 +117,10 @@ public class AnalyticsESClient extends ElasticClient {
         }
       }
       if (initParams.containsKey(ES_ANALYTICS_INDEX_PER_DAYS)) {
-        this.indexPerDays = Integer.parseInt(initParams.getValueParam(ES_ANALYTICS_INDEX_PER_DAYS).getValue());
+        this.indexPerDays = Math.max(Integer.parseInt(initParams.getValueParam(ES_ANALYTICS_INDEX_PER_DAYS).getValue()), 1);
+      }
+      if (initParams.containsKey(ES_ANALYTICS_MAX_INDEX_COUNT)) {
+        this.maxIndexCount = Integer.parseInt(initParams.getValueParam(ES_ANALYTICS_MAX_INDEX_COUNT).getValue());
       }
     }
     if (StringUtils.isBlank(this.urlClient)) {
@@ -131,6 +140,7 @@ public class AnalyticsESClient extends ElasticClient {
   public void init() {
     checkIndexTemplateExistence();
     LOG.info("Analytics client initialized and is ready to proceed analytics data");
+    CompletableFuture.runAsync(this::sendRolloverRequest);
   }
 
   public boolean sendCreateIndexRequest(String index) {
@@ -145,6 +155,7 @@ public class AnalyticsESClient extends ElasticClient {
 
       if (sendIsIndexExistsRequest(index)) {
         LOG.info("New analytics index {} created.", index);
+        CompletableFuture.runAsync(this::sendRolloverRequest);
         return true;
       } else {
         throw new IllegalStateException("Error creating index " + index + " on elasticsearch, response code = "
@@ -319,7 +330,7 @@ public class AnalyticsESClient extends ElasticClient {
     if (indexSuffix != null) {
       return indexSuffix;
     }
-    indexSuffix = DAY_DATE_FORMATTER.format(Instant.ofEpochMilli(timestamp).atZone(ZoneOffset.UTC));
+    indexSuffix = DAY_DATE_FORMATTER.format(Instant.ofEpochMilli(indexSuffixLong * DAY_IN_MS * indexPerDays).atZone(ZoneOffset.UTC));
     indexSuffixPerDayIndice.put(indexSuffixLong, indexSuffix);
     return indexSuffix;
   }
@@ -403,6 +414,28 @@ public class AnalyticsESClient extends ElasticClient {
             + " isn't created successfully");
       }
     }
+  }
+
+  private void sendRolloverRequest() {
+    LOG.info("Analytics Indices rollover process start");
+    ElasticResponse response = sendHttpGetRequest(analyticsIndexingConnector.getIndexPrefix() +
+        "_*?allow_no_indices=true&ignore_unavailable=true");
+    String indexListJsonString = response.getMessage();
+    JSONObject jsonObject = new JSONObject(indexListJsonString);
+    List<String> outdatedIndices = jsonObject.keySet()
+                                             .stream()
+                                             .sorted((s1, s2) -> s2.compareTo(s1))
+                                             .skip(maxIndexCount)
+                                             .filter(Objects::nonNull)
+                                             .toList();
+    while (!outdatedIndices.isEmpty()) {
+      List<String> outdatedIndicesSubList = outdatedIndices.stream().limit(10).toList();
+      String outdatedIndiceNames = StringUtils.join(outdatedIndicesSubList, ",");
+      LOG.info("Deleting {} outdated analytics Indices: [{}]", outdatedIndicesSubList.size(), outdatedIndiceNames);
+      sendHttpDeleteRequest(outdatedIndiceNames);
+      outdatedIndices = outdatedIndices.stream().skip(10).toList();
+    }
+    LOG.info("Analytics Indices rollover process finished successfully.");
   }
 
   private final String getIndex(long timestamp) {
