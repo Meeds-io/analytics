@@ -20,7 +20,7 @@
 <template>
   <v-app
     :id="appId"
-    class="analytics-application card-border-radius app-background-color"
+    class="analytics-application application-body"
     flat>
     <div class="d-flex px-3 pb-2 pt-1 analytics-table-header" flat>
       <analytics-select-period
