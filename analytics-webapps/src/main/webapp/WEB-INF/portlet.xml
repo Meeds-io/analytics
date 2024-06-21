@@ -172,6 +172,10 @@
   <portlet>
     <portlet-name>StatisticsCollection</portlet-name>
     <portlet-class>io.meeds.analytics.portlet.StatisticDataCollectionPortlet</portlet-class>
+    <init-param>
+      <name>layout-css-class</name>
+      <value>no-layout-style</value>
+    </init-param>
     <expiration-cache>-1</expiration-cache>
     <supports>
       <mime-type>text/html</mime-type>
