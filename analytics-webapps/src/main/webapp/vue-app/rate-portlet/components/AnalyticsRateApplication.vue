@@ -55,7 +55,7 @@
           <div
             v-if="title"
             :title="title"
-            class="my-auto subtitle-1 text-truncate analytics-chart-title">
+            class="my-auto text-header text-truncate analytics-chart-title">
             {{ $t(title) }}
           </div>
         </v-toolbar-title>

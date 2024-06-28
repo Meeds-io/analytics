@@ -26,6 +26,7 @@
       :ignore-items="spaceIds"
       include-spaces
       class="analytics-suggester"
+      sugester-class="my-0"
       @input="selectIdentity" />
     <div v-if="spaces && multipleOperator" class="d-flex flex-column">
       <div

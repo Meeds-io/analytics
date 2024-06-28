@@ -25,6 +25,7 @@
       :filter="filter"
       :labels="suggesterLabels"
       class="analytics-suggester"
+      sugester-class="my-0"
       @input="selectValue" />
     <div v-if="values && multipleOperator" class="d-flex flex-column">
       <div
