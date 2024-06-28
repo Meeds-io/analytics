@@ -34,7 +34,7 @@
       :prepend-inner-icon="prependInnerIcon"
       append-icon=""
       menu-props="closeOnClick, maxHeight = 100"
-      class="identitySuggester identitySuggesterInputStyle"
+      class="identitySuggester identitySuggesterInputStyle my-0"
       content-class="identitySuggesterContent"
       width="100%"
       max-width="100%"
