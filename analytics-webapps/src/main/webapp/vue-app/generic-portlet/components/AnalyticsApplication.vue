@@ -20,7 +20,7 @@
 <template>
   <v-app 
     :id="appId"
-    class="analytics-application card-border-radius app-background-color"
+    class="analytics-application application-body"
     flat>
     <template v-if="canEdit">
       <analytics-chart-setting
@@ -65,7 +65,7 @@
           </v-tooltip>
           <div
             :title="title"
-            class="my-auto subtitle-1 text-truncate analytics-chart-title">
+            class="my-auto text-header text-truncate analytics-chart-title">
             {{ $t(title) }}
           </div>
         </v-toolbar-title>
