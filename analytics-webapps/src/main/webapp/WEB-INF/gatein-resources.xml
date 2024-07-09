@@ -25,7 +25,36 @@
     <skin-module>analytics</skin-module>
     <css-path>/skin/css/analytics.css</css-path>
     <css-priority>200</css-priority>
+    <filtered>true</filtered>
   </portal-skin>
+
+  <portlet-skin>
+    <application-name>analytics</application-name>
+    <portlet-name>AnalyticsPortlet</portlet-name>
+    <skin-name>Enterprise</skin-name>
+    <additional-module>analytics</additional-module>
+  </portlet-skin>
+
+  <portlet-skin>
+    <application-name>analytics</application-name>
+    <portlet-name>AnalyticsTablePortlet</portlet-name>
+    <skin-name>Enterprise</skin-name>
+    <additional-module>analytics</additional-module>
+  </portlet-skin>
+
+  <portlet-skin>
+    <application-name>analytics</application-name>
+    <portlet-name>AnalyticsRatePortlet</portlet-name>
+    <skin-name>Enterprise</skin-name>
+    <additional-module>analytics</additional-module>
+  </portlet-skin>
+
+  <portlet-skin>
+    <application-name>analytics</application-name>
+    <portlet-name>AnalyticsDashboardBreadcrumb</portlet-name>
+    <skin-name>Enterprise</skin-name>
+    <additional-module>analytics</additional-module>
+  </portlet-skin>
 
   <portlet>
     <name>AnalyticsPortlet</name>
