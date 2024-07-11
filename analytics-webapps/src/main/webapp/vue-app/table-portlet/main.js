@@ -26,7 +26,7 @@ const vuetify = new Vuetify(eXo.env.portal.vuetifyPreset);
 
 // getting language of user
 const lang = eXo && eXo.env && eXo.env.portal && eXo.env.portal.language || 'en';
-const url = `${eXo.env.portal.context}/${eXo.env.portal.rest}/i18n/bundle/locale.portlet.Analytics-${lang}.json`;
+const url = `/analytics/i18n/locale.portlet.Analytics?lang=${lang}`;
 
 // Display loading first time the page is displayed
 document.dispatchEvent(new CustomEvent('displayTopBarLoading'));
