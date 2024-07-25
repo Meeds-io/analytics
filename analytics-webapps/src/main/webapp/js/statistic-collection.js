@@ -425,6 +425,7 @@ function() {
   }
   require(['SHARED/vue'], () => {
     const isMobile = navigator.userAgentData && navigator.userAgentData.mobile || (navigator.userAgent && /mobi/i.test(navigator.userAgent.toLowerCase())) || false;
+    const isPwa = !!window?.matchMedia('(display-mode: standalone)')?.matches;
     const deviceType = checkDeviceType(navigator.userAgent.toLowerCase());
     const connectedWith = checkconnectedWith(navigator.userAgent.toLowerCase());
     eXo.env.portal.loadingAppsStartTime = {};
@@ -458,6 +459,7 @@ function() {
             pageTitle: eXo.env.portal.pageTitle,
             pageUri: eXo.env.portal.selectedNodeUri,
             applicationNames: eXo.env.portal.applicationNames,
+            isPwa,
             isMobile,
             deviceType: deviceType,
             connectedWith: connectedWith,
@@ -525,6 +527,7 @@ function() {
                 pageUri: eXo.env.portal.selectedNodeUri,
                 applicationNames: eXo.env.portal.applicationNames,
                 isMobile,
+                isPwa,
               },
             });
           }, 500);
@@ -585,6 +588,7 @@ function() {
                 pageUri: eXo.env.portal.selectedNodeUri,
                 applicationName: appName,
                 isMobile,
+                isPwa,
                 startLoadingTime: startLoadingTime,
                 endLoadingTime: endLoadingTime,
               },
