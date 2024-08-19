@@ -31,7 +31,10 @@
           <strong v-if="chartData.operation">{{ operationLabel }}</strong>
         </v-col>
         <v-col cols="4" class="text-right">
-          <date-format :value="chartDataTime" :format="dateFormat" class="text--secondary" />
+          <date-format
+            :value="chartDataTime"
+            :format="dateFormat"
+            class="text--secondary" />
         </v-col>
       </v-row>
     </v-expansion-panel-header>
