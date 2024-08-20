@@ -44,6 +44,7 @@ import ProfileChip from './components/samples/ProfileChip.vue';
 import SampleItem from './components/samples/SampleItem.vue';
 import SampleItemAttribute from './components/samples/SampleItemAttribute.vue';
 import ProfileSampleItemAttribute from './components/samples/ProfileSampleItemAttribute.vue';
+import ProfileListSampleItemAttribute from './components/samples/ProfileListSampleItemAttribute.vue';
 import DateSampleItemAttribute from './components/samples/DateSampleItemAttribute.vue';
 import DurationSampleItemAttribute from './components/samples/DurationSampleItemAttribute.vue';
 
@@ -54,6 +55,7 @@ const components = {
   'analytics-sample-item': SampleItem,
   'analytics-sample-item-attribute': SampleItemAttribute,
   'analytics-profile-sample-item-attribute': ProfileSampleItemAttribute,
+  'analytics-profile-list-sample-item-attribute': ProfileListSampleItemAttribute,
   'analytics-date-sample-item-attribute': DateSampleItemAttribute,
   'analytics-duration-sample-item-attribute': DurationSampleItemAttribute,
   'analytics-setting-color-picker': SettingColorPicker,
