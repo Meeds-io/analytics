@@ -425,7 +425,7 @@ function() {
   }
   require(['SHARED/vue'], () => {
     const isMobile = navigator.userAgentData && navigator.userAgentData.mobile || (navigator.userAgent && /mobi/i.test(navigator.userAgent.toLowerCase())) || false;
-    const isPwa = !!window?.matchMedia('(display-mode: standalone)')?.matches;
+    const isPwa = !!(window?.matchMedia('(display-mode: standalone)')?.matches || window?.matchMedia('(display-mode: tabbed)')?.matches);
     const deviceType = checkDeviceType(navigator.userAgent.toLowerCase());
     const connectedWith = checkconnectedWith(navigator.userAgent.toLowerCase());
     eXo.env.portal.loadingAppsStartTime = {};
