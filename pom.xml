@@ -15,18 +15,17 @@
   along with this program; if not, write to the Free Software Foundation,
   Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <artifactId>addons-parent-pom</artifactId>
     <groupId>org.exoplatform.addons</groupId>
     <version>17-exo</version>
-    <relativePath/>
+    <relativePath />
   </parent>
   <groupId>org.exoplatform.addons.analytics</groupId>
   <artifactId>analytics-parent</artifactId>
-  <version>1.4.x-exo-SNAPSHOT</version>
+  <version>1.4.4-exo-RC01</version>
   <packaging>pom</packaging>
   <name>eXo Analytics - Parent POM</name>
   <description>eXo Analytics Addon</description>
@@ -41,7 +40,7 @@
     <connection>scm:git:git://github.com/exoplatform/analytics.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/exoplatform/analytics.git</developerConnection>
     <url>https://github.com/exoplatform/analytics</url>
-    <tag>HEAD</tag>
+    <tag>1.4.4-exo-RC01</tag>
   </scm>
   <properties>
     <!-- 3rd party libraries versions -->
