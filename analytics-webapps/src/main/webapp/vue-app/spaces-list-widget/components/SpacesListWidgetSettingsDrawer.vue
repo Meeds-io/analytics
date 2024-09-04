@@ -31,16 +31,16 @@
       {{ $t('analytics.spacesListWidgetSettings.title') }}
     </template>
     <template v-if="drawer" #content>
-      <div class="d-flex align-center pa-5">
+      <div class="d-flex align-center text-start pa-5">
         <div>{{ $t('analytics.spacesListWidget.settings.spacesMemberOf') }}</div>
         <v-switch
           v-model="spacesMemberOf"
-          class="ms-auto me-n1 my-0 pa-0" />
+          class="ms-auto me-n1 mt-0 mb-n2 pa-0" />
       </div>
-      <div class="d-flex align-center px-5 pb-5">
+      <div class="d-flex align-center text-start px-5 pb-5">
         {{ $t('analytics.spacesListWidgetSettings.numberOfItemsToList') }}
       </div>
-      <div class="d-flex align-center px-5">
+      <div class="d-flex align-center text-start px-5">
         <div class="font-weight-bold">{{ $t('analytics.spacesListWidget.settings.userSpaces') }}</div>
         <number-input
           v-model="userSpacesLimit"
@@ -49,10 +49,10 @@
           :step="1"
           class="ms-auto me-n1 my-0 pa-0" />
       </div>
-      <div class="d-flex align-center px-5 pt-5 pb-2">
+      <div class="d-flex align-center text-start px-5 pt-5 pb-2">
         <div class="font-weight-bold">{{ $t('analytics.spacesListWidget.settings.recentSpaces') }}</div>
       </div>
-      <div class="d-flex align-center px-5 pb-2">
+      <div class="d-flex align-center text-start px-5 pb-2">
         <div>{{ $t('analytics.spacesListWidget.settings.numberOfSpaces') }}</div>
         <number-input
           v-model="spacesRecentlyVisitedLimit"
@@ -61,7 +61,7 @@
           :step="1"
           class="ms-auto me-n1 my-0 pa-0" />
       </div>
-      <div v-if="spacesRecentlyVisitedLimit" class="d-flex align-center px-5">
+      <div v-if="spacesRecentlyVisitedLimit" class="d-flex align-center text-start px-5">
         <div>{{ $t('analytics.spacesListWidget.activePeriod') }}</div>
         <number-input
           v-model="spacesRecentlyVisitedPeriod"
@@ -71,10 +71,10 @@
           :unit="$t('analytics.spacesListWidget.days')"
           class="ms-auto me-n1 my-0 pa-0" />
       </div>
-      <div class="d-flex align-center px-5 pt-5">
+      <div class="d-flex align-center text-start px-5 pt-5">
         <div class="font-weight-bold">{{ $t('analytics.spacesListWidget.settings.activeSpaces') }}</div>
       </div>
-      <div class="d-flex align-center px-5 pb-2">
+      <div class="d-flex align-center text-start px-5 pb-2">
         <div>{{ $t('analytics.spacesListWidget.settings.numberOfSpaces') }}</div>
         <number-input
           v-model="spacesMostActiveLimit"
@@ -83,11 +83,11 @@
           :step="1"
           class="ms-auto me-n1 my-0 pa-0" />
       </div>
-      <div v-if="spacesMostActiveLimit" class="d-flex align-center px-5">
+      <div v-if="spacesMostActiveLimit" class="d-flex align-center text-start px-5">
         <div>{{ $t('analytics.spacesListWidget.activePeriod') }}</div>
         <number-input
           v-model="spacesMostActivePeriod"
-          :min="1 "
+          :min="1"
           :max="90"
           :step="1"
           :unit="$t('analytics.spacesListWidget.days')"
@@ -95,7 +95,7 @@
       </div>
     </template>
     <template #footer>
-      <div class="d-flex align-center">
+      <div class="d-flex align-center text-start">
         <v-btn
           :disabled="loading"
           :title="$t('links.label.cancel')"
