@@ -161,7 +161,7 @@ export default {
         this.visitedSpaces = null;
         return Promise.resolve();
       }
-      return this.getSpaces('spacesList.recentlyVisitedURL', this.limit + 1)
+      return this.getSpaces('spacesList.recentlyVisitedURL', this.$root.spacesRecentlyVisitedPeriod, this.limit + 1)
         .then(data => this.visitedSpaces = data?.labels);
     },
     getMostActiveSpaces() {
@@ -169,12 +169,16 @@ export default {
         this.activeSpaces = null;
         return Promise.resolve();
       }
-      return this.getSpaces('spacesList.mostActive', this.limit + 1)
+      return this.getSpaces('spacesList.mostActive', this.$root.spacesMostActivePeriod, this.limit + 1)
         .then(data => this.activeSpaces = data?.labels);
     },
-    getSpaces(queryName, limit) {
-      return fetch(`${this.$root.resourceURL}&queryName=${queryName}&xLimit=${limit}`)
+    getSpaces(queryName, period, limit) {
+      const fromTimestamp = this.getPeriodTimestamp(period);
+      return fetch(`${this.$root.resourceURL}&queryName=${queryName}&xLimit=${limit}&fromTimestamp=${fromTimestamp}`)
         .then(resp => resp?.ok && resp.json());
+    },
+    getPeriodTimestamp(period) {
+      return Date.now() - period * 86400000;
     },
   }
 };

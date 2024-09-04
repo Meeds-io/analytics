@@ -37,7 +37,9 @@
   String spacesMemberOf = request.getAttribute("spacesMemberOf") == null ? "true" : ((String[]) request.getAttribute("spacesMemberOf"))[0];
   String userSpacesLimit = request.getAttribute("userSpacesLimit") == null ? "4" : ((String[]) request.getAttribute("userSpacesLimit"))[0];
   String spacesRecentlyVisitedLimit = request.getAttribute("spacesRecentlyVisitedLimit") == null ? "2" : ((String[]) request.getAttribute("spacesRecentlyVisitedLimit"))[0];
+  String spacesRecentlyVisitedPeriod = request.getAttribute("spacesRecentlyVisitedPeriod") == null ? "30" : ((String[]) request.getAttribute("spacesRecentlyVisitedPeriod"))[0];
   String spacesMostActiveLimit = request.getAttribute("spacesMostActiveLimit") == null ? "2" : ((String[]) request.getAttribute("spacesMostActiveLimit"))[0];
+  String spacesMostActivePeriod = request.getAttribute("spacesMostActivePeriod") == null ? "30" : ((String[]) request.getAttribute("spacesMostActivePeriod"))[0];
   Page currentPage = PortalRequestContext.getCurrentInstance().getPage();
   boolean canEdit = ExoContainerContext.getService(UserACL.class)
       .hasEditPermission(currentPage);
@@ -56,7 +58,9 @@
         <%=spacesMemberOf%>,
         <%=userSpacesLimit%>,
         <%=spacesRecentlyVisitedLimit%>,
+        <%=spacesRecentlyVisitedPeriod%>,
         <%=spacesMostActiveLimit%>,
+        <%=spacesMostActivePeriod%>,
         <%=canEdit%>,
         '<%=pageRef%>',
         <%=canCreateSpace%>,
