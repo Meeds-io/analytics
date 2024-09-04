@@ -27,6 +27,7 @@ import static io.meeds.analytics.utils.AnalyticsUtils.fromJsonString;
 import static io.meeds.analytics.utils.AnalyticsUtils.getJSONObject;
 import static io.meeds.analytics.utils.AnalyticsUtils.toJsonString;
 
+import java.math.BigDecimal;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -1141,10 +1142,16 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
           String key = getResultKeyAsString(bucketResult);
           String result = null;
           if (bucketResult.isNull(AGGREGATION_RESULT_VALUE_PARAM)) {
-            result = bucketResult.get("doc_count").toString();
+            Object docCount = bucketResult.get("doc_count");
+            result = docCount.toString();
           } else {
             JSONObject valueResult = bucketResult.getJSONObject(AGGREGATION_RESULT_VALUE_PARAM);
-            result = valueResult.get(VALUE_PARAM).toString();
+            Object value = valueResult.get(VALUE_PARAM);
+            if (value instanceof BigDecimal bd) {
+              result = bd.toPlainString();
+            } else {
+              result = value.toString();
+            }
           }
           addAggregationValue(key, filter, childAggregationValues, level);
 
@@ -1156,7 +1163,7 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
           ChartAggregationLabel chartLabel = new ChartAggregationLabel(childAggregationValues, label, lang);
           ChartAggregationResult aggregationResult = new ChartAggregationResult(chartLabel, chartLabel.getLabel(), result);
 
-          chartsData.addAggregationResult(parentAggregation, aggregationResult);
+          chartsData.addAggregationResult(filter, parentAggregation, aggregationResult);
         } else {
           // An aggresgation in the middle of aggregations tree
           String key = getResultKeyAsString(bucketResult);
@@ -1165,6 +1172,8 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
             String fieldLabel;
             if (multipleChartsAggregation.getType() == AnalyticsAggregationType.DATE) {
               fieldLabel = multipleChartsAggregation.getLabel(key, filter.zoneId(), filter.getLang());
+            } else if (filter.isHideLabel()) {
+              fieldLabel = key;
             } else {
               fieldLabel = multipleChartsAggregation.getLabel(key);
             }
@@ -1200,7 +1209,7 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
     }
 
     String fieldLabel = null;
-    if (aggregation == null) {
+    if (aggregation == null || filter.isHideLabel()) {
       fieldLabel = key;
     } else if (aggregation.getType() == AnalyticsAggregationType.DATE) {
       fieldLabel = aggregation.getLabel(key, filter.zoneId(), filter.getLang());
