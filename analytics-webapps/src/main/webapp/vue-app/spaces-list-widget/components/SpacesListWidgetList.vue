@@ -21,10 +21,10 @@
 -->
 <template>
   <v-list v-if="hasSpaces" class="pa-0">
-    <v-subheader v-if="labelKey" class="d-flex text-body align-center justify-center px-0">
+    <div v-if="labelKey" class="d-flex text-body align-center justify-center px-0">
       <span class="pe-2">{{ $t(labelKey) }}</span>
       <v-divider class="flex-grow-1" />
-    </v-subheader>
+    </div>
     <spaces-list-widget-item
       v-for="id in list"
       :key="id"
