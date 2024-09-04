@@ -34,8 +34,10 @@
 
 <%
   String portletStorageId = ((String) request.getAttribute("portletStorageId"));
-  String spacesRecentlyVisitedLimit = request.getAttribute("spacesRecentlyVisitedLimit") == null ? "4" : ((String[]) request.getAttribute("spacesRecentlyVisitedLimit"))[0];
-  String spacesMostActiveLimit = request.getAttribute("spacesMostActiveLimit") == null ? "0" : ((String[]) request.getAttribute("spacesMostActiveLimit"))[0];
+  String spacesMemberOf = request.getAttribute("spacesMemberOf") == null ? "true" : ((String[]) request.getAttribute("spacesMemberOf"))[0];
+  String userSpacesLimit = request.getAttribute("userSpacesLimit") == null ? "4" : ((String[]) request.getAttribute("userSpacesLimit"))[0];
+  String spacesRecentlyVisitedLimit = request.getAttribute("spacesRecentlyVisitedLimit") == null ? "2" : ((String[]) request.getAttribute("spacesRecentlyVisitedLimit"))[0];
+  String spacesMostActiveLimit = request.getAttribute("spacesMostActiveLimit") == null ? "2" : ((String[]) request.getAttribute("spacesMostActiveLimit"))[0];
   Page currentPage = PortalRequestContext.getCurrentInstance().getPage();
   boolean canEdit = ExoContainerContext.getService(UserACL.class)
       .hasEditPermission(currentPage);
@@ -51,6 +53,8 @@
       window.require(['PORTLET/analytics/SpacesListWidget'], app => app.init(
         '<%=resourceURL%>',
         <%=portletStorageId%>,
+        <%=spacesMemberOf%>,
+        <%=userSpacesLimit%>,
         <%=spacesRecentlyVisitedLimit%>,
         <%=spacesMostActiveLimit%>,
         <%=canEdit%>,
