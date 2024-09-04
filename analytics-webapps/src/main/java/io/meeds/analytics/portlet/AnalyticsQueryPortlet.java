@@ -46,8 +46,7 @@ public class AnalyticsQueryPortlet extends GenericDispatchedViewPortlet {
 
   @Override
   public final void serveResource(ResourceRequest request, ResourceResponse response) throws PortletException, IOException {
-    String filterName = request.getParameter("queryName");
-    AnalyticsFilter filter = getFilter(filterName);
+    AnalyticsFilter filter = getFilter(request);
 
     String limit = request.getParameter("limit");
     if (StringUtils.isBlank(limit)) {
@@ -62,9 +61,15 @@ public class AnalyticsQueryPortlet extends GenericDispatchedViewPortlet {
     response.setContentType("application/json");
   }
 
-  private AnalyticsFilter getFilter(String filterName) {
+  private AnalyticsFilter getFilter(ResourceRequest request) {
+    String filterName = request.getParameter("queryName");
     String filterString = getFilterContent(filterName);
-    filterString = filterString.replace("{userIdentityId}", Utils.getViewerIdentityId());
+    if (filterString.contains("{userIdentityId}")) {
+      filterString = filterString.replace("{userIdentityId}", Utils.getViewerIdentityId());
+    }
+    if (filterString.contains("{spaceIds}")) {
+      filterString = filterString.replace("{spaceIds}", request.getParameter("spaceIds"));
+    }
     return AnalyticsUtils.fromJsonString(filterString, AnalyticsFilter.class);
   }
 
