@@ -49,8 +49,11 @@
           :step="1"
           class="ms-auto me-n1 my-0 pa-0" />
       </div>
-      <div class="d-flex align-center px-5">
+      <div class="d-flex align-center px-5 pt-5 pb-2">
         <div class="font-weight-bold">{{ $t('analytics.spacesListWidget.settings.recentSpaces') }}</div>
+      </div>
+      <div class="d-flex align-center px-5 pb-2">
+        <div>{{ $t('analytics.spacesListWidget.settings.numberOfSpaces') }}</div>
         <number-input
           v-model="spacesRecentlyVisitedLimit"
           :min="0"
@@ -58,13 +61,36 @@
           :step="1"
           class="ms-auto me-n1 my-0 pa-0" />
       </div>
-      <div class="d-flex align-center px-5">
+      <div v-if="spacesRecentlyVisitedLimit" class="d-flex align-center px-5">
+        <div>{{ $t('analytics.spacesListWidget.activePeriod') }}</div>
+        <number-input
+          v-model="spacesRecentlyVisitedPeriod"
+          :min="1"
+          :max="90"
+          :step="1"
+          :unit="$t('analytics.spacesListWidget.days')"
+          class="ms-auto me-n1 my-0 pa-0" />
+      </div>
+      <div class="d-flex align-center px-5 pt-5">
         <div class="font-weight-bold">{{ $t('analytics.spacesListWidget.settings.activeSpaces') }}</div>
+      </div>
+      <div class="d-flex align-center px-5 pb-2">
+        <div>{{ $t('analytics.spacesListWidget.settings.numberOfSpaces') }}</div>
         <number-input
           v-model="spacesMostActiveLimit"
           :min="0"
           :max="25"
           :step="1"
+          class="ms-auto me-n1 my-0 pa-0" />
+      </div>
+      <div v-if="spacesMostActiveLimit" class="d-flex align-center px-5">
+        <div>{{ $t('analytics.spacesListWidget.activePeriod') }}</div>
+        <number-input
+          v-model="spacesMostActivePeriod"
+          :min="1 "
+          :max="90"
+          :step="1"
+          :unit="$t('analytics.spacesListWidget.days')"
           class="ms-auto me-n1 my-0 pa-0" />
       </div>
     </template>
@@ -95,8 +121,10 @@ export default {
     loading: false,
     spacesMemberOf: true,
     userSpacesLimit: 0,
+    spacesRecentlyVisitedPeriod: 0,
     spacesRecentlyVisitedLimit: 0,
     spacesMostActiveLimit: 0,
+    spacesMostActivePeriod: 0,
   }),
   created() {
     this.$root.$on('spaces-list-widget-settings', this.open);
@@ -113,7 +141,9 @@ export default {
       this.spacesMemberOf = this.$root.spacesMemberOf || false;
       this.userSpacesLimit = this.$root.userSpacesLimit;
       this.spacesRecentlyVisitedLimit = this.$root.spacesRecentlyVisitedLimit;
+      this.spacesRecentlyVisitedPeriod = this.$root.spacesRecentlyVisitedPeriod;
       this.spacesMostActiveLimit = this.$root.spacesMostActiveLimit;
+      this.spacesMostActivePeriod = this.$root.spacesMostActivePeriod;
       this.loading = false;
     },
     close() {
@@ -142,8 +172,14 @@ export default {
             name: 'spacesRecentlyVisitedLimit',
             value: String(this.spacesRecentlyVisitedLimit),
           }, {
+            name: 'spacesRecentlyVisitedPeriod',
+            value: String(this.spacesRecentlyVisitedPeriod),
+          }, {
             name: 'spacesMostActiveLimit',
             value: String(this.spacesMostActiveLimit),
+          }, {
+            name: 'spacesMostActivePeriod',
+            value: String(this.spacesMostActivePeriod),
           }],
         }),
       })
@@ -151,7 +187,9 @@ export default {
           this.$root.spacesMemberOf = this.spacesMemberOf;
           this.$root.userSpacesLimit = this.userSpacesLimit;
           this.$root.spacesRecentlyVisitedLimit = this.spacesRecentlyVisitedLimit;
+          this.$root.spacesRecentlyVisitedPeriod = this.spacesRecentlyVisitedPeriod;
           this.$root.spacesMostActiveLimit = this.spacesMostActiveLimit;
+          this.$root.spacesMostActivePeriod = this.spacesMostActivePeriod;
           this.close();
         })
         .finally(() => this.loading = false);

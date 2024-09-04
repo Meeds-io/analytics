@@ -42,9 +42,15 @@ import io.meeds.analytics.utils.AnalyticsUtils;
 
 public class AnalyticsQueryPortlet extends GenericDispatchedViewPortlet {
 
-  private static final Pattern       NUMBER_LIST_PATTERN = Pattern.compile("[\\d,]*");
+  private static final String        FROM_TIMESTAMP_PARAM = "{fromTimestamp}";
 
-  private static Map<String, String> filters             = new ConcurrentHashMap<>();
+  private static final String        TO_TIMESTAMP_PARAM   = "{toTimestamp}";
+
+  private static final String        SPACE_IDS_PARAM      = "{spaceIds}";
+
+  private static final Pattern       NUMBER_LIST_PATTERN  = Pattern.compile("[\\d,]*");
+
+  private static Map<String, String> filters              = new ConcurrentHashMap<>();
 
   private AnalyticsService           analyticsService;
 
@@ -76,12 +82,26 @@ public class AnalyticsQueryPortlet extends GenericDispatchedViewPortlet {
     if (filterString.contains("{userIdentityId}")) {
       filterString = filterString.replace("{userIdentityId}", Utils.getViewerIdentityId());
     }
-    if (filterString.contains("{spaceIds}")) {
+    if (filterString.contains(SPACE_IDS_PARAM)) {
       String spaceIds = request.getParameter("spaceIds");
       if (!NUMBER_LIST_PATTERN.matches(spaceIds)) {
         throw new IllegalAccessException("Illegal Chars found in parameter 'spaceIds'");
       }
-      filterString = filterString.replace("{spaceIds}", spaceIds);
+      filterString = filterString.replace(SPACE_IDS_PARAM, spaceIds);
+    }
+    if (filterString.contains(FROM_TIMESTAMP_PARAM)) {
+      String spaceIds = request.getParameter("fromTimestamp");
+      if (!NUMBER_LIST_PATTERN.matches(spaceIds)) {
+        throw new IllegalAccessException("Illegal Chars found in parameter 'fromTimestamp'");
+      }
+      filterString = filterString.replace(FROM_TIMESTAMP_PARAM, spaceIds);
+    }
+    if (filterString.contains(TO_TIMESTAMP_PARAM)) {
+      String spaceIds = request.getParameter("toTimestamp");
+      if (!NUMBER_LIST_PATTERN.matches(spaceIds)) {
+        throw new IllegalAccessException("Illegal Chars found in parameter 'toTimestamp'");
+      }
+      filterString = filterString.replace(TO_TIMESTAMP_PARAM, spaceIds);
     }
     return AnalyticsUtils.fromJsonString(filterString, AnalyticsFilter.class);
   }

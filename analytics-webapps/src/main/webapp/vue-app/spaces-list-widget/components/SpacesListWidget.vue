@@ -199,10 +199,13 @@ export default {
             this.getMostActiveSpaces(),
           ]).finally(() => this.loading = false));
       } else {
+        const getUserSpaces = this.$root.userSpacesLimit ?
+          this.getUserSpaces()
+          : Promise.resolve().then(() => this.$root.spaceIds = null);
         return Promise.all([
           this.getRecentyVisitedSpaces(),
           this.getMostActiveSpaces(),
-          this.$root.spacesMemberOf ? this.getUserSpaces() : Promise.resolve(),
+          getUserSpaces,
         ]).finally(() => this.loading = false);
       }
     },
@@ -215,7 +218,7 @@ export default {
         this.mostRecentSpaces = null;
         return Promise.resolve();
       }
-      return this.getSpaces('spacesList.recentlyVisitedURL', this.$root.spacesRecentlyVisitedLimit)
+      return this.getSpaces('spacesList.recentlyVisitedURL', this.$root.spacesRecentlyVisitedPeriod, this.$root.spacesRecentlyVisitedLimit)
         .then(data => this.mostRecentSpaces = data?.labels);
     },
     getMostActiveSpaces() {
@@ -223,10 +226,10 @@ export default {
         this.mostActiveSpaces = null;
         return Promise.resolve();
       }
-      return this.getSpaces('spacesList.mostActive', this.$root.spacesMostActiveLimit)
+      return this.getSpaces('spacesList.mostActive', this.$root.spacesMostActivePeriod, this.$root.spacesMostActiveLimit)
         .then(data => this.mostActiveSpaces = data?.labels);
     },
-    getSpaces(queryName, limit) {
+    getSpaces(queryName, period, limit) {
       if (this.$root.spacesMemberOf) {
         queryName += '.memberOnly';
       }
@@ -235,10 +238,14 @@ export default {
         const formData = new FormData();
         formData.append('spaceIds', this.$root.spaceIds.join(','));
         const params = new URLSearchParams(formData).toString();
-        url = `${url}&${params}`;
+        url += `&${params}`;
       }
+      url += `&fromTimestamp=${this.getPeriodTimestamp(period)}`;
       return fetch(url)
         .then(resp => resp?.ok && resp.json());
+    },
+    getPeriodTimestamp(period) {
+      return Date.now() - period * 86400000;
     },
   },
 };
