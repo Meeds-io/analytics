@@ -31,11 +31,26 @@
       {{ $t('analytics.spacesListWidgetSettings.title') }}
     </template>
     <template v-if="drawer" #content>
-      <div class="d-flex align-center text-header px-5 pt-5 pb-2">
+      <div class="d-flex align-center pa-5">
+        <div>{{ $t('analytics.spacesListWidget.settings.spacesMemberOf') }}</div>
+        <v-switch
+          v-model="spacesMemberOf"
+          class="ms-auto me-n1 my-0 pa-0" />
+      </div>
+      <div class="d-flex align-center px-5 pb-5">
         {{ $t('analytics.spacesListWidgetSettings.numberOfItemsToList') }}
       </div>
       <div class="d-flex align-center px-5">
-        <div>{{ $t('analytics.spacesListWidgetSettings.recentlyVisited') }}</div>
+        <div class="font-weight-bold">{{ $t('analytics.spacesListWidget.settings.userSpaces') }}</div>
+        <number-input
+          v-model="userSpacesLimit"
+          :min="0"
+          :max="25"
+          :step="1"
+          class="ms-auto me-n1 my-0 pa-0" />
+      </div>
+      <div class="d-flex align-center px-5">
+        <div class="font-weight-bold">{{ $t('analytics.spacesListWidget.settings.recentSpaces') }}</div>
         <number-input
           v-model="spacesRecentlyVisitedLimit"
           :min="0"
@@ -44,7 +59,7 @@
           class="ms-auto me-n1 my-0 pa-0" />
       </div>
       <div class="d-flex align-center px-5">
-        <div>{{ $t('analytics.spacesListWidgetSettings.mostActive') }}</div>
+        <div class="font-weight-bold">{{ $t('analytics.spacesListWidget.settings.activeSpaces') }}</div>
         <number-input
           v-model="spacesMostActiveLimit"
           :min="0"
@@ -78,7 +93,9 @@ export default {
   data: () => ({
     drawer: false,
     loading: false,
-    spacesRecentlyVisitedLimit: 4,
+    spacesMemberOf: true,
+    userSpacesLimit: 0,
+    spacesRecentlyVisitedLimit: 0,
     spacesMostActiveLimit: 0,
   }),
   created() {
@@ -93,8 +110,10 @@ export default {
       this.$refs.drawer.open();
     },
     reset() {
-      this.spacesRecentlyVisitedLimit = this.$root.spacesRecentlyVisitedLimit || 4;
-      this.spacesMostActiveLimit = this.$root.spacesMostActiveLimit || 0;
+      this.spacesMemberOf = this.$root.spacesMemberOf || false;
+      this.userSpacesLimit = this.$root.userSpacesLimit;
+      this.spacesRecentlyVisitedLimit = this.$root.spacesRecentlyVisitedLimit;
+      this.spacesMostActiveLimit = this.$root.spacesMostActiveLimit;
       this.loading = false;
     },
     close() {
@@ -114,6 +133,12 @@ export default {
         },
         body: JSON.stringify({
           preferences: [{
+            name: 'spacesMemberOf',
+            value: String(this.spacesMemberOf),
+          }, {
+            name: 'userSpacesLimit',
+            value: String(this.userSpacesLimit),
+          }, {
             name: 'spacesRecentlyVisitedLimit',
             value: String(this.spacesRecentlyVisitedLimit),
           }, {
@@ -123,6 +148,8 @@ export default {
         }),
       })
         .then(() => {
+          this.$root.spacesMemberOf = this.spacesMemberOf;
+          this.$root.userSpacesLimit = this.userSpacesLimit;
           this.$root.spacesRecentlyVisitedLimit = this.spacesRecentlyVisitedLimit;
           this.$root.spacesMostActiveLimit = this.spacesMostActiveLimit;
           this.close();

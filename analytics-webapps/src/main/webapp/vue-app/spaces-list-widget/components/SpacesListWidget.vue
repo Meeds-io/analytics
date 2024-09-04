@@ -20,7 +20,7 @@
 
 -->
 <template>
-  <v-app>
+  <v-app v-if="initialized">
     <v-hover v-model="hover">
       <widget-wrapper :loading="loading" class="fill-height">
         <template #title>
@@ -38,7 +38,7 @@
               }"
               class="position-absolute absolute-vertical-center z-index-one">
               <v-btn
-                v-if="!emptyWidget && !$root.isExternal"
+                v-if="!emptyWidget"
                 :icon="hoverEdit"
                 :small="hoverEdit"
                 height="auto"
@@ -81,13 +81,16 @@
               {{ $t('analytics.spacesListWidget.addNewSpace') }}
             </v-btn>
           </div>
-          <div v-else class="mt-4">
+          <div v-else>
+            <spaces-list-widget-list
+              :list="userSpaces"
+              :label-key="sectionsCount > 1 && 'analytics.spacesListWidget.userSpaces'" />
             <spaces-list-widget-list
               :list="mostRecentSpaces"
-              label-key="analytics.spacesListWidget.recentSpaces" />
+              :label-key="sectionsCount > 1 && 'analytics.spacesListWidget.recentSpaces'" />
             <spaces-list-widget-list
               :list="mostActiveSpaces"
-              label-key="analytics.spacesListWidget.activeSpaces" />
+              :label-key="sectionsCount > 1 && 'analytics.spacesListWidget.activeSpaces'" />
           </div>
         </template>
       </widget-wrapper>
@@ -95,7 +98,6 @@
     <spaces-list-widget-settings-drawer
       v-if="$root.canEdit" />
     <spaces-list-widget-drawer
-      v-if="!$root.isExternal"
       ref="listDrawer" />
   </v-app>
 </template>
@@ -117,16 +119,30 @@ export default {
       return this.hover && this.$root.canEdit;
     },
     spacesCount() {
-      return (this.mostRecentSpaces?.length || 0) + (this.mostActiveSpaces?.length || 0);
+      return (this.userSpaces?.length || 0) + (this.mostRecentSpaces?.length || 0) + (this.mostActiveSpaces?.length || 0);
+    },
+    sectionsCount() {
+      return (this.spacesRecentlyVisitedLimit && this.mostRecentSpaces?.length && 1 || 0)
+        + (this.spacesMostActiveLimit && this.mostActiveSpaces?.length && 1 || 0)
+        + (this.spacesMemberOf && this.userSpaces?.length && 1 || 0);
     },
     emptyWidget() {
       return !this.spacesCount && this.initialized && this.applicationMounted;
+    },
+    userSpacesLimit() {
+      return this.$root.userSpacesLimit;
     },
     spacesRecentlyVisitedLimit() {
       return this.$root.spacesRecentlyVisitedLimit;
     },
     spacesMostActiveLimit() {
       return this.$root.spacesMostActiveLimit;
+    },
+    spacesMemberOf() {
+      return this.$root.spacesMemberOf;
+    },
+    userSpaces() {
+      return this.$root.userSpacesLimit && this.$root.spaceIds?.slice?.(0, this.$root.userSpacesLimit);
     },
   },
   watch: {
@@ -155,6 +171,16 @@ export default {
         this.refresh();
       }
     },
+    userSpacesLimit() {
+      if (!this.loading) {
+        this.refresh();
+      }
+    },
+    spacesMemberOf() {
+      if (!this.loading) {
+        this.refresh();
+      }
+    },
   },
   created() {
     this.refresh();
@@ -165,13 +191,27 @@ export default {
   methods: {
     refresh() {
       this.loading = true;
-      return Promise.all([
-        this.getRecentyVisitedSpaces(),
-        this.getMostActiveSpaces(),
-      ]).finally(() => this.loading = false);
+      if (this.$root.spacesMemberOf) {
+        this.loading = true;
+        return this.getUserSpaces()
+          .finally(() => Promise.all([
+            this.getRecentyVisitedSpaces(),
+            this.getMostActiveSpaces(),
+          ]).finally(() => this.loading = false));
+      } else {
+        return Promise.all([
+          this.getRecentyVisitedSpaces(),
+          this.getMostActiveSpaces(),
+          this.$root.spacesMemberOf ? this.getUserSpaces() : Promise.resolve(),
+        ]).finally(() => this.loading = false);
+      }
+    },
+    getUserSpaces() {
+      return this.$spaceService.getSpaces(null, 0, -1, 'member', 'spaceId')
+        .then(data => this.$root.spaceIds = data?.spaces?.map(s => s.id) || []);
     },
     getRecentyVisitedSpaces() {
-      if (!this.$root.spacesRecentlyVisitedLimit) {
+      if (!this.$root.spacesRecentlyVisitedLimit || (this.$root.spacesMemberOf && !this.$root.spaceIds?.length)) {
         this.mostRecentSpaces = null;
         return Promise.resolve();
       }
@@ -179,7 +219,7 @@ export default {
         .then(data => this.mostRecentSpaces = data?.labels);
     },
     getMostActiveSpaces() {
-      if (!this.$root.spacesMostActiveLimit || this.$root.isExternal) {
+      if (!this.$root.spacesMostActiveLimit || this.$root.isExternal || (this.$root.spacesMemberOf && !this.$root.spaceIds?.length)) {
         this.mostActiveSpaces = null;
         return Promise.resolve();
       }
@@ -187,7 +227,17 @@ export default {
         .then(data => this.mostActiveSpaces = data?.labels);
     },
     getSpaces(queryName, limit) {
-      return fetch(`${this.$root.resourceURL}&queryName=${queryName}&xLimit=${limit}`)
+      if (this.$root.spacesMemberOf) {
+        queryName += '.memberOnly';
+      }
+      let url = `${this.$root.resourceURL}&queryName=${queryName}&xLimit=${limit}`;
+      if (this.$root.spacesMemberOf) {
+        const formData = new FormData();
+        formData.append('spaceIds', this.$root.spaceIds.join(','));
+        const params = new URLSearchParams(formData).toString();
+        url = `${url}&${params}`;
+      }
+      return fetch(url)
         .then(resp => resp?.ok && resp.json());
     },
   },

@@ -30,11 +30,17 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
         v-model="tabName"
         slider-size="4">
         <v-tab
+          tab-value="member"
+          href="#member">
+          {{ $t('analytics.spacesListWidget.tab.userSpaces') }}
+        </v-tab>
+        <v-tab
           tab-value="visited"
           href="#visited">
           {{ $t('analytics.spacesListWidget.tab.visited') }}
         </v-tab>
         <v-tab
+          v-if="!$root.isExternal"
           tab-value="mostActive"
           href="#mostActive">
           {{ $t('analytics.spacesListWidget.tab.mostActive') }}
@@ -43,12 +49,17 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
       <v-tabs-items
         v-model="tabName"
         class="px-4">
+        <v-tab-item value="member">
+          <v-list v-if="memberSpaces">
+            <spaces-list-widget-list :list="memberSpacesToDisplay" />
+          </v-list>
+        </v-tab-item>
         <v-tab-item value="visited">
           <v-list v-if="visitedSpaces">
             <spaces-list-widget-list :list="visitedSpacesToDisplay" />
           </v-list>
         </v-tab-item>
-        <v-tab-item value="mostActive">
+        <v-tab-item v-if="!$root.isExternal" value="mostActive">
           <v-list v-if="activeSpaces">
             <spaces-list-widget-list :list="activeSpacesToDisplay" />
           </v-list>
@@ -74,15 +85,24 @@ export default {
   data: () => ({
     drawer: false,
     loading: false,
-    tabName: 'visited',
+    tabName: 'member',
     pageSize: 0,
     limit: 0,
+    memberSpaces: null,
     visitedSpaces: null,
     activeSpaces: null,
   }),
   computed: {
     list() {
-      return this.tabName === 'visited' ? this.visitedSpaces : this.activeSpaces;
+      switch (this.tabName) {
+      case 'visited': return this.visitedSpaces;
+      case 'mostActive': return this.activeSpaces;
+      case 'member': return this.memberSpaces;
+      default: return null;
+      }
+    },
+    memberSpacesToDisplay() {
+      return this.memberSpaces?.slice?.(0, this.limit);
     },
     visitedSpacesToDisplay() {
       return this.visitedSpaces?.slice?.(0, this.limit);
@@ -101,12 +121,11 @@ export default {
       }
     },
   },
-  created() {
-    this.pageSize = parseInt((window.innerHeight - 180) / 56);
-  },
   methods: {
     open(tabName) {
-      this.tabName = tabName || 'visited';
+      this.tabName = tabName || 'member';
+      this.pageSize = parseInt((window.innerHeight - 180) / 56);
+
       this.$refs.drawer.open();
       this.retrieveList(true);
     },
@@ -117,11 +136,15 @@ export default {
     retrieveList(reset) {
       if (reset) {
         this.limit = this.pageSize;
+        this.memberSpaces = null;
         this.visitedSpaces = null;
         this.activeSpaces = null;
       }
       this.loading = true;
-      if (this.tabName === 'mostActive') {
+      if (this.tabName === 'member') {
+        return this.getUserSpaces()
+          .finally(() => this.loading = false);
+      } else if (this.tabName === 'mostActive') {
         return this.getMostActiveSpaces()
           .finally(() => this.loading = false);
       } else {
@@ -129,11 +152,23 @@ export default {
           .finally(() => this.loading = false);
       }
     },
+    getUserSpaces() {
+      return this.$spaceService.getSpaces(null, 0, this.limit + 1, 'member', 'spaceId')
+        .then(data => this.memberSpaces = data?.spaces?.map(s => s.id) || []);
+    },
     getRecentyVisitedSpaces() {
+      if (this.$root.spacesMemberOf && !this.$root.spaceIds?.length) {
+        this.visitedSpaces = null;
+        return Promise.resolve();
+      }
       return this.getSpaces('spacesList.recentlyVisitedURL', this.limit + 1)
         .then(data => this.visitedSpaces = data?.labels);
     },
     getMostActiveSpaces() {
+      if (this.$root.spacesMemberOf && !this.$root.spaceIds?.length) {
+        this.activeSpaces = null;
+        return Promise.resolve();
+      }
       return this.getSpaces('spacesList.mostActive', this.limit + 1)
         .then(data => this.activeSpaces = data?.labels);
     },
