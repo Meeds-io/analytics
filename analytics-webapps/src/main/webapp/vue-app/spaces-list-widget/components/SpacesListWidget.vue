@@ -28,7 +28,7 @@
             <div
               v-if="!emptyWidget"
               class="widget-text-header text-none text-truncate d-flex align-center">
-              {{ $t('analytics.spacesListWidget.header') }}
+              {{ title }}
             </div>
             <div
               :class="{
@@ -143,6 +143,19 @@ export default {
     },
     userSpaces() {
       return this.$root.userSpacesLimit && this.$root.spaceIds?.slice?.(0, this.$root.userSpacesLimit);
+    },
+    title() {
+      if (this.sectionsCount > 1) {
+        return this.$t('analytics.spacesListWidget.header');
+      } else if (this.spacesMostActiveLimit) {
+        return this.$t('analytics.spacesListWidget.active.header');
+      } else if (this.spacesRecentlyVisitedLimit) {
+        return this.$t('analytics.spacesListWidget.recent.header');
+      } else if (this.userSpacesLimit) {
+        return this.$t('analytics.spacesListWidget.member.header');
+      } else {
+        return this.$t('analytics.spacesListWidget.header');
+      }
     },
   },
   watch: {

@@ -87,7 +87,7 @@
         <div>{{ $t('analytics.spacesListWidget.activePeriod') }}</div>
         <number-input
           v-model="spacesMostActivePeriod"
-          :min="1 "
+          :min="1"
           :max="90"
           :step="1"
           :unit="$t('analytics.spacesListWidget.days')"
