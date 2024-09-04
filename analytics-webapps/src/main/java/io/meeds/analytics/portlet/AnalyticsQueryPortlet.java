@@ -29,6 +29,8 @@ import javax.portlet.ResourceResponse;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.google.javascript.jscomp.jarjar.com.google.re2j.Pattern;
+
 import org.exoplatform.commons.api.portlet.GenericDispatchedViewPortlet;
 import org.exoplatform.commons.utils.CommonsUtils;
 import org.exoplatform.social.webui.Utils;
@@ -40,14 +42,20 @@ import io.meeds.analytics.utils.AnalyticsUtils;
 
 public class AnalyticsQueryPortlet extends GenericDispatchedViewPortlet {
 
-  private static Map<String, String> filters = new ConcurrentHashMap<>();
+  private static final Pattern       NUMBER_LIST_PATTERN = Pattern.compile("[\\d,]*");
+
+  private static Map<String, String> filters             = new ConcurrentHashMap<>();
 
   private AnalyticsService           analyticsService;
 
   @Override
   public final void serveResource(ResourceRequest request, ResourceResponse response) throws PortletException, IOException {
-    String filterName = request.getParameter("queryName");
-    AnalyticsFilter filter = getFilter(filterName);
+    AnalyticsFilter filter;
+    try {
+      filter = getFilter(request);
+    } catch (IllegalAccessException e) {
+      throw new PortletException(e);
+    }
 
     String limit = request.getParameter("limit");
     if (StringUtils.isBlank(limit)) {
@@ -62,9 +70,19 @@ public class AnalyticsQueryPortlet extends GenericDispatchedViewPortlet {
     response.setContentType("application/json");
   }
 
-  private AnalyticsFilter getFilter(String filterName) {
+  private AnalyticsFilter getFilter(ResourceRequest request) throws IllegalAccessException {
+    String filterName = request.getParameter("queryName");
     String filterString = getFilterContent(filterName);
-    filterString = filterString.replace("{userIdentityId}", Utils.getViewerIdentityId());
+    if (filterString.contains("{userIdentityId}")) {
+      filterString = filterString.replace("{userIdentityId}", Utils.getViewerIdentityId());
+    }
+    if (filterString.contains("{spaceIds}")) {
+      String spaceIds = request.getParameter("spaceIds");
+      if (!NUMBER_LIST_PATTERN.matches(spaceIds)) {
+        throw new IllegalAccessException("Illegal Chars found in parameter 'spaceIds'");
+      }
+      filterString = filterString.replace("{spaceIds}", spaceIds);
+    }
     return AnalyticsUtils.fromJsonString(filterString, AnalyticsFilter.class);
   }
 
