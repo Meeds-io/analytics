@@ -68,6 +68,8 @@ public class AnalyticsFilter extends AbstractAnalyticsFilter {
 
   private String                     lang                = null;
 
+  private boolean                    hideLabel           = false;
+
   private long                       offset              = 0;
 
   private long                       limit               = 0;
@@ -116,6 +118,26 @@ public class AnalyticsFilter extends AbstractAnalyticsFilter {
          offset,
          limit);
     setTitle(title);
+  }
+
+  public AnalyticsFilter(String chartType, // NOSONAR
+                         List<String> colors,
+                         List<AnalyticsFieldFilter> filters,
+                         String multipleChartsField,
+                         List<AnalyticsAggregation> xAxisAggregations,
+                         AnalyticsAggregation yAxisAggregation,
+                         String lang,
+                         long offset,
+                         long limit) {
+    this.chartType = chartType;
+    this.colors = colors;
+    this.filters = filters;
+    this.multipleChartsField = multipleChartsField;
+    this.xAxisAggregations = xAxisAggregations;
+    this.yAxisAggregation = yAxisAggregation;
+    this.lang = lang;
+    this.offset = offset;
+    this.limit = limit;
   }
 
   public List<AnalyticsAggregation> getAggregations() {

@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 
+import io.meeds.analytics.model.filter.AnalyticsFilter;
 import io.meeds.analytics.utils.AnalyticsUtils;
 
 import lombok.Data;
@@ -49,7 +50,9 @@ public class ChartDataList implements Serializable {
     this.lang = lang;
   }
 
-  public ChartData addAggregationResult(ChartAggregationValue chartParentAggregation, ChartAggregationResult aggregationResult) {
+  public ChartData addAggregationResult(AnalyticsFilter filter,
+                                        ChartAggregationValue chartParentAggregation,
+                                        ChartAggregationResult aggregationResult) {
     ChartAggregationLabel chartLabel = aggregationResult.retrieveChartLabel();
 
     if (!aggregationLabels.contains(chartLabel)) {
@@ -68,7 +71,7 @@ public class ChartDataList implements Serializable {
 
       String chartValue = chartData.getChartValue();
       String chartKey = chartData.getChartKey();
-      String label = AnalyticsUtils.compueLabel(chartKey, chartValue);
+      String label = filter.isHideLabel() ? chartValue : AnalyticsUtils.compueLabel(chartKey, chartValue);
 
       chartData.setChartLabel(label);
       charts.add(chartData);
