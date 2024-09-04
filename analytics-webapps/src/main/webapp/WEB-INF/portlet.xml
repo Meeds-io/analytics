@@ -78,6 +78,87 @@
      </security-role-ref>
    </portlet>
 
+   <portlet>
+     <portlet-name>SpacesListWidget</portlet-name>
+     <display-name xml:lang="EN">Spaces List Widget</display-name>
+     <portlet-class>io.meeds.analytics.portlet.AnalyticsQueryPortlet</portlet-class>
+     <init-param>
+       <name>portlet-view-dispatched-file-path</name>
+       <value>/WEB-INF/jsp/spacesList.jsp</value>
+     </init-param>
+     <init-param>
+       <name>layout-content-editable</name>
+       <value>true</value>
+     </init-param>
+     <init-param>
+       <name>spacesList.recentlyVisitedURL</name>
+       <value>
+         {
+          "chartType": "bar",
+          "hideLabel": true,
+          "filters": [{
+            "field": "operation",
+            "type": "EQUAL",
+            "valueString": "pageDisplay"
+          }, {
+            "field": "spaceId",
+            "type": "GREATER",
+            "valueString": "1"
+          }, {
+            "field": "userId",
+            "type": "EQUAL",
+            "valueString": "{userIdentityId}"
+          }],
+          "yAxisAggregation": {
+            "type": "MAX",
+            "field": "id",
+            "sortDirection": "desc"
+          },
+          "xAxisAggregations": [{
+            "type": "TERMS",
+            "field": "spaceId"
+          }],
+        }
+       </value>
+     </init-param>
+     <init-param>
+       <name>spacesList.mostActive</name>
+       <value>
+         {
+          "chartType": "bar",
+          "hideLabel": true,
+          "filters": [{
+            "field": "operation",
+            "type": "IN_SET",
+            "valueString": "noteCreated,noteUpdated,taskCreated,taskUpdated,taskCommented,taskCompleted,taskStatusChanged,createActivity,createComment,likeActivity,likeComment,sendKudos,contactSection,experienceSection,avatar"
+          }, {
+            "field": "spaceId",
+            "type": "GREATER",
+            "valueString": "1"
+          }],
+          "yAxisAggregation": {
+            "type": "COUNT",
+            "field": "spaceId",
+            "sortDirection": "desc"
+          },
+          "xAxisAggregations": [{
+            "type": "TERMS",
+            "field": "spaceId"
+          }]
+        }
+       </value>
+     </init-param>
+     <supports>
+       <mime-type>text/html</mime-type>
+     </supports>
+     <supported-locale>en</supported-locale>
+     <resource-bundle>locale.portlet.Analytics</resource-bundle>
+     <portlet-info>
+       <title>Spaces List Widget</title>
+       <keywords>Spaces List Widget</keywords>
+     </portlet-info>
+   </portlet>
+
   <portlet>
     <portlet-name>AnalyticsTablePortlet</portlet-name>
     <display-name xml:lang="EN">Analytics Table Application</display-name>

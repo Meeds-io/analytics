@@ -189,6 +189,31 @@
   </portlet>
 
   <portlet>
+    <name>SpacesListWidget</name>
+    <module>
+      <script>
+        <minify>false</minify>
+        <path>/js/spacesListWidget.bundle.js</path>
+      </script>
+      <depends>
+        <module>vue</module>
+      </depends>
+      <depends>
+        <module>vuetify</module>
+      </depends>
+      <depends>
+        <module>eXoVueI18n</module>
+      </depends>
+      <depends>
+        <module>extensionRegistry</module>
+      </depends>
+      <depends>
+        <module>commonVueComponents</module>
+      </depends>
+    </module>
+  </portlet>
+
+  <portlet>
     <name>StatisticsCollection</name>
     <module>
       <load-group>StatisticsCollectionGroup</load-group>
