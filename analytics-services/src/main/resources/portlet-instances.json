@@ -79,6 +79,25 @@
         "*:/platform/web-contributors"
       ],
       "system":true
+    },
+    {
+      "nameId":"SpacesListWidget",
+      "categoryNameId":"tools",
+      "portletName":"SpacesListWidget",
+      "names":{
+        "en":"layout.portletInstance.SpacesListWidget.name"
+      },
+      "descriptions":{
+        "en":"layout.portletInstance.SpacesListWidget.description"
+      },
+      "illustrationPath":"war:/../skin/images/spacesListWidget.webp",
+      "preferences":[
+        
+      ],
+      "permissions":[
+        "*:/platform/users"
+      ],
+      "system":true
     }
   ]
 }
