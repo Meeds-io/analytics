@@ -22,7 +22,9 @@
 <template>
   <v-app v-if="initialized">
     <v-hover v-model="hover">
-      <widget-wrapper :loading="loading" class="fill-height">
+      <widget-wrapper
+        :loading="loading"
+        extra-class="application-body fill-height">
         <template #title>
           <div class="d-flex flex-grow-1 flex-shrink-1 full-width align-center position-relative">
             <div
