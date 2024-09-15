@@ -218,7 +218,7 @@ public abstract class AbstractAnalyticsPortlet<T> extends GenericPortlet {
 
     Space space = SpaceUtils.getSpaceByContext();
     if (space != null) {
-      if (getSpaceService().isSuperManager(userId) || getSpaceService().isMember(space, userId)) {
+      if (getSpaceService().canViewSpace(space, userId)) {
         return cacheSearchScope(portletSession, SearchScope.SPACE);
       } else {
         return cacheSearchScope(portletSession, SearchScope.NONE);
@@ -256,7 +256,7 @@ public abstract class AbstractAnalyticsPortlet<T> extends GenericPortlet {
     }
     Space space = SpaceUtils.getSpaceByContext();
     if (space != null) {
-      boolean canModify = getSpaceService().isSuperManager(userId) || getSpaceService().isManager(space, userId);
+      boolean canModify = getSpaceService().canManageSpace(space, userId);
       return cacheChartModificationAccessPermission(portletSession, canModify);
     }
     return cacheChartModificationAccessPermission(portletSession, false);
