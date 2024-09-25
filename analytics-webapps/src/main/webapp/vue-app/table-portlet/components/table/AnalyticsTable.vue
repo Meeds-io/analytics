@@ -115,7 +115,7 @@ export default {
   }),
   computed: {
     hasMore() {
-      return (this.loading && this.limit > this.pageSize) || this.limit === this.items.length;
+      return (this.loading && this.limit > this.pageSize) || (this.items.length && this.limit === this.items.length);
     },
     mainFieldName() {
       return this.settings && this.settings.mainColumn && this.settings.mainColumn.valueAggregation
@@ -361,6 +361,7 @@ export default {
             item[`column${columnIndex}`].value = null;
           }
         });
+        return Promise.resolve();
       }
     },
   },

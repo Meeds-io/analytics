@@ -19,11 +19,11 @@
 -->
 <template>
   <div :id="id">
+    <div>{{ label }}</div>
     <v-autocomplete
       ref="fieldSelectAutoComplete"
       v-model="value"
       :items="fields"
-      :label="label"
       :placeholder="placeholder"
       :value-comparator="selectedValueComparator"
       :return-object="false"
@@ -31,10 +31,11 @@
       :menu-props="menuProps"
       item-text="label"
       class="operatorInput pa-0"
-      filled
+      outlined
       persistent-hint
       chips
       dense
+      flat
       @change="updateData">
       <template #selection="data">
         <v-chip
@@ -105,7 +106,7 @@ export default {
   },
   computed: {
     menuProps() {
-      return this.attach && 'closeOnClick, maxHeight = 100' || '';
+      return this.attach && 'maxHeight = 100' || '';
     },
     fieldNames() {
       this.fieldsMappings.forEach(fieldMapping => {
@@ -121,7 +122,7 @@ export default {
     },
     fields() {
       return this.fieldNames.filter(field => (!this.aggregation || field.aggregation) && (!this.numeric || field.numeric || field.date))
-        .sort((a, b) => a.label.toLowerCase().localeCompare(b.label.toLowerCase()));
+        .sort((a, b) => a?.label?.toLowerCase?.()?.localeCompare?.(b?.label?.toLowerCase?.()));
     },
   },
   mounted() {
