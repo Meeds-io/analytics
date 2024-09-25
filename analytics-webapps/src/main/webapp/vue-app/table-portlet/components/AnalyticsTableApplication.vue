@@ -274,7 +274,7 @@ export default {
           }
           if (!settings.mainColumn) {
             settings.mainColumn = {
-              title: settings.mainColumn.title || '',
+              title: settings?.mainColumn?.title || '',
               valueAggregation: {
                 
               },
@@ -282,8 +282,8 @@ export default {
                 
               },
               aggregation: {
-                field: settings.mainColumn.field || null,
-                type: settings.mainColumn.type || 'TERMS',
+                field: settings?.mainColumn?.field || null,
+                type: settings?.mainColumn?.type || 'TERMS',
               },
             };
           }
