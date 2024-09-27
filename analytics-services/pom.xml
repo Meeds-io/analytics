@@ -50,13 +50,4 @@
       <type>test-jar</type>
     </dependency>
   </dependencies>
-  <build>
-    <finalName>analytics-services</finalName>
-    <plugins>
-      <plugin>
-        <groupId>com.jcabi</groupId>
-        <artifactId>jcabi-maven-plugin</artifactId>
-      </plugin>
-    </plugins>
-  </build>
 </project>
