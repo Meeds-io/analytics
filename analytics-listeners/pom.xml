@@ -52,13 +52,4 @@
       <scope>provided</scope>
     </dependency>
   </dependencies>
-  <build>
-    <finalName>analytics-listeners</finalName>
-    <plugins>
-      <plugin>
-        <groupId>com.jcabi</groupId>
-        <artifactId>jcabi-maven-plugin</artifactId>
-      </plugin>
-    </plugins>
-  </build>
 </project>
