@@ -1,3 +1,4 @@
+<%@page import="org.exoplatform.services.security.ConversationState"%>
 <%
 /**
  * This file is part of the Meeds project (https://meeds.io/).
@@ -42,7 +43,7 @@
   String spacesMostActivePeriod = request.getAttribute("spacesMostActivePeriod") == null ? "30" : ((String[]) request.getAttribute("spacesMostActivePeriod"))[0];
   Page currentPage = PortalRequestContext.getCurrentInstance().getPage();
   boolean canEdit = ExoContainerContext.getService(UserACL.class)
-      .hasEditPermission(currentPage);
+      .hasEditPermission(currentPage, ConversationState.getCurrent().getIdentity());
   String pageRef = currentPage.getPageKey().format();
   boolean canCreateSpace = ExoContainerContext.getService(SpacesAdministrationService.class)
       .canCreateSpace(request.getRemoteUser());
