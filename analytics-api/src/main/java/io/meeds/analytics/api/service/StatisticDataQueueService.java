@@ -19,14 +19,11 @@
  */
 package io.meeds.analytics.api.service;
 
-import org.springframework.stereotype.Service;
-
 import io.meeds.analytics.model.StatisticData;
 
 /**
  * A service to manage statistic data ingestion processing
  */
-@Service
 public interface StatisticDataQueueService {
 
   /**
