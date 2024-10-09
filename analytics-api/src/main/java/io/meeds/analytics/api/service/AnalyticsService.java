@@ -22,13 +22,20 @@ package io.meeds.analytics.api.service;
 import java.util.List;
 import java.util.Set;
 
-import org.springframework.stereotype.Service;
+import io.meeds.analytics.model.StatisticData;
+import io.meeds.analytics.model.StatisticFieldMapping;
+import io.meeds.analytics.model.StatisticFieldValue;
+import io.meeds.analytics.model.StatisticWatcher;
+import io.meeds.analytics.model.chart.ChartDataList;
+import io.meeds.analytics.model.chart.PercentageChartResult;
+import io.meeds.analytics.model.chart.PercentageChartValue;
+import io.meeds.analytics.model.chart.TableColumnResult;
+import io.meeds.analytics.model.filter.AnalyticsFilter;
+import io.meeds.analytics.model.filter.AnalyticsPercentageFilter;
+import io.meeds.analytics.model.filter.AnalyticsPeriod;
+import io.meeds.analytics.model.filter.AnalyticsPeriodType;
+import io.meeds.analytics.model.filter.AnalyticsTableFilter;
 
-import io.meeds.analytics.model.*;
-import io.meeds.analytics.model.chart.*;
-import io.meeds.analytics.model.filter.*;
-
-@Service
 public interface AnalyticsService {
 
   /**

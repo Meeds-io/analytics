@@ -51,7 +51,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 
 import org.exoplatform.commons.api.settings.SettingService;
@@ -94,7 +93,6 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.Getter;
 
-@Primary
 @Service
 public class ElasticsearchAnalyticsService implements AnalyticsService {
 

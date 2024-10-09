@@ -26,7 +26,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -45,7 +44,6 @@ import io.meeds.common.ContainerTransactional;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 
-@Primary
 @Service
 public class DummyStatisticDataQueueService implements StatisticDataQueueService {
 
