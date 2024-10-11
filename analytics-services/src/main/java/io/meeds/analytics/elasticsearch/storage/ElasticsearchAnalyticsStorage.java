@@ -370,13 +370,24 @@ public class ElasticsearchAnalyticsStorage {
   }
 
   private ElasticsearchResponse handleESResponse(ElasticsearchResponse response, String uri, String content) {
-    if (isError(response) || StringUtils.contains(response.getMessage(), "\"errors\":true")) {
+    if (isError(response)) {
       throw new IllegalStateException(String.format("Error message returned from ES: %s. URI: %s. Content: %s",
                                                     response.getMessage(),
                                                     uri,
                                                     content));
-    } else if (StringUtils.contains(response.getMessage(), "\"type\":\"version_conflict_engine_exception\"")) {
-      LOG.warn("ID conflict in some content: {}", response.getMessage());
+    }
+    if (StringUtils.contains(response.getMessage(), "\"errors\":true")) {
+      if (StringUtils.contains(response.getMessage(), "\"type\":\"version_conflict_engine_exception\"")
+          && StringUtils.countMatches(response.getMessage(),"{\"create\":{") == 1) {
+        //the ES response is not answer of a bulk, but of a single insert
+        //it means the entry already exists in ES, no need to raise an error
+        LOG.warn("ID conflict in some content: {}", response.getMessage());
+      } else {
+        throw new IllegalStateException(String.format("Error message returned from ES: %s. URI: %s. Content: %s",
+                                                      response.getMessage(),
+                                                      uri,
+                                                      content));
+      }
     }
     return response;
   }
