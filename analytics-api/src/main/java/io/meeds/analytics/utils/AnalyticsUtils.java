@@ -422,7 +422,6 @@ public class AnalyticsUtils {
       return;
     }
     statisticData.setSpaceId(Long.parseLong(space.getId()));
-    statisticData.addParameter("spaceTemplate", space.getTemplate());
     statisticData.addParameter("spaceVisibility", space.getVisibility());
     statisticData.addParameter("spaceRegistration", space.getRegistration());
     statisticData.addParameter("spaceCreatedTime", space.getCreatedTime());
