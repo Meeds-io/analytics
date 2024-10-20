@@ -65,11 +65,7 @@ export default {
       return !this.loading && (this.space?.displayName || this.$t('analytics.spacesListWidget.hiddenSpace'));
     },
     url() {
-      if (this.space?.groupId) {
-        const uri = this.space.groupId.replace(/\//g, ':');
-        return `${eXo.env.portal.context}/g/${uri}/`;
-      }
-      return null;
+      return this.space?.id && `${eXo.env.portal.context}/s/${this.space.id}` || null;
     },
   },
   created() {
