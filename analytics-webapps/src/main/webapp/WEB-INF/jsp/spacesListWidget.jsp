@@ -1,4 +1,3 @@
-<%@page import="org.exoplatform.services.security.ConversationState"%>
 <%
 /**
  * This file is part of the Meeds project (https://meeds.io/).
@@ -26,9 +25,10 @@
 <%@ page import="org.exoplatform.portal.application.PortalRequestContext"%>
 <%@ page import="org.exoplatform.portal.config.UserACL"%>
 <%@ page import="org.exoplatform.container.ExoContainerContext"%>
-<%@ page import="org.exoplatform.social.core.space.SpacesAdministrationService"%>
 <%@ page import="org.exoplatform.social.webui.Utils"%>
 <%@ page import="org.exoplatform.social.core.identity.model.Identity"%>
+<%@ page import="io.meeds.social.space.template.service.SpaceTemplateService"%>
+<%@ page import="org.exoplatform.services.security.ConversationState"%>
 
 <portlet:defineObjects />
 <portlet:resourceURL var="resourceURL" />
@@ -45,7 +45,7 @@
   boolean canEdit = ExoContainerContext.getService(UserACL.class)
       .hasEditPermission(currentPage, ConversationState.getCurrent().getIdentity());
   String pageRef = currentPage.getPageKey().format();
-  boolean canCreateSpace = ExoContainerContext.getService(SpacesAdministrationService.class)
+  boolean canCreateSpace = ExoContainerContext.getService(SpaceTemplateService.class)
       .canCreateSpace(request.getRemoteUser());
   Identity viewerIdentity = Utils.getViewerIdentity();
   boolean isExternal = viewerIdentity == null || viewerIdentity.isExternal();
