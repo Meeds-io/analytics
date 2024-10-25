@@ -206,30 +206,21 @@ export default {
   methods: {
     refresh() {
       this.loading = true;
-      if (this.$root.spacesMemberOf) {
-        this.loading = true;
-        return this.getUserSpaces()
-          .finally(() => Promise.all([
-            this.getRecentyVisitedSpaces(),
-            this.getMostActiveSpaces(),
-          ]).finally(() => this.loading = false));
-      } else {
-        const getUserSpaces = this.$root.userSpacesLimit ?
-          this.getUserSpaces()
-          : Promise.resolve().then(() => this.$root.spaceIds = null);
-        return Promise.all([
-          this.getRecentyVisitedSpaces(),
-          this.getMostActiveSpaces(),
-          getUserSpaces,
-        ]).finally(() => this.loading = false);
-      }
+      const getUserSpaces = this.$root.userSpacesLimit ?
+        this.getUserSpaces()
+        : Promise.resolve().then(() => this.$root.spaceIds = null);
+      return Promise.all([
+        this.getRecentyVisitedSpaces(),
+        this.getMostActiveSpaces(),
+        getUserSpaces,
+      ]).finally(() => this.loading = false);
     },
     getUserSpaces() {
-      return this.$spaceService.getSpaces(null, 0, -1, 'member', 'spaceId')
+      return this.$spaceService.getSpaces(null, 0, this.$root.userSpacesLimit, 'member', 'spaceId')
         .then(data => this.$root.spaceIds = data?.spaces?.map(s => s.id) || []);
     },
     getRecentyVisitedSpaces() {
-      if (!this.$root.spacesRecentlyVisitedLimit || (this.$root.spacesMemberOf && !this.$root.spaceIds?.length)) {
+      if (!this.$root.spacesRecentlyVisitedLimit) {
         this.mostRecentSpaces = null;
         return Promise.resolve();
       }
@@ -237,7 +228,7 @@ export default {
         .then(data => this.mostRecentSpaces = data?.labels);
     },
     getMostActiveSpaces() {
-      if (!this.$root.spacesMostActiveLimit || this.$root.isExternal || (this.$root.spacesMemberOf && !this.$root.spaceIds?.length)) {
+      if (!this.$root.spacesMostActiveLimit || this.$root.isExternal) {
         this.mostActiveSpaces = null;
         return Promise.resolve();
       }
@@ -248,15 +239,7 @@ export default {
       if (this.$root.spacesMemberOf) {
         queryName += '.memberOnly';
       }
-      let url = `${this.$root.resourceURL}&queryName=${queryName}&xLimit=${limit}`;
-      if (this.$root.spacesMemberOf) {
-        const formData = new FormData();
-        formData.append('spaceIds', this.$root.spaceIds.join(','));
-        const params = new URLSearchParams(formData).toString();
-        url += `&${params}`;
-      }
-      url += `&fromTimestamp=${this.getPeriodTimestamp(period)}`;
-      return fetch(url)
+      return fetch(`${this.$root.resourceURL}&queryName=${queryName}&xLimit=${limit}&fromTimestamp=${this.getPeriodTimestamp(period)}`)
         .then(resp => resp?.ok && resp.json());
     },
     getPeriodTimestamp(period) {

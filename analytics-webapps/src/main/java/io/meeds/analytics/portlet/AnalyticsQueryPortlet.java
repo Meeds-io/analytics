@@ -20,6 +20,7 @@
 package io.meeds.analytics.portlet;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -32,7 +33,8 @@ import org.apache.commons.lang3.StringUtils;
 import com.google.javascript.jscomp.jarjar.com.google.re2j.Pattern;
 
 import org.exoplatform.commons.api.portlet.GenericDispatchedViewPortlet;
-import org.exoplatform.commons.utils.CommonsUtils;
+import org.exoplatform.container.ExoContainerContext;
+import org.exoplatform.social.core.space.spi.SpaceService;
 import org.exoplatform.social.webui.Utils;
 
 import io.meeds.analytics.api.service.AnalyticsService;
@@ -42,17 +44,23 @@ import io.meeds.analytics.utils.AnalyticsUtils;
 
 public class AnalyticsQueryPortlet extends GenericDispatchedViewPortlet {
 
-  private static final String        FROM_TIMESTAMP_PARAM = "{fromTimestamp}";
+  private static final String        FROM_TIMESTAMP_PARAM   = "{fromTimestamp}";
 
-  private static final String        TO_TIMESTAMP_PARAM   = "{toTimestamp}";
+  private static final String        TO_TIMESTAMP_PARAM     = "{toTimestamp}";
 
-  private static final String        SPACE_IDS_PARAM      = "{spaceIds}";
+  private static final String        SPACE_IDS_PARAM        = "{spaceIds}";
 
-  private static final Pattern       NUMBER_LIST_PATTERN  = Pattern.compile("[\\d,]*");
+  private static final String        SPACE_MEMBER_IDS_PARAM = "{spaceMemberIds}";
 
-  private static Map<String, String> filters              = new ConcurrentHashMap<>();
+  private static final Pattern       NUMBER_LIST_PATTERN    = Pattern.compile("[\\d,]*");
+
+  private static final int           MAX_SPACE_IDS          = 1000;
+
+  private static Map<String, String> filters                = new ConcurrentHashMap<>();
 
   private AnalyticsService           analyticsService;
+
+  private SpaceService               spaceService;
 
   @Override
   public final void serveResource(ResourceRequest request, ResourceResponse response) throws PortletException, IOException {
@@ -70,7 +78,6 @@ public class AnalyticsQueryPortlet extends GenericDispatchedViewPortlet {
     } else {
       filter.setLimit(Long.parseLong(limit));
     }
-
     ChartDataList result = getAnalyticsService().computeChartData(filter);
     response.getWriter().write(AnalyticsUtils.toJsonString(result));
     response.setContentType("application/json");
@@ -89,19 +96,23 @@ public class AnalyticsQueryPortlet extends GenericDispatchedViewPortlet {
       }
       filterString = filterString.replace(SPACE_IDS_PARAM, spaceIds);
     }
+    if (filterString.contains(SPACE_MEMBER_IDS_PARAM)) {
+      List<String> memberSpacesIds = getSpaceService().getMemberSpacesIds(request.getRemoteUser(), 0, MAX_SPACE_IDS);
+      filterString = filterString.replace(SPACE_MEMBER_IDS_PARAM, StringUtils.join(memberSpacesIds, ","));
+    }
     if (filterString.contains(FROM_TIMESTAMP_PARAM)) {
-      String spaceIds = request.getParameter("fromTimestamp");
-      if (!NUMBER_LIST_PATTERN.matches(spaceIds)) {
+      String fromTimestamp = request.getParameter("fromTimestamp");
+      if (!NUMBER_LIST_PATTERN.matches(fromTimestamp)) {
         throw new IllegalAccessException("Illegal Chars found in parameter 'fromTimestamp'");
       }
-      filterString = filterString.replace(FROM_TIMESTAMP_PARAM, spaceIds);
+      filterString = filterString.replace(FROM_TIMESTAMP_PARAM, fromTimestamp);
     }
     if (filterString.contains(TO_TIMESTAMP_PARAM)) {
-      String spaceIds = request.getParameter("toTimestamp");
-      if (!NUMBER_LIST_PATTERN.matches(spaceIds)) {
+      String toTimestamp = request.getParameter("toTimestamp");
+      if (!NUMBER_LIST_PATTERN.matches(toTimestamp)) {
         throw new IllegalAccessException("Illegal Chars found in parameter 'toTimestamp'");
       }
-      filterString = filterString.replace(TO_TIMESTAMP_PARAM, spaceIds);
+      filterString = filterString.replace(TO_TIMESTAMP_PARAM, toTimestamp);
     }
     return AnalyticsUtils.fromJsonString(filterString, AnalyticsFilter.class);
   }
@@ -112,9 +123,16 @@ public class AnalyticsQueryPortlet extends GenericDispatchedViewPortlet {
 
   private AnalyticsService getAnalyticsService() {
     if (analyticsService == null) {
-      analyticsService = CommonsUtils.getService(AnalyticsService.class);
+      analyticsService = ExoContainerContext.getService(AnalyticsService.class);
     }
     return analyticsService;
+  }
+
+  private SpaceService getSpaceService() {
+    if (spaceService == null) {
+      spaceService = ExoContainerContext.getService(SpaceService.class);
+    }
+    return spaceService;
   }
 
 }
