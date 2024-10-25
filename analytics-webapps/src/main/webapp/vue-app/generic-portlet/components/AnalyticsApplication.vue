@@ -23,16 +23,17 @@
     class="analytics-application application-body"
     flat>
     <template v-if="canEdit">
-      <analytics-chart-setting
-        ref="chartSettingDialog"
+      <analytics-chart-setting-drawer
+        ref="chartSettingDrawer"
         :retrieve-mappings-url="retrieveMappingsUrl"
         :settings="chartSettings"
         class="mt-0"
         @save="saveSettings" />
-      <analytics-json-panel-dialog
-        ref="jsonPanelDialog"
+      <analytics-json-panel-drawer
+        ref="jsonPanelDrawer"
         :settings="chartSettings"
-        class="mt-0" />
+        class="mt-0"
+        @save="saveSettings" />
       <analytics-view-samples-drawer
         ref="viewSamplesDrawer"
         :title="$t(title)"
@@ -88,11 +89,11 @@
             <v-list-item @mousedown="$event.preventDefault()" @click="$refs.viewSamplesDrawer.open()">
               <v-list-item-title>{{ $t('analytics.samples') }}</v-list-item-title>
             </v-list-item>
-            <v-list-item @mousedown="$event.preventDefault()" @click="$refs.chartSettingDialog.open()">
-              <v-list-item-title>{{ $t('analytics.settings') }}</v-list-item-title>
+            <v-list-item @mousedown="$event.preventDefault()" @click="$refs.chartSettingDrawer.open()">
+              <v-list-item-title>{{ $t('analytics.settings.edit.button') }}</v-list-item-title>
             </v-list-item>
-            <v-list-item @mousedown="$event.preventDefault()" @click="$refs.jsonPanelDialog.open()">
-              <v-list-item-title>{{ $t('analytics.jsonSettings') }}</v-list-item-title>
+            <v-list-item @mousedown="$event.preventDefault()" @click="$refs.jsonPanelDrawer.open()">
+              <v-list-item-title>{{ $t('analytics.jsonSettings.edit.button') }}</v-list-item-title>
             </v-list-item>
           </v-list>
         </v-menu>

@@ -25,7 +25,7 @@
     allow-expand
     right>
     <template slot="title">
-      {{ $t('analytics.settings') }}
+      {{ $t('analytics.settings.drawer.title') }}
     </template>
     <template slot="content">
       <v-card-text v-if="tableSettings">
