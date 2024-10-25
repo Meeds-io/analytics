@@ -115,7 +115,7 @@
           }],
           "yAxisAggregation": {
             "type": "MAX",
-            "field": "id",
+            "field": "timestamp",
             "sortDirection": "desc"
           },
           "xAxisAggregations": [{
@@ -142,7 +142,7 @@
           }, {
             "field": "spaceId",
             "type": "IN_SET",
-            "valueString": "{spaceIds}"
+            "valueString": "{spaceMemberIds}"
           }, {
             "field": "timestamp",
             "type": "GREATER",
@@ -150,7 +150,7 @@
           }],
           "yAxisAggregation": {
             "type": "MAX",
-            "field": "id",
+            "field": "timestamp",
             "sortDirection": "desc"
           },
           "xAxisAggregations": [{
@@ -204,7 +204,7 @@
           }, {
             "field": "spaceId",
             "type": "IN_SET",
-            "valueString": "{spaceIds}"
+            "valueString": "{spaceMemberIds}"
           }, {
             "field": "timestamp",
             "type": "GREATER",
