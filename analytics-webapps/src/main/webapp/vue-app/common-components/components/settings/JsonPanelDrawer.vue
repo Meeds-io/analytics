@@ -33,7 +33,7 @@
         <textarea
           v-model="settingJsonContent"
           class="full-width full-height"
-          auto-grow />
+          auto-grow></textarea>
       </div>
     </template>
     <template #footer>
