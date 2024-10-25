@@ -17,8 +17,8 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-import AnalyticsChartSetting from './components/settings/AnalyticsChartSetting.vue';
-import JsonPanelDialog from './components/settings/JsonPanelDialog.vue';
+import AnalyticsChartSettingDrawer from './components/settings/AnalyticsChartSettingDrawer.vue';
+import JsonPanelDrawer from './components/settings/JsonPanelDrawer.vue';
 
 import IdentityFieldSelection from './components/settings/form/IdentityFieldSelection.vue';
 import FieldSelection from './components/settings/form/FieldSelection.vue';
@@ -76,8 +76,8 @@ const components = {
   'analytics-y-axis-form': YAxisForm,
   'analytics-multiple-charts': MultipleCharts,
   'analytics-select-period': SelectPeriod,
-  'analytics-chart-setting': AnalyticsChartSetting,
-  'analytics-json-panel-dialog': JsonPanelDialog,
+  'analytics-chart-setting-drawer': AnalyticsChartSettingDrawer,
+  'analytics-json-panel-drawer': JsonPanelDrawer,
   'analytics-view-samples-drawer': ViewSamplesDrawer,
 };
 
