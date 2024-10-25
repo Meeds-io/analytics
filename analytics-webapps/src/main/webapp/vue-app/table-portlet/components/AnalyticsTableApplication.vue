@@ -38,23 +38,28 @@
         filter-style
         name="selectedUser"
         class="analytics-table-suggester me-2" />
-      <template v-if="canEdit">
-        <v-btn
-          icon
-          :title="$t('analytics.settings')"
-          class="d-none d-sm-inline text-header-title my-auto"
-          @click="$refs.tableSettingDrawer.open()">
-          <v-icon>fa-cog</v-icon>
-        </v-btn>
-        <analytics-table-setting
-          ref="tableSettingDrawer"
-          :retrieve-mappings-url="retrieveMappingsUrl"
-          :settings="settings"
-          :user-fields="userFields"
-          :space-fields="spaceFields"
-          class="mt-0"
-          @save="saveSettings" />
-      </template>
+      <v-menu
+        v-if="canEdit"
+        v-model="showMenu"
+        offset-y>
+        <template #activator="{ on }">
+          <v-btn
+            icon
+            class="ml-2"
+            v-on="on"
+            @blur="closeMenu()">
+            <v-icon>mdi-dots-vertical</v-icon>
+          </v-btn>
+        </template>
+        <v-list>
+          <v-list-item @mousedown="$event.preventDefault()" @click="$refs.tableSettingDrawer.open()">
+            <v-list-item-title>{{ $t('analytics.settings.edit.button') }}</v-list-item-title>
+          </v-list-item>
+          <v-list-item @mousedown="$event.preventDefault()" @click="$refs.jsonPanelDrawer.open()">
+            <v-list-item-title>{{ $t('analytics.jsonSettings.edit.button') }}</v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-menu>
     </div>
     <analytics-table
       ref="table"
@@ -66,6 +71,21 @@
       :space-fields="spaceFields"
       :limit="settings && settings.pageSize"
       :page-size="settings && settings.pageSize" />
+    <template v-if="canEdit">
+      <analytics-table-setting
+        ref="tableSettingDrawer"
+        :retrieve-mappings-url="retrieveMappingsUrl"
+        :settings="settings"
+        :user-fields="userFields"
+        :space-fields="spaceFields"
+        class="mt-0"
+        @save="saveSettings" />
+      <analytics-json-panel-drawer
+        ref="jsonPanelDrawer"
+        :settings="settings"
+        class="mt-0"
+        @save="saveSettings" />
+    </template>
   </v-app>
 </template>
 
@@ -120,6 +140,7 @@ export default {
     error: null,
     scope: null,
     initialized: false,
+    showMenu: false,
     selectedPeriod: null,
     columnsData: {},
     searchOptions: {
@@ -346,6 +367,9 @@ export default {
       }
       this.$refs.table.refresh();
     },
+    closeMenu(){
+      this.showMenu=false;
+    }
   }
 };
 </script>
