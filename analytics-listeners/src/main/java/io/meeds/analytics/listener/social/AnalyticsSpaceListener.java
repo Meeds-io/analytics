@@ -131,46 +131,6 @@ public class AnalyticsSpaceListener extends SpaceListenerPlugin {
   }
 
   @Override
-  public void applicationActivated(SpaceLifeCycleEvent event) {
-    try {
-      StatisticData statisticData = addApplicationStatisticEvent(event, "applicationActivated");
-      addStatisticData(statisticData);
-    } catch (Exception e) {
-      handleErrorProcessingOperation(event, e);
-    }
-  }
-
-  @Override
-  public void applicationAdded(SpaceLifeCycleEvent event) {
-    try {
-      StatisticData statisticData = addApplicationStatisticEvent(event, "applicationAdded");
-      addStatisticData(statisticData);
-    } catch (Exception e) {
-      handleErrorProcessingOperation(event, e);
-    }
-  }
-
-  @Override
-  public void applicationDeactivated(SpaceLifeCycleEvent event) {
-    try {
-      StatisticData statisticData = addApplicationStatisticEvent(event, "applicationDeactivated");
-      addStatisticData(statisticData);
-    } catch (Exception e) {
-      handleErrorProcessingOperation(event, e);
-    }
-  }
-
-  @Override
-  public void applicationRemoved(SpaceLifeCycleEvent event) {
-    try {
-      StatisticData statisticData = addApplicationStatisticEvent(event, "applicationRemoved");
-      addStatisticData(statisticData);
-    } catch (Exception e) {
-      handleErrorProcessingOperation(event, e);
-    }
-  }
-
-  @Override
   public void grantedLead(SpaceLifeCycleEvent event) {
     try {
       StatisticData statisticData = addUserStatisticEvent(event, "grantedLead");
@@ -232,15 +192,6 @@ public class AnalyticsSpaceListener extends SpaceListenerPlugin {
 
   private StatisticData addSpaceStatisticEvent(SpaceLifeCycleEvent event, String operation) {
     return buildStatisticData(operation, event.getSpace());
-  }
-
-  private StatisticData addApplicationStatisticEvent(SpaceLifeCycleEvent event, String operation) {
-    Space space = event.getSpace();
-    String applicationId = event.getSource();
-
-    StatisticData statisticData = buildStatisticData(operation, space);
-    statisticData.addParameter("applicationId", applicationId);
-    return statisticData;
   }
 
   private StatisticData addUserStatisticEvent(SpaceLifeCycleEvent event, String operation) {
