@@ -35,6 +35,7 @@ import io.meeds.analytics.model.filter.AnalyticsPercentageFilter;
 import io.meeds.analytics.model.filter.AnalyticsPeriod;
 import io.meeds.analytics.model.filter.AnalyticsPeriodType;
 import io.meeds.analytics.model.filter.AnalyticsTableFilter;
+import io.meeds.analytics.model.filter.aggregation.AnalyticsAggregationType;
 
 public interface AnalyticsService {
 
@@ -147,5 +148,50 @@ public interface AnalyticsService {
    *          elements to watch
    */
   void addUIWatcher(StatisticWatcher uiWatcher);
+
+  /**
+   * @param operations (Optional) {@link List} of collected operations to
+   *          consider
+   * @param fieldName (Optional) Field Name to filter
+   * @param fieldValues (Optional) Field values to filter
+   * @param sortBy Sort field name
+   * @param sortDirection Sort direction: asc or desc
+   * @param limit limit of results to retrieve
+   * @return {@link List} of {@link StatisticData} representing the collected
+   *         data
+   */
+  List<StatisticData> getSamples(List<String> operations,
+                                 String fieldName,
+                                 List<String> fieldValues,
+                                 String sortBy,
+                                 String sortDirection,
+                                 int limit);
+
+  /**
+   * @param operations (Optional) {@link List} of collected operations to
+   *          consider
+   * @param fieldName (Optional) Field Name to filter
+   * @param fieldValues (Optional) Field values to filter
+   * @param xAggregationField x axis field
+   * @param xAggregationType x axis aggregation type: MAX, MIN, SUM, COUNT,
+   *          CARDINALITY (COUNT Distinct), TERMS, DATA or HISTOGRAM
+   * @param xAggregationSortDirection sort direction: asc or desc
+   * @param yAggregationField y axis field
+   * @param yAggregationType y axis aggregation type: MAX, MIN, SUM, COUNT,
+   *          CARDINALITY (COUNT Distinct), TERMS, DATA or HISTOGRAM
+   * @param yAggregationSortDirection sort direction: asc or desc
+   * @param limit limit of x Axis results to retrieve
+   * @return ChartDataList
+   */
+  ChartDataList getChart(List<String> operations, // NOSONAR
+                             String fieldName,
+                             List<String> fieldValues,
+                             String xAggregationField,
+                             AnalyticsAggregationType xAggregationType,
+                             String xAggregationSortDirection,
+                             String yAggregationField,
+                             AnalyticsAggregationType yAggregationType,
+                             String yAggregationSortDirection,
+                             int limit);
 
 }

@@ -48,6 +48,8 @@ const config = {
     analyticsRate:'./src/main/webapp/vue-app/rate-portlet/main.js',
     analyticsTable:'./src/main/webapp/vue-app/table-portlet/main.js',
     spacesListWidget:'./src/main/webapp/vue-app/spaces-list-widget/main.js',
+    spacesAdministrationExtension:'./src/main/webapp/vue-app/spaces-administration-extension/main.js',
+    analyticsApi:'./src/main/webapp/vue-app/analytics-api/main.js',
   },
   output: {
     path: path.join(__dirname, 'target/analytics/'),
