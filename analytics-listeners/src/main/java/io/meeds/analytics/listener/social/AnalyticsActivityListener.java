@@ -156,6 +156,17 @@ public class AnalyticsActivityListener extends ActivityListenerPlugin {
     }
   }
 
+  @Override
+  public void pinActivity(ActivityLifeCycleEvent event) {
+    try {
+      StatisticData statisticData = addActivityStatisticEvent(event, "pinActivity");
+      statisticData.setUserId(Long.parseLong(event.getUserId()));
+      addStatisticData(statisticData);
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
+    }
+  }
+
   private void handleErrorProcessingOperation(ActivityLifeCycleEvent event, Exception exception) {
     LOG.warn("Error adding Statistic data for activity {} with event {}", event.getActivityId(), event.getType(), exception);
   }

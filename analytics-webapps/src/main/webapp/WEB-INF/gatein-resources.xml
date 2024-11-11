@@ -257,4 +257,36 @@
     </depends>
   </module>
 
+  <module>
+    <name>analyticsManageSpacesExtension</name>
+    <load-group>SpacesAdministration</load-group>
+    <script>
+      <minify>false</minify>
+      <path>/js/spacesAdministrationExtension.bundle.js</path>
+    </script>
+    <depends>
+      <module>vue</module>
+    </depends>
+    <depends>
+      <module>vuetify</module>
+    </depends>
+    <depends>
+      <module>eXoVueI18n</module>
+    </depends>
+    <depends>
+      <module>extensionRegistry</module>
+    </depends>
+    <depends>
+      <module>analyticsApi</module>
+    </depends>
+  </module>
+
+  <module>
+    <name>analyticsApi</name>
+    <script>
+      <minify>false</minify>
+      <path>/js/analyticsApi.bundle.js</path>
+    </script>
+  </module>
+
 </gatein-resources>
