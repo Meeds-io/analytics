@@ -24,6 +24,10 @@
       v-model="selectedSpace"
       :labels="suggesterLabels"
       :ignore-items="spaceIds"
+      :search-options="{
+        currentUser: '',
+        filterType: 'all',
+      }"
       include-spaces
       class="analytics-suggester"
       sugester-class="my-0"
