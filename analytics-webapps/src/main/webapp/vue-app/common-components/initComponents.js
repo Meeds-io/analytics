@@ -47,6 +47,7 @@ import ProfileSampleItemAttribute from './components/samples/ProfileSampleItemAt
 import ProfileListSampleItemAttribute from './components/samples/ProfileListSampleItemAttribute.vue';
 import DateSampleItemAttribute from './components/samples/DateSampleItemAttribute.vue';
 import DurationSampleItemAttribute from './components/samples/DurationSampleItemAttribute.vue';
+import SpaceTemplateItemAttribute from './components/samples/SpaceTemplateItemAttribute.vue';
 
 import SelectPeriod from './components/common/SelectPeriod.vue';
 
@@ -58,6 +59,7 @@ const components = {
   'analytics-profile-list-sample-item-attribute': ProfileListSampleItemAttribute,
   'analytics-date-sample-item-attribute': DateSampleItemAttribute,
   'analytics-duration-sample-item-attribute': DurationSampleItemAttribute,
+  'analytics-space-template-sample-item-attribute': SpaceTemplateItemAttribute,
   'analytics-setting-color-picker': SettingColorPicker,
   'analytics-identity-field-selection': IdentityFieldSelection,
   'analytics-field-selection': FieldSelection,

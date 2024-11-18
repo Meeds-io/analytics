@@ -57,7 +57,7 @@
     </v-tooltip>
     <span v-else :class="signClass">{{ sign || '' }}{{ valueNumberAbs || '' }}%</span>
   </span>
-  <span v-else-if="dataType === 'long' || dataType === 'double'" class="text-no-wrap">
+  <span v-else-if="isNumeric" class="text-no-wrap">
     {{ valueNumber }}
   </span>
   <span v-else class="text-no-wrap">
@@ -155,6 +155,11 @@ export default {
       const key = `analytics.${this.value}`;
       const i18NValue = this.$t(key);
       return i18NValue === key ? this.value : i18NValue;
+    },
+    isNumeric() {
+      return (this.dataType === 'long' || this.dataType === 'double')
+        && !this.value?.match?.(/\[\d+\]/g)
+        && this.value?.match?.(/\d+/g);
     },
     dateValue() {
       if (this.value && !Number.isNaN(Number(this.value))) {
