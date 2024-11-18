@@ -45,6 +45,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -87,6 +88,7 @@ import io.meeds.analytics.model.filter.aggregation.AnalyticsAggregation;
 import io.meeds.analytics.model.filter.aggregation.AnalyticsAggregationType;
 import io.meeds.analytics.model.filter.aggregation.AnalyticsPercentageLimit;
 import io.meeds.analytics.model.filter.search.AnalyticsFieldFilter;
+import io.meeds.analytics.utils.AnalyticsUtils;
 import io.meeds.common.ContainerTransactional;
 
 import jakarta.annotation.PostConstruct;
@@ -455,6 +457,65 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
     uiWatchers.add(uiWatcher);
   }
 
+  @Override
+  public List<StatisticData> getSamples(List<String> operations,
+                                        String fieldName,
+                                        List<String> fieldValues,
+                                        String sortBy,
+                                        String sortDirection,
+                                        int limit) {
+    AnalyticsFilter searchFilter = new AnalyticsFilter();
+    ArrayList<AnalyticsFieldFilter> filters = new ArrayList<>();
+    searchFilter.setFilters(filters);
+    if (CollectionUtils.isNotEmpty(operations)) {
+      searchFilter.addInSetFilter(AnalyticsUtils.FIELD_OPERATION, operations.toArray(new String[operations.size()]));
+    }
+    if (StringUtils.isNotEmpty(fieldName) && CollectionUtils.isNotEmpty(fieldValues)) {
+      searchFilter.addInSetFilter(fieldName, fieldValues.toArray(new String[fieldValues.size()]));
+    }
+    searchFilter.addXAxisAggregation(new AnalyticsAggregation(AnalyticsAggregationType.TERMS,
+                                                              sortBy,
+                                                              sortDirection,
+                                                              null,
+                                                              limit));
+    searchFilter.setLimit(limit);
+    return retrieveData(searchFilter);
+  }
+
+  @Override
+  public ChartDataList getChart(List<String> operations,
+                                    String fieldName,
+                                    List<String> fieldValues,
+                                    String xAggregationField,
+                                    AnalyticsAggregationType xAggregationType,
+                                    String xAggregationSortDirection,
+                                    String yAggregationField,
+                                    AnalyticsAggregationType yAggregationType,
+                                    String yAggregationSortDirection,
+                                    int limit) {
+    AnalyticsFilter searchFilter;
+    searchFilter = new AnalyticsFilter();
+    searchFilter.setFilters(new ArrayList<>());
+    if (CollectionUtils.isNotEmpty(operations)) {
+      searchFilter.addInSetFilter(AnalyticsUtils.FIELD_OPERATION, operations.toArray(new String[operations.size()]));
+    }
+    if (StringUtils.isNotEmpty(fieldName) && CollectionUtils.isNotEmpty(fieldValues)) {
+      searchFilter.addInSetFilter(fieldName, fieldValues.toArray(new String[fieldValues.size()]));
+    }
+    searchFilter.addXAxisAggregation(new AnalyticsAggregation(xAggregationType,
+                                                              xAggregationField,
+                                                              xAggregationSortDirection,
+                                                              null,
+                                                              limit));
+    searchFilter.setYAxisAggregation(new AnalyticsAggregation(yAggregationType,
+                                                              yAggregationField,
+                                                              yAggregationSortDirection,
+                                                              null,
+                                                              1));
+    searchFilter.setHideLabel(true);
+    return computeChartData(searchFilter);
+  }
+
   private List<StatisticFieldValue> buildFieldValuesResponse(String jsonResponse) throws JSONException {
     JSONObject json = new JSONObject(jsonResponse);
     JSONObject aggregations = json.has(AGGREGATIONS_RESPONSE_BODY) ? json.getJSONObject(AGGREGATIONS_RESPONSE_BODY) : null;
@@ -789,9 +850,13 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
                                AnalyticsAggregationType aggregationType) {
     if (aggregationType.isUseSort()) {
       String sortField = null;
+      String sortDirection = aggregation.getSortDirection();
       if ((i + 1) < aggregationsSize) {
         AnalyticsAggregation nextAggregation = aggregations.get(i + 1);
         sortField = getSortField(nextAggregation);
+        if (nextAggregation != null) {
+          sortDirection = nextAggregation.getSortDirection();
+        }
       } else if (aggregationType == AnalyticsAggregationType.TERMS) {
         sortField = "_count";
       }
@@ -800,7 +865,7 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
                      ,
                       "order": {"$sortField": "$sortDirection"}
             """.replace(SORT_FIELD_REQUEST_BODY_PARAM, sortField)
-               .replace(SORT_DIRECTION_REQUEST_BODY_PARAM, aggregation.getSortDirection()));
+               .replace(SORT_DIRECTION_REQUEST_BODY_PARAM, sortDirection));
       }
     }
   }
