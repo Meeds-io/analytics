@@ -66,3 +66,12 @@ extensionRegistry.registerExtension('AnalyticsSamples', 'SampleItem', {
     match: (fieldName, fieldValue) => (fieldName.toLowerCase().includes('duration') && Number.isInteger(Number(fieldValue)) && Number(fieldValue) > 0),
   },
 });
+
+extensionRegistry.registerExtension('AnalyticsSamples', 'SampleItem', {
+  type: 'spaceTemplateId',
+  options: {
+    rank: 50,
+    vueComponent: Vue.options.components['analytics-space-template-sample-item-attribute'],
+    match: fieldName => fieldName === 'spaceTemplateId',
+  },
+});

@@ -40,3 +40,12 @@ extensionRegistry.registerExtension('AnalyticsTable', 'CellValue', {
     match: (fieldName, aggregationType) => fieldName === 'spaceId' && aggregationType === 'TERMS',
   },
 });
+
+extensionRegistry.registerExtension('AnalyticsTable', 'CellValue', {
+  type: 'spaceTemplate',
+  options: {
+    rank: 200,
+    vueComponent: Vue.options.components['analytics-table-cell-space-template-value'],
+    match: (fieldName, aggregationType) => fieldName === 'spaceTemplateId' && aggregationType === 'TERMS',
+  },
+});
