@@ -256,7 +256,7 @@ public abstract class AbstractAnalyticsPortlet<T> extends GenericPortlet {
     }
     Space space = SpaceUtils.getSpaceByContext();
     if (space != null) {
-      boolean canModify = getSpaceService().canManageSpace(space, userId);
+      boolean canModify = getSpaceService().canManageSpaceLayout(space, userId);
       return cacheChartModificationAccessPermission(portletSession, canModify);
     }
     return cacheChartModificationAccessPermission(portletSession, false);
