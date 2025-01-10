@@ -252,6 +252,12 @@
       <module>extensionRegistry</module>
     </depends>
     <depends>
+      <module>categoryVueComponents</module>
+    </depends>
+    <depends>
+      <module>commonVueComponents</module>
+    </depends>
+    <depends>
       <module>jquery</module>
       <as>$</as>
     </depends>

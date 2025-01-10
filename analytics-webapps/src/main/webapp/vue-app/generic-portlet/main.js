@@ -52,10 +52,23 @@ export function init(dataId) {
           retrieveChartSamplesURL: retrieveChartSamplesURL,
           retrieveFieldValuesUrl: retrieveFieldValuesUrl,
           saveSettingsURL: saveSettingsURL,
+          fieldNameValueExtensions: null,
         }),
+        created() {
+          document.addEventListener('extension-AnalyticsChart-FieldValueName-updated', this.refreshSampleItemExtensions);
+          this.refreshSampleItemExtensions();
+        },
         mounted() {
           // Hide loading toolbar each time a portlet is mounted
           document.dispatchEvent(new CustomEvent('hideTopBarLoading'));
+        },
+        beforeDestroy() {
+          document.removeEventListener('extension-AnalyticsChart-FieldValueName-updated', this.refreshSampleItemExtensions);
+        },
+        methods: {
+          refreshSampleItemExtensions() {
+            this.fieldNameValueExtensions = extensionRegistry.loadExtensions('AnalyticsChart', 'FieldValueName');
+          },
         },
         template: `
         <analytics-application

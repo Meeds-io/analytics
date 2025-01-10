@@ -25,6 +25,7 @@ import FieldSelection from './components/settings/form/FieldSelection.vue';
 import FieldFilter from './components/settings/form/FieldFilter.vue';
 import SpaceFieldFilter from './components/settings/form/SpaceFieldFilter.vue';
 import UserFieldFilter from './components/settings/form/UserFieldFilter.vue';
+import CategoryFieldFilter from './components/settings/form/CategoryFieldFilter.vue';
 import TextValuesFilter from './components/settings/form/TextValuesFilter.vue';
 import TextValueSuggester from './components/settings/form/TextValueSuggester.vue';
 import MultipleValuesSelection from './components/settings/form/MultipleValuesSelection.vue';
@@ -48,6 +49,7 @@ import ProfileListSampleItemAttribute from './components/samples/ProfileListSamp
 import DateSampleItemAttribute from './components/samples/DateSampleItemAttribute.vue';
 import DurationSampleItemAttribute from './components/samples/DurationSampleItemAttribute.vue';
 import SpaceTemplateItemAttribute from './components/samples/SpaceTemplateItemAttribute.vue';
+import CategoryAttribute from './components/samples/CategoryAttribute.vue';
 
 import SelectPeriod from './components/common/SelectPeriod.vue';
 
@@ -60,12 +62,14 @@ const components = {
   'analytics-date-sample-item-attribute': DateSampleItemAttribute,
   'analytics-duration-sample-item-attribute': DurationSampleItemAttribute,
   'analytics-space-template-sample-item-attribute': SpaceTemplateItemAttribute,
+  'analytics-category-sample-item-attribute': CategoryAttribute,
   'analytics-setting-color-picker': SettingColorPicker,
   'analytics-identity-field-selection': IdentityFieldSelection,
   'analytics-field-selection': FieldSelection,
   'analytics-multiple-values-selection': MultipleValuesSelection,
   'analytics-space-field-filter': SpaceFieldFilter,
   'analytics-user-field-filter': UserFieldFilter,
+  'analytics-category-field-filter': CategoryFieldFilter,
   'analytics-text-value-filter': TextValuesFilter,
   'analytics-text-value-suggester': TextValueSuggester,
   'analytics-field-filter': FieldFilter,
