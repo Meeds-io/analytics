@@ -49,6 +49,7 @@ import org.json.JSONObject;
 
 import org.exoplatform.commons.api.persistence.ExoTransactional;
 import org.exoplatform.commons.utils.CommonsUtils;
+import org.exoplatform.container.ExoContainerContext;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.exoplatform.services.security.ConversationState;
@@ -68,6 +69,9 @@ import org.exoplatform.ws.frameworks.json.impl.ObjectBuilder;
 import io.meeds.analytics.api.service.StatisticDataQueueService;
 import io.meeds.analytics.model.StatisticData;
 import io.meeds.analytics.model.StatisticData.StatisticStatus;
+import io.meeds.social.category.model.Category;
+import io.meeds.social.category.model.CategoryObject;
+import io.meeds.social.category.service.CategoryService;
 
 public class AnalyticsUtils {
   private static final Log              LOG                              = ExoLogger.getLogger(AnalyticsUtils.class);
@@ -237,7 +241,7 @@ public class AnalyticsUtils {
       if (identityManager == null) {
         return defaultLabel;
       } else {
-        Identity identity = identityManager.getIdentity(chartValue);
+        Identity identity = getIdentity(chartValue);
         if (identity == null) {
           return defaultLabel;
         } else {
@@ -334,6 +338,12 @@ public class AnalyticsUtils {
     if (statisticData.getStatus() == null) {
       statisticData.setStatus(StatisticStatus.OK);
     }
+    if (statisticData.getUserId() == 0
+        && ConversationState.getCurrent() != null
+        && ConversationState.getCurrent().getIdentity() != null) {
+      statisticData.setUserId(getIdentityId(ActivityStream.ORGANIZATION_PROVIDER_ID,
+                                            ConversationState.getCurrent().getIdentity().getUserId()));
+    }
 
     try {
       StatisticDataQueueService analyticsQueueService = CommonsUtils.getService(StatisticDataQueueService.class);
@@ -357,12 +367,13 @@ public class AnalyticsUtils {
     return spaceService.getSpaceById(spaceId);
   }
 
-  public static Identity getIdentity(String identityId) {
-    if (StringUtils.isBlank(identityId)) {
+  public static Identity getIdentity(String identityIdString) {
+    if (StringUtils.isBlank(identityIdString)) {
       return null;
     }
     IdentityManager identityManager = CommonsUtils.getService(IdentityManager.class);
-    return identityManager.getIdentity(identityId);
+    long identityId = parseId(identityIdString);
+    return identityId > 0 ? identityManager.getIdentity(identityId) : null;
   }
 
   public static long getIdentityId(String identityId) {
@@ -423,6 +434,7 @@ public class AnalyticsUtils {
     }
     statisticData.setSpaceId(Long.parseLong(space.getId()));
     statisticData.addParameter("spaceTemplateId", space.getTemplateId());
+    statisticData.addParameter("spaceCategoryIds", space.getCategoryIds());
     statisticData.addParameter("spaceVisibility", space.getVisibility());
     statisticData.addParameter("spaceRegistration", space.getRegistration());
     statisticData.addParameter("spaceCreatedTime", space.getCreatedTime());
@@ -454,6 +466,37 @@ public class AnalyticsUtils {
     }
   }
 
+  public static void addCategoryStatistics(StatisticData statisticData, long categoryId) {
+    CategoryService categoryService = ExoContainerContext.getService(CategoryService.class);
+    addCategoryStatistics(statisticData, categoryService.getCategory(categoryId));
+  }
+
+  public static void addCategoryStatistics(StatisticData statisticData, Category category) {
+    if (category == null) {
+      return;
+    }
+    statisticData.addParameter("categoryId", category.getId());
+    statisticData.addParameter("categoryIcon", category.getIcon());
+    statisticData.addParameter("categoryAccessPermissionIds", category.getAccessPermissionIds());
+    statisticData.addParameter("categoryLinkPermissionIds", category.getLinkPermissionIds());
+    statisticData.addParameter("categoryCreatorId", category.getCreatorId());
+    statisticData.addParameter("categoryOwnerId", category.getOwnerId());
+    statisticData.addParameter("categoryParentId", category.getParentId());
+  }
+
+  public static void addCategoryLinkStatistics(StatisticData statisticData, CategoryObject categoryObject) {
+    statisticData.addParameter("categoryObjectType", categoryObject.getType());
+    statisticData.addParameter("categoryObjectId", categoryObject.getId());
+    statisticData.addParameter("categoryObjectParentId", categoryObject.getParentId());
+    if (categoryObject.getSpaceId() > 0) {
+      SpaceService spaceService = CommonsUtils.getService(SpaceService.class);
+      Space space = spaceService.getSpaceById(categoryObject.getSpaceId());
+      if (space != null) {
+        addSpaceStatistics(statisticData, space);
+      }
+    }
+  }
+
   private static int getSize(String[] array) {
     return array == null ? 0 : (int) Arrays.stream(array).filter(Objects::nonNull).distinct().count();
   }
@@ -472,4 +515,13 @@ public class AnalyticsUtils {
     }
     return type;
   }
+
+  public static long parseId(String id) {
+    try {
+      return Long.parseLong(id);
+    } catch (NumberFormatException ex) {
+      return 0;
+    }
+  }
+
 }

@@ -49,3 +49,12 @@ extensionRegistry.registerExtension('AnalyticsTable', 'CellValue', {
     match: (fieldName, aggregationType) => fieldName === 'spaceTemplateId' && aggregationType === 'TERMS',
   },
 });
+
+extensionRegistry.registerExtension('AnalyticsTable', 'CellValue', {
+  type: 'spaceTemplate',
+  options: {
+    rank: 200,
+    vueComponent: Vue.options.components['analytics-table-cell-category-value'],
+    match: (fieldName, aggregationType) => aggregationType === 'TERMS' && (fieldName === 'categoryId' || fieldName === 'spaceCategoryIds' || fieldName === 'categoryParentId'),
+  },
+});

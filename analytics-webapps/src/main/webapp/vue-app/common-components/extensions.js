@@ -75,3 +75,31 @@ extensionRegistry.registerExtension('AnalyticsSamples', 'SampleItem', {
     match: fieldName => fieldName === 'spaceTemplateId',
   },
 });
+
+extensionRegistry.registerExtension('AnalyticsSamples', 'SampleItem', {
+  type: 'categoryId',
+  options: {
+    rank: 50,
+    vueComponent: Vue.options.components['analytics-category-sample-item-attribute'],
+    match: fieldName => fieldName === 'categoryId' || fieldName === 'spaceCategoryIds' || fieldName === 'categoryParentId',
+  },
+});
+
+extensionRegistry.registerExtension('AnalyticsChart', 'FieldValueName', {
+  type: 'categoryId',
+  match: fieldName => fieldName === 'categoryId' || fieldName === 'categoryParentId',
+  getLabel: async (fieldName, fieldValue) => {
+    try {
+      const translations = await fetch(`${eXo.env.portal.context}/${eXo.env.portal.rest}/social/translations/category/${fieldValue}/name`, {
+        method: 'GET',
+        credentials: 'include',
+      }).then(resp => resp?.json?.());
+      return translations?.[eXo.env.portal.language]
+        || translations?.[eXo.env.portal.defaultLanguage]
+        || translations?.['en']
+        || fieldValue;
+    } catch (e) {
+      return `${fieldName}=${fieldValue}`;
+    }
+  },
+});
