@@ -22,10 +22,10 @@ package io.meeds.analytics.listener.social;
 import java.util.Date;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.apache.commons.lang3.StringUtils;
 
 import org.exoplatform.commons.api.persistence.ExoTransactional;
 import org.exoplatform.services.listener.Asynchronous;
@@ -36,7 +36,6 @@ import org.exoplatform.social.core.activity.model.ExoSocialActivity;
 import org.exoplatform.social.core.activity.model.ExoSocialActivityImpl;
 import org.exoplatform.social.core.identity.model.Identity;
 import org.exoplatform.social.core.manager.ActivityManager;
-import org.exoplatform.social.core.manager.IdentityManager;
 import org.exoplatform.social.metadata.tag.model.TagName;
 import org.exoplatform.social.metadata.tag.model.TagObject;
 
@@ -53,9 +52,6 @@ public class AnalyticsActivityTagsListener extends Listener<TagObject, Set<TagNa
 
   @Autowired
   private ActivityManager     activityManager;
-
-  @Autowired
-  private IdentityManager     identityManager;
 
   @Autowired
   private ListenerService     listenerService;
@@ -103,6 +99,7 @@ public class AnalyticsActivityTagsListener extends Listener<TagObject, Set<TagNa
 
   private String getActivityPoster(ExoSocialActivity activity) {
     Validate.notNull(activity.getUserId(), "activity.getUserId() must not be null!");
-    return identityManager.getIdentity(activity.getUserId()).getRemoteId();
+    Identity identity = AnalyticsUtils.getIdentity(activity.getUserId());
+    return identity == null ? null : identity.getRemoteId();
   }
 }

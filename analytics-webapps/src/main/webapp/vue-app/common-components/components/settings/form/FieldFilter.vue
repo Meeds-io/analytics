@@ -61,6 +61,10 @@
           v-else-if="filter.field === 'userId'"
           :filter="filter"
           :suggester-labels="suggesterLabels" />
+        <analytics-category-field-filter
+          v-else-if="filter.field === 'categoryId' || filter.field === 'parentCategoryId' || filter.field === 'spaceCategoryIds'"
+          :filter="filter"
+          :suggester-labels="suggesterLabels" />
         <analytics-text-value-filter
           v-else-if="isSelectedFieldAggregation"
           :filter="filter"
