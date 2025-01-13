@@ -68,9 +68,9 @@ export default {
     }
   },
   methods: {
-    init(chartsData) {
+    async init(chartsData) {
       const charts = (chartsData && chartsData.charts) || [];
-      const labels = (chartsData && chartsData.labels) || [];
+      const labels = await Promise.all(((chartsData && chartsData.labels) || []).map(l => Promise.resolve(this.getI18N(l))));
 
       const $container = $(`#${this.id}`);
       if (!$container.length) {
@@ -125,7 +125,7 @@ export default {
           chartOptions.xAxis[0].axisTick = {alignWithLabel: true};
         }
         if (charts.length === 1 && (!charts[0].chartLabel || charts[0].chartLabel === 'null')) {
-          chartOptions.tooltip.formatter = '{b}<br/><center>{c}</center>';
+          chartOptions.tooltip.formatter = '<center>{c}</center>';
         }
         const isMultipleCharts = charts && charts.length > 1;
         charts.forEach(chartData => {
@@ -139,8 +139,8 @@ export default {
             serie.areaStyle = { opacity: 0.8 };
             serie.lineStyle = { width: 1 };
           }
-          if (chartData.chartLabel){
-            serie.name = this.getI18N(chartData.chartLabel);
+          if (chartData.chartLabel) {
+            this.retrieveI18N(serie, chartData.chartLabel);
           }
           series.push(serie);
 
@@ -186,7 +186,7 @@ export default {
               value: result.result,
             };
             if (result.label) {
-              chartDataValues.name = this.getI18N(result.label);
+              this.retrieveI18N(chartDataValues, result.label);
             }
             return chartDataValues;
           }).sort((v1, v2) => parseFloat(v2.value) - parseFloat(v1.value));
@@ -236,12 +236,25 @@ export default {
       const chart = echarts.init($container[0]);
       chart.setOption(chartOptions, true);
     },
-    getI18N(label){
-      const field = label.split('=')[1];
-      if (field) {
-        const fieldLabelI18NKey = `analytics.${field}`;
-        const fieldLabelI18NValue = this.$t(fieldLabelI18NKey);
-        return  fieldLabelI18NValue === fieldLabelI18NKey ? field : fieldLabelI18NValue;
+    retrieveI18N(data, label) {
+      const result = this.getI18N(label);
+      if (result?.then) {
+        result.then(l => data.name = l || label);
+      } else {
+        data.name = result || label;
+      }
+    },
+    getI18N(label) {
+      const fieldName = label.split('=')[0];
+      const fieldValue = label.split('=')[1];
+      if (fieldValue) {
+        const extension = this.$root.fieldNameValueExtensions.find(ext => ext.match(fieldName, fieldValue));
+        if (extension) {
+          return extension.getLabel(fieldName, fieldValue);
+        } else {
+          const fieldLabelI18NKey = `analytics.${fieldValue}`;
+          return this.$te(fieldLabelI18NKey) ? this.$t(fieldLabelI18NKey) : label;
+        }
       } else {
         return label;
       }

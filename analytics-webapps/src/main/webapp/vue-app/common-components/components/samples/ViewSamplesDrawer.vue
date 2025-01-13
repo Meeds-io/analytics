@@ -117,6 +117,9 @@ export default {
     document.addEventListener(`extension-${this.extensionApp}-${this.sampleItemExtensionType}-updated`, this.refreshSampleItemExtensions);
     this.refreshSampleItemExtensions();
   },
+  beforeDestroy() {
+    document.removeEventListener(`extension-${this.extensionApp}-${this.sampleItemExtensionType}-updated`, this.refreshSampleItemExtensions);
+  },
   methods: {
     open() {
       this.$refs.samplesDrawer.open();
