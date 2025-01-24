@@ -32,17 +32,21 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.SignStyle;
 import java.time.temporal.IsoFields;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.TimeZone;
+import java.util.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
+import io.meeds.social.translation.service.TranslationService;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.exoplatform.portal.localization.LocaleContextInfoUtils;
+import org.exoplatform.social.core.model.ProfileLabel;
+import org.exoplatform.social.core.profilelabel.ProfileLabelService;
+import org.exoplatform.social.core.profileproperty.ProfilePropertyService;
+import org.exoplatform.social.core.profileproperty.model.ProfilePropertyOption;
+import org.exoplatform.social.core.profileproperty.model.ProfilePropertySetting;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -75,6 +79,8 @@ import io.meeds.social.category.service.CategoryService;
 
 public class AnalyticsUtils {
   private static final Log              LOG                              = ExoLogger.getLogger(AnalyticsUtils.class);
+
+  private static ProfilePropertyService profilePropertyService;
 
   public static final short             MAX_BULK_DOCUMENTS               = 100;
 
@@ -111,6 +117,12 @@ public class AnalyticsUtils {
   public static final String            FILE_SPACES_ACTIVITY_TYPE        = "files:spaces";
 
   public static final String            ACTIVITY_COMMENT                 = "comment";
+
+  public static final String            PROFILE_PROPERTY_OPTION          = "@propertyOption@";
+
+  public static final String            PROFILE_PROPERTY                 = "@profileProperty@";
+
+  public static final String            PROFILE_PROPERTIES               = "profileProperties";
 
   public static final List<String>      COMPUTED_CHART_LABEL             = Arrays.asList(FIELD_MODIFIER_USER_SOCIAL_ID,                                 // NOSONAR
                                                                                          FIELD_SOCIAL_IDENTITY_ID,
@@ -328,7 +340,7 @@ public class AnalyticsUtils {
   }
 
   @ExoTransactional
-  public static final void addStatisticData(StatisticData statisticData) {
+  public static void addStatisticData(StatisticData statisticData) {
     if (statisticData == null || statisticData.getOperation() == null) {
       return;
     }
@@ -345,6 +357,8 @@ public class AnalyticsUtils {
                                             ConversationState.getCurrent().getIdentity().getUserId()));
     }
 
+    addUserStatistics(statisticData);
+    
     try {
       StatisticDataQueueService analyticsQueueService = CommonsUtils.getService(StatisticDataQueueService.class);
       analyticsQueueService.put(statisticData);
@@ -516,7 +530,7 @@ public class AnalyticsUtils {
     return type;
   }
 
-  public static long parseId(String id) {
+  private static long parseId(String id) {
     try {
       return Long.parseLong(id);
     } catch (NumberFormatException ex) {
@@ -524,4 +538,42 @@ public class AnalyticsUtils {
     }
   }
 
+  private static void addUserStatistics(StatisticData statisticData) {
+    if (statisticData.getUserId() == 0) {
+      return;
+    }
+    Identity identity = getIdentity(String.valueOf(statisticData.getUserId()));
+    if (identity != null && identity.getProfile() != null) {
+      Map<String, Object> properties = identity.getProfile().getProperties();
+      List<ProfilePropertySetting> propertySettings = getProfilePropertyService().getPropertySettings();
+      propertySettings.stream()
+                      .filter(profilePropertySetting -> profilePropertySetting.isVisible()
+                          && profilePropertySetting.isIndexInAnalytics())
+                      .forEach(property -> {
+                        String propertyName = property.getPropertyName();
+                        Object propertyValue = properties.get(propertyName);
+                        if (properties.containsKey(propertyName)) {
+                          if (propertyValue instanceof String value) {
+                            statisticData.addParameter(String.join(".", PROFILE_PROPERTIES, propertyName), value);
+                          } else if (propertyValue instanceof List<?> values
+                              && !getProfilePropertyService().hasChildProperties(property)) {
+                            @SuppressWarnings("unchecked")
+                            List<Map<String, String>> multiValues = (List<Map<String, String>>) values;
+                            List<String> valuesList = multiValues.stream()
+                                                                 .map(prop -> prop.get("value"))
+                                                                 .filter(Objects::nonNull)
+                                                                 .collect(Collectors.toList());
+                            statisticData.addParameter(String.join(".", PROFILE_PROPERTIES, propertyName), valuesList);
+                          }
+                        }
+                      });
+    }
+  }
+
+  private static ProfilePropertyService getProfilePropertyService() {
+    if (profilePropertyService == null) {
+      profilePropertyService = CommonsUtils.getService(ProfilePropertyService.class);
+    }
+    return profilePropertyService;
+  }
 }

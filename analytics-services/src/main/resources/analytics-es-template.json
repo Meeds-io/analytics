@@ -49,6 +49,10 @@
         "errorMessage": {
           "type": "text",
           "index_options": "offsets"
+        },
+        "profileProperties": {
+          "type": "object",
+          "dynamic": true
         }
       }
     }

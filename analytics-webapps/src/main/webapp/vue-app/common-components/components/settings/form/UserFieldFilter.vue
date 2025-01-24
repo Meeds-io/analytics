@@ -1,22 +1,3 @@
-<!--
-  This file is part of the Meeds project (https://meeds.io/).
-
-  Copyright (C) 2020 - 2024 Meeds Association contact@meeds.io
-
-  This program is free software; you can redistribute it and/or
-  modify it under the terms of the GNU Lesser General Public
-  License as published by the Free Software Foundation; either
-  version 3 of the License, or (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-  Lesser General Public License for more details.
-
-  You should have received a copy of the GNU Lesser General Public License
-  along with this program; if not, write to the Free Software Foundation,
-  Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
--->
 <template>
   <v-flex class="d-flex flex-column">
     <exo-identity-suggester
@@ -50,6 +31,7 @@
     </div>
   </v-flex>
 </template>
+
 <script>
 export default {
   props: {
@@ -64,6 +46,10 @@ export default {
       default: function() {
         return [];
       },
+    },
+    usernameProvided: {
+      type: Boolean,
+      default: false,
     },
   },
   data: () => ({
@@ -81,7 +67,7 @@ export default {
       return this.operatorType === 'IN_SET' || this.operatorType === 'NOT_IN_SET';
     },
     userIds() {
-      return this.users.map(user => user.id);
+      return this.users.map(user => (this.usernameProvided ? user.remoteId : user.id));
     },
   },
   created() {
@@ -90,7 +76,7 @@ export default {
       const promises = [];
       const selectedUsers = [];
       identityIds.forEach(identityId => {
-        const promise = this.$identityService.getIdentityById(identityId.trim())
+        const promise = this.getIdentity(identityId)
           .then(identity => {
             if (identity && identity.profile) {
               const selectedUser = {
@@ -119,9 +105,17 @@ export default {
     }
   },
   methods: {
+    getIdentity(id) {
+      if (isNaN(id)) {
+        return this.$userService.getUser(id).then(user => user.identity);
+      } else {
+        return this.$identityService.getIdentityById(id.trim()).then(identity => identity);
+      }
+    },
     selectIdentity(identity) {
       if (this.multipleOperator) {
-        const selectedIdentityId = identity && (identity.length && identity[0].id || identity.id);
+        const selectedIdentityId = identity && (identity.length && identity[0][this.usernameProvided ? 'remoteId' : 'identityId']
+            || identity[this.usernameProvided ? 'remoteId' : 'identityId']);
         if (!selectedIdentityId) {
           return;
         } else if (this.userIds.includes(selectedIdentityId)) {
@@ -136,8 +130,9 @@ export default {
         const identityIds = this.multipleOperator && this.filter.valueString && this.filter.valueString.split(',') || [];
         const promises = [];
         identities.forEach(identity => {
+          const identityKey = this.usernameProvided ? 'remoteId' : 'identityId';
           if (identity.identityId) {
-            identityIds.push(identity.identityId);
+            identityIds.push(identity[identityKey]);
             if (this.multipleOperator) {
               this.users.push(identity);
             }
@@ -145,7 +140,7 @@ export default {
             const promise = this.$identityService.getIdentityByProviderIdAndRemoteId(identity.providerId, identity.remoteId)
               .then(identity => {
                 if (identity.profile) {
-                  identityIds.push(identity.id);
+                  identityIds.push(identity[identityKey]);
                   if (this.multipleOperator) {
                     this.users.push({
                       id: `${identity.providerId}:${identity.remoteId}`,
@@ -175,7 +170,9 @@ export default {
     remove(user) {
       if (user && this.users.indexOf(user) >= 0) {
         this.users.splice(this.users.indexOf(user), 1);
-        this.filter.valueString = this.users.map(user => user.identityId || user.id).join(',');
+        this.filter.valueString = this.users
+          .map(user => (this.usernameProvided ? user.remoteId : user.identityId || user.id))
+          .join(',');
       }
     },
   },
