@@ -212,24 +212,12 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
       if (StringUtils.isBlank(mappingJsonString)) {
         return new HashSet<>(esMappings.values());
       }
+
       JSONObject result = new JSONObject(mappingJsonString);
-      JSONObject mappingObject = getJSONObject(result,
-                                               0,
-                                               null,
-                                               "mappings",
-                                               "properties");
+      JSONObject mappingObject = getJSONObject(result, 0, null, "mappings", "properties");
+
       if (mappingObject != null) {
-        String[] fieldNames = JSONObject.getNames(mappingObject);
-        for (String fieldName : fieldNames) {
-          JSONObject esField = mappingObject.getJSONObject(fieldName);
-          if (esField == null || !esField.has("type")) {
-            continue;
-          }
-          String fieldType = esField.getString("type");
-          JSONObject keywordField = getJSONObject(esField, 0, "fields", "keyword");
-          StatisticFieldMapping esFieldMapping = new StatisticFieldMapping(fieldName, fieldType, keywordField != null);
-          esMappings.put(fieldName, esFieldMapping);
-        }
+        processFields(mappingObject, "", esMappings);
       }
 
       // Add other timestamp fields
@@ -1392,4 +1380,26 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
     return Objects.toString(value, null);
   }
 
+  private void processFields(JSONObject fieldsObject, String parentPath, Map<String, StatisticFieldMapping> esMappings) {
+    String[] fieldNames = JSONObject.getNames(fieldsObject);
+    if (fieldNames == null) {
+      return;
+    }
+    for (String fieldName : fieldNames) {
+      JSONObject esField = fieldsObject.getJSONObject(fieldName);
+      if (esField == null) {
+        continue;
+      }
+      // Handle nested fields with "properties"
+      if (esField.has("properties")) {
+        processFields(esField.getJSONObject("properties"), parentPath + fieldName + ".", esMappings);
+      } else if (esField.has("type")) {
+        // Process regular fields with a "type"
+        String fieldType = esField.getString("type");
+        JSONObject keywordField = getJSONObject(esField, 0, "fields", "keyword");
+        StatisticFieldMapping esFieldMapping = new StatisticFieldMapping(parentPath + fieldName, fieldType, keywordField != null);
+        esMappings.put(parentPath + fieldName, esFieldMapping);
+      }
+    }
+  }
 }

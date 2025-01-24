@@ -84,7 +84,7 @@
           v-text="data.item.label" />
         <v-list-item-action class="ma-0 pe-2 text-no-wrap">
           <v-list-item-action-text>
-            ({{ $t('analytics.itemsCount', {0: data.item.count || 0}) }})
+            ({{ $t('analytics.itemsCount', { 0: data.item.count || 0 }) }})
           </v-list-item-action-text>
         </v-list-item-action>
       </template>
@@ -116,6 +116,10 @@ export default {
         noDataLabel: '',
       }),
     },
+    isProfilePropertyOption: {
+      type: Boolean,
+      default: false
+    }
   },
   data() {
     return {
@@ -179,7 +183,7 @@ export default {
     value() {
       this.emitSelectedValue(this.value);
       this.init();
-    },
+    }
   },
   mounted() {
     $(`#${this.id} input`).on('blur', () => {
@@ -187,25 +191,41 @@ export default {
       // See https://www.reddit.com/r/vuetifyjs/comments/819h8u/how_to_close_a_multiple_autocomplete_vselect/
       this.$refs.selectAutoComplete.isFocused = false;
     });
-    this.init();
+    setTimeout(() => {
+      this.init();
+    }, 500);
     if (!this.filter.valueString) {
       this.search();
     }
   },
   methods: {
-    init() {
-      const values = this.value && ((this.value.value && [this.value]) || (this.value.split && this.value.split(',')) || (this.value.length && this.value)) || [];
-      if (values && values.length) {
-        values.forEach(value => {
+    async init() {
+      if (!this.value) {
+        return;
+      }
+      const values = Array.isArray(this.value)
+        ? this.value
+        : typeof this.value === 'string'
+          ? this.value.split(',')
+          : this.value?.value
+            ? [this.value]
+            : [];
+
+      const items = await Promise.all(
+        values.map(async (value) => {
           if (value) {
-            this.items.push({
+            const label = !this.isProfilePropertyOption && value.label
+                || await this.computeI18NLabel(value);
+            return {
               value: value.value || value,
               count: value.count || 0,
-              label: value.label || this.computeI18NLabel(value),
-            });
+              label,
+            };
           }
-        });
-      }
+        })
+      );
+
+      this.items = items.filter(Boolean); // Filter out any undefined items
     },
     search(text) {
       if (!this.filterField) {
@@ -240,17 +260,9 @@ export default {
             } else {
               throw new Error('Error getting field values with name:', this.filter.field);
             }
-          }).then((valueItems) => {
+          }).then(async (valueItems) => {
             if (valueItems && valueItems.length) {
-              valueItems.forEach(valueItem => {
-                if (!this.items.find(item => item.value === valueItem.value)) {
-                  this.items.push({
-                    value: valueItem.value,
-                    count: valueItem.count || 0,
-                    label: this.computeI18NLabel(valueItem.value),
-                  });
-                }
-              });
+              await this.updateItems(valueItems);
             }
             this.searched = true;
             return this.search(text);
@@ -263,9 +275,7 @@ export default {
       }, 400);
     },
     computeI18NLabel(value) {
-      const key = `analytics.${value}`;
-      const i18NValue = this.$t(key);
-      return i18NValue === key ? value : i18NValue;
+      return this.$parent.computeI18NLabel(value);
     },
     emitSelectedValue(value) {
       this.$emit('input', value);
@@ -303,6 +313,21 @@ export default {
         }
       }
       this.$emit('removeValue',item);
+    },
+    async updateItems(valueItems) {
+      const itemPromises = valueItems.map(async valueItem => {
+        if (!this.items.find(item => item.value === valueItem.value)) {
+          const label = await this.computeI18NLabel(valueItem.value);
+          return {
+            value: valueItem.value,
+            count: valueItem.count || 0,
+            label,
+          };
+        }
+        return null;
+      });
+      const newItems = (await Promise.all(itemPromises)).filter(item => item !== null);
+      this.items.push(...newItems);
     },
   },
 };

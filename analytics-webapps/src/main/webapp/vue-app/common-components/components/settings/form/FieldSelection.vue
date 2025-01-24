@@ -47,7 +47,13 @@
         </v-chip>
       </template>
       <template #item="data">
-        <v-list-item-content v-text="data.item.label" />
+        <analytics-profile-property-item-attribute-label
+          v-if="isProfileProperty(data.item.name)"
+          :property="data.item.name"
+          :filter-selection="true" />
+        <v-list-item-content
+          v-else
+          v-text="data.item.label" />
       </template>
     </v-autocomplete>
   </div>
@@ -142,6 +148,9 @@ export default {
       const item1Value = (item1 && item1.value) || item1;
       const item2Value = (item2 && item2.value) || item2;
       return item1Value === item2Value;
+    },
+    isProfileProperty(name) {
+      return name.startsWith('profileProperties.');
     },
   },
 };

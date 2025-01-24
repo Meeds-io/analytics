@@ -50,6 +50,11 @@ import DateSampleItemAttribute from './components/samples/DateSampleItemAttribut
 import DurationSampleItemAttribute from './components/samples/DurationSampleItemAttribute.vue';
 import SpaceTemplateItemAttribute from './components/samples/SpaceTemplateItemAttribute.vue';
 import CategoryAttribute from './components/samples/CategoryAttribute.vue';
+import ProfilePropertyItemAttribute from './components/samples/ProfilePropertyItemAttribute.vue';
+import ProfilePropertyItemAttributeValue from './components/samples/ProfilePropertyItemAttributeValue.vue';
+import ProfilePropertyItemAttributeLabel from './components/samples/ProfilePropertyItemAttributeLabel.vue';
+import ProfileDropdownPropertyItemValue from './components/samples/ProfileDropdownPropertyItemValue.vue';
+import ProfilePropertyFieldFilter from './components/settings/form/ProfilePropertyFieldFilter.vue';
 
 import SelectPeriod from './components/common/SelectPeriod.vue';
 
@@ -85,6 +90,11 @@ const components = {
   'analytics-chart-setting-drawer': AnalyticsChartSettingDrawer,
   'analytics-json-panel-drawer': JsonPanelDrawer,
   'analytics-view-samples-drawer': ViewSamplesDrawer,
+  'analytics-profile-property-item-attribute': ProfilePropertyItemAttribute,
+  'analytics-profile-property-item-attribute-value': ProfilePropertyItemAttributeValue,
+  'analytics-profile-property-item-attribute-label': ProfilePropertyItemAttributeLabel,
+  'analytics.profile-dropdown-property-item-value': ProfileDropdownPropertyItemValue,
+  'analytics-profile-property-field-filter': ProfilePropertyFieldFilter
 };
 
 for (const key in components) {

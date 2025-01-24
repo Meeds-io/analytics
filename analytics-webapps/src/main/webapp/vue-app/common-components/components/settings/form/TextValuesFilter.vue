@@ -24,6 +24,7 @@
       v-model="selectedValue"
       :filter="filter"
       :labels="suggesterLabels"
+      :is-profile-property-option="isProfilePropertyOption"
       class="analytics-suggester"
       sugester-class="my-0"
       @input="selectValue" />
@@ -60,8 +61,13 @@ export default {
         return [];
       },
     },
+    isProfilePropertyOption: {
+      type: Boolean,
+      default: false
+    }
   },
   data: () => ({
+    lang: eXo.env.portal.language,
     selectedValue: null,
     values: [],
   }),
@@ -77,29 +83,32 @@ export default {
     },
   },
   created() {
-    if (this.filter.valueString) {
-      const values = this.filter.valueString.split(',');
-      const selectedValues = [];
-      values.forEach(value => {
-        if (value) {
-          selectedValues.push({
-            value: value,
-            label: this.computeI18NLabel(value),
-          });
+    (async () => {
+      if (this.filter.valueString) {
+        const values = this.filter.valueString.split(',');
+        const selectedValues = await Promise.all(
+          values
+            .filter(value => value)
+            .map(async value => ({
+              value: value,
+              label: await this.computeI18NLabel(value),
+            }))
+        );
+        if (this.multipleOperator) {
+          this.values = selectedValues;
+        } else {
+          this.selectedValue = selectedValues.length > 0 ? selectedValues[0] : null;
         }
-      });
-      if (this.multipleOperator) {
-        this.values = selectedValues;
-      } else {
-        this.selectedValue = selectedValues && selectedValues[0] || null;
       }
-    }
+    })();
   },
   methods: {
-    computeI18NLabel(value) {
+    async computeI18NLabel(value) {
+      if (this.isProfilePropertyOption) {
+        return await this.getProfilePropertyOptionTranslation(value);
+      }
       const key = `analytics.${value}`;
-      const i18NValue = this.$t(key);
-      return i18NValue === key ? value : i18NValue;
+      return this.$te(key) ? this.$t(key) : value;
     },
     selectValue(value) {
       if (this.multipleOperator) {
@@ -121,14 +130,17 @@ export default {
         values.push(...selectedValues);
         this.filter.valueString = values.join(',');
         if (this.multipleOperator) {
-          values.forEach(value => {
-            if (value && !this.values.find(item => item.value === value)) {
-              this.values.push({
-                value: value,
-                label: this.computeI18NLabel(value),
-              });
-            }
-          });
+          const valuePromises = values
+            .filter(value => value && !this.values.find(item => item.value === value))
+            .map(async value => ({
+              value: value,
+              label: await this.computeI18NLabel(value),
+            }));
+
+          (async () => {
+            const resolvedValues = await Promise.all(valuePromises);
+            this.values.push(...resolvedValues);
+          })();
         }
       }
       if (this.multipleOperator) {
@@ -141,6 +153,9 @@ export default {
         this.values.splice(this.values.indexOf(value), 1);
         this.filter.valueString = this.values.map(value => value.value).join(',');
       }
+    },
+    async getProfilePropertyOptionTranslation(value) {
+      return await this.$analyticsUtils.getPropertyOptionTranslatedValue(value.value || value, this.lang);
     },
   },
 };
