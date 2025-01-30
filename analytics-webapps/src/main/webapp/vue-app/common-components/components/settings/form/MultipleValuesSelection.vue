@@ -62,6 +62,10 @@
             v-else-if="filter.field === 'categoryId' || filter.field === 'parentCategoryId' || filter.field === 'spaceCategoryIds'"
             :filter="filter"
             :suggester-labels="suggesterLabels" />
+          <analytics-profile-property-field-filter
+            v-else-if="isProfileProperty(filter.field)"
+            :filter="filter"
+            :suggester-labels="suggesterLabels" />
           <analytics-text-value-filter
             v-else-if="aggregation"
             :filter="filter"
@@ -114,5 +118,10 @@ export default {
       return this.filter && this.filter.field;
     },
   },
+  methods: {
+    isProfileProperty(field) {
+      return field?.startsWith('profileProperties.');
+    }
+  }
 };
 </script>
