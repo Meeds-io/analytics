@@ -50,6 +50,7 @@
     </div>
   </v-flex>
 </template>
+
 <script>
 export default {
   props: {
@@ -64,6 +65,10 @@ export default {
       default: function() {
         return [];
       },
+    },
+    usernameProvided: {
+      type: Boolean,
+      default: false,
     },
   },
   data: () => ({
@@ -81,7 +86,7 @@ export default {
       return this.operatorType === 'IN_SET' || this.operatorType === 'NOT_IN_SET';
     },
     userIds() {
-      return this.users.map(user => user.id);
+      return this.users.map(user => (this.usernameProvided ? user.remoteId : user.id));
     },
   },
   created() {
@@ -90,7 +95,7 @@ export default {
       const promises = [];
       const selectedUsers = [];
       identityIds.forEach(identityId => {
-        const promise = this.$identityService.getIdentityById(identityId.trim())
+        const promise = this.getIdentity(identityId)
           .then(identity => {
             if (identity && identity.profile) {
               const selectedUser = {
@@ -119,9 +124,17 @@ export default {
     }
   },
   methods: {
+    getIdentity(id) {
+      if (isNaN(id)) {
+        return this.$userService.getUser(id).then(user => user.identity);
+      } else {
+        return this.$identityService.getIdentityById(id.trim()).then(identity => identity);
+      }
+    },
     selectIdentity(identity) {
       if (this.multipleOperator) {
-        const selectedIdentityId = identity && (identity.length && identity[0].id || identity.id);
+        const selectedIdentityId = identity && (identity.length && identity[0][this.usernameProvided ? 'remoteId' : 'identityId']
+            || identity[this.usernameProvided ? 'remoteId' : 'identityId']);
         if (!selectedIdentityId) {
           return;
         } else if (this.userIds.includes(selectedIdentityId)) {
@@ -136,8 +149,9 @@ export default {
         const identityIds = this.multipleOperator && this.filter.valueString && this.filter.valueString.split(',') || [];
         const promises = [];
         identities.forEach(identity => {
+          const identityKey = this.usernameProvided ? 'remoteId' : 'identityId';
           if (identity.identityId) {
-            identityIds.push(identity.identityId);
+            identityIds.push(identity[identityKey]);
             if (this.multipleOperator) {
               this.users.push(identity);
             }
@@ -145,7 +159,7 @@ export default {
             const promise = this.$identityService.getIdentityByProviderIdAndRemoteId(identity.providerId, identity.remoteId)
               .then(identity => {
                 if (identity.profile) {
-                  identityIds.push(identity.id);
+                  identityIds.push(identity[identityKey]);
                   if (this.multipleOperator) {
                     this.users.push({
                       id: `${identity.providerId}:${identity.remoteId}`,
@@ -175,7 +189,9 @@ export default {
     remove(user) {
       if (user && this.users.indexOf(user) >= 0) {
         this.users.splice(this.users.indexOf(user), 1);
-        this.filter.valueString = this.users.map(user => user.identityId || user.id).join(',');
+        this.filter.valueString = this.users
+          .map(user => (this.usernameProvided ? user.remoteId : user.identityId || user.id))
+          .join(',');
       }
     },
   },
