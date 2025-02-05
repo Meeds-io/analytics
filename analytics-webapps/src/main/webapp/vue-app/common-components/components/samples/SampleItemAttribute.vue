@@ -18,7 +18,11 @@
   Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 -->
 <template>
-  <v-row>
+  <extension-registry-component
+    v-if="sampleItemExtension?.includeLabel"
+    :component="extendedSampleItemComponent"
+    :params="extendedSampleItemComponentParams" />
+  <v-row v-else>
     <v-col class="d-flex flex-column justify-center">{{ keyLabel }}</v-col>
     <v-col v-if="sampleItemExtension" class="text--secondary">
       <extension-registry-component
