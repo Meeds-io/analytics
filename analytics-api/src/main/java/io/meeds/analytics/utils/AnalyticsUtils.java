@@ -32,21 +32,18 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.SignStyle;
 import java.time.temporal.IsoFields;
-import java.util.*;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.TimeZone;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
-import io.meeds.social.translation.service.TranslationService;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.exoplatform.portal.localization.LocaleContextInfoUtils;
-import org.exoplatform.social.core.model.ProfileLabel;
-import org.exoplatform.social.core.profilelabel.ProfileLabelService;
-import org.exoplatform.social.core.profileproperty.ProfilePropertyService;
-import org.exoplatform.social.core.profileproperty.model.ProfilePropertyOption;
-import org.exoplatform.social.core.profileproperty.model.ProfilePropertySetting;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -62,6 +59,8 @@ import org.exoplatform.social.core.activity.model.ActivityStream;
 import org.exoplatform.social.core.activity.model.ExoSocialActivity;
 import org.exoplatform.social.core.identity.model.Identity;
 import org.exoplatform.social.core.manager.IdentityManager;
+import org.exoplatform.social.core.profileproperty.ProfilePropertyService;
+import org.exoplatform.social.core.profileproperty.model.ProfilePropertySetting;
 import org.exoplatform.social.core.space.model.Space;
 import org.exoplatform.social.core.space.spi.SpaceService;
 import org.exoplatform.ws.frameworks.json.impl.JsonDefaultHandler;
@@ -551,14 +550,13 @@ public class AnalyticsUtils {
                         if (properties.containsKey(propertyName)) {
                           if (propertyValue instanceof String value) {
                             statisticData.addParameter(String.join(".", PROFILE_PROPERTIES, propertyName), value);
-                          } else if (propertyValue instanceof List<?> values
-                              && !getProfilePropertyService().hasChildProperties(property)) {
+                          } else if (propertyValue instanceof List<?> values && !property.isHasChildProperties()) {
                             @SuppressWarnings("unchecked")
                             List<Map<String, String>> multiValues = (List<Map<String, String>>) values;
                             List<String> valuesList = multiValues.stream()
                                                                  .map(prop -> prop.get("value"))
                                                                  .filter(Objects::nonNull)
-                                                                 .collect(Collectors.toList());
+                                                                 .toList();
                             statisticData.addParameter(String.join(".", PROFILE_PROPERTIES, propertyName), valuesList);
                           }
                         }
