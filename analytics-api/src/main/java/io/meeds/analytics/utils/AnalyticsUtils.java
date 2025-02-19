@@ -293,7 +293,7 @@ public class AnalyticsUtils {
     return new JSONArray(valuesList.stream().map(String::trim).toList()).toString();
   }
 
-  public static final JSONObject getJSONObject(JSONObject jsonObject, int i, String... keys) { // NOSONAR
+  public static JSONObject getJSONObject(JSONObject jsonObject, int i, String... keys) { // NOSONAR
     if (keys == null || i >= keys.length) {
       return null;
     }
@@ -303,14 +303,12 @@ public class AnalyticsUtils {
         if (ArrayUtils.isNotEmpty(names)) {
           i++;
           JSONObject resultJsonObject = new JSONObject();
-          for (int j = 0; j < names.length; j++) {
-            String name = names[j];
+          for (String name : names) {
             JSONObject subJsonObject = jsonObject.getJSONObject(name);
             JSONObject resultSubJsonObject = getJSONObject(subJsonObject, i, keys);
-            String[] attributes = JSONObject.getNames(resultSubJsonObject);
-            for (int k = 0; k < attributes.length; k++) {
-              String attribute = attributes[k];
-              resultJsonObject.put(attribute, resultSubJsonObject.get(attribute));
+
+            if (resultSubJsonObject != null) {
+              mergeKeyMappings(resultJsonObject, resultSubJsonObject);
             }
           }
           return resultJsonObject;
@@ -564,6 +562,23 @@ public class AnalyticsUtils {
     }
   }
 
+  private static void mergeKeyMappings(JSONObject target, JSONObject source) {
+    for (String key : JSONObject.getNames(source)) {
+      Object newValue = source.get(key);
+      if (!target.has(key)) {
+        target.put(key, newValue);
+      } else {
+        Object existingValue = target.get(key);
+        if (existingValue instanceof JSONObject && newValue instanceof JSONObject) {
+          mergeKeyMappings((JSONObject) existingValue, (JSONObject) newValue);
+        } else {
+          target.put(key, newValue);
+        }
+      }
+    }
+  }
+
+  
   private static ProfilePropertyService getProfilePropertyService() {
     if (profilePropertyService == null) {
       profilePropertyService = CommonsUtils.getService(ProfilePropertyService.class);
