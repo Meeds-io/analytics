@@ -39,13 +39,12 @@ import org.exoplatform.services.log.Log;
 import org.exoplatform.social.core.space.SpaceUtils;
 import org.exoplatform.social.core.space.model.Space;
 import org.exoplatform.web.application.*;
-import org.exoplatform.webui.application.WebuiRequestContext;
 
 import io.meeds.analytics.model.StatisticData;
 import io.meeds.analytics.model.StatisticData.StatisticStatus;
 
 @Component
-public class PageAccessListener extends BaseComponentPlugin implements ApplicationLifecycle<WebuiRequestContext> {
+public class PageAccessListener extends BaseComponentPlugin implements ApplicationLifecycle<RequestContext> {
 
   private static final Log              LOG                = ExoLogger.getLogger(PageAccessListener.class);
 
@@ -68,12 +67,12 @@ public class PageAccessListener extends BaseComponentPlugin implements Applicati
   }
 
   @Override
-  public void onStartRequest(Application app, WebuiRequestContext context) throws Exception {
+  public void onStartRequest(Application app, RequestContext context) throws Exception {
     operationStartTime.set(System.currentTimeMillis());
   }
 
   @Override
-  public void onEndRequest(Application app, WebuiRequestContext context) throws Exception {
+  public void onEndRequest(Application app, RequestContext context) throws Exception {
     StatisticData statisticData = buildStatisticData(context);
     if (statisticData == null) {
       operationStartTime.remove();
@@ -83,7 +82,7 @@ public class PageAccessListener extends BaseComponentPlugin implements Applicati
   }
 
   @Override
-  public void onFailRequest(Application app, WebuiRequestContext context, RequestFailure failureType) {
+  public void onFailRequest(Application app, RequestContext context, RequestFailure failureType) {
     // Not used
   }
 
@@ -92,10 +91,9 @@ public class PageAccessListener extends BaseComponentPlugin implements Applicati
     // Not used
   }
 
-  private StatisticData buildStatisticData(WebuiRequestContext context) {
+  private StatisticData buildStatisticData(RequestContext context) {
     try {
-      PortalRequestContext portalRequestContext = (PortalRequestContext) context;
-      if (portalRequestContext == null) {
+      if (!(context instanceof PortalRequestContext portalRequestContext)) {
         return null;
       }
 
