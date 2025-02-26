@@ -169,7 +169,8 @@
           "filters": [{
             "field": "operation",
             "type": "IN_SET",
-            "valueString": "noteCreated,noteUpdated,taskCreated,taskUpdated,taskCommented,taskCompleted,taskStatusChanged,createActivity,createComment,likeActivity,likeComment,sendKudos,contactSection,experienceSection,avatar"
+            "valueString": "taskCreated,taskUpdated,taskCommented,taskCompleted,taskStatusChanged,createActivity,createComment,likeActivity,likeComment,sendKudos,contactSection,experienceSection,avatar,
+         createContent,updateContent,publishContent,commentContent,likeContent,shareContent"
           }, {
             "field": "spaceId",
             "type": "GREATER",
@@ -178,7 +179,12 @@
             "field": "timestamp",
             "type": "GREATER",
             "valueString": "{fromTimestamp}"
-          }],
+          }, {
+            "field": "activityType",
+            "type": "NOT_IN_SET",
+            "valueString": "news"
+            }
+         ],
           "yAxisAggregation": {
             "type": "COUNT",
             "field": "spaceId",
