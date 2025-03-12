@@ -45,7 +45,7 @@
         <v-expansion-panels v-if="chartDatas" accordion>
           <analytics-sample-item
             v-for="chartData in chartDatas"
-            :key="chartData.id"
+            :key="chartData.timestamp"
             :chart-data="chartData"
             :sample-item-extensions="sampleItemExtensions" />
         </v-expansion-panels>
