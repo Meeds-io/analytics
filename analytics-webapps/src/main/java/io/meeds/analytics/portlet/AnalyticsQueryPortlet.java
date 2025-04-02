@@ -98,6 +98,9 @@ public class AnalyticsQueryPortlet extends GenericDispatchedViewPortlet {
     }
     if (filterString.contains(SPACE_MEMBER_IDS_PARAM)) {
       List<String> memberSpacesIds = getSpaceService().getMemberSpacesIds(request.getRemoteUser(), 0, MAX_SPACE_IDS);
+      if (memberSpacesIds.isEmpty()) {
+        memberSpacesIds.add("-1");
+      }
       filterString = filterString.replace(SPACE_MEMBER_IDS_PARAM, StringUtils.join(memberSpacesIds, ","));
     }
     if (filterString.contains(FROM_TIMESTAMP_PARAM)) {
