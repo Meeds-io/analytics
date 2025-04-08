@@ -8,14 +8,15 @@
             "enabled": true,
             "application": {
                 "title": "Analytics",
-                "description": "Analytics applications",
+                "description": "Measure platform usage",
                 "url": "./analytics",
                 "system": true,
                 "active": true,
                 "mandatory": false,
                 "mobile": true,
+                "default": true,
+                "pwa": false,
                 "permissions": [
-                    "*:/platform/administrators",
                     "*:/platform/analytics"
                 ]
             }
