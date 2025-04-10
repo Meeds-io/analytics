@@ -28,10 +28,11 @@
     class="spacesListOverviewDrawer"
     allow-expand>
     <template #title>
-      {{ $t('analytics.spacesListWidget.drawer.title') }}
+      {{ memberSpacesOnly && $t('analytics.spacesListWidget.tab.userSpaces') || $t('analytics.spacesListWidget.drawer.title') }}
     </template>
     <template v-if="drawer" #content>
       <v-tabs
+        v-if="!memberSpacesOnly"
         v-model="tabName"
         slider-size="4">
         <v-tab
@@ -51,7 +52,13 @@
           {{ $t('analytics.spacesListWidget.tab.mostActive') }}
         </v-tab>
       </v-tabs>
+      <v-list
+        v-if="memberSpacesOnly"
+        class="ma-5">
+        <spaces-list-widget-list :list="memberSpacesToDisplay" />
+      </v-list>
       <v-tabs-items
+        v-else
         v-model="tabName"
         class="px-4">
         <v-tab-item value="member">
@@ -87,6 +94,12 @@
 </template>
 <script>
 export default {
+  props: {
+    memberSpacesOnly: {
+      type: Boolean,
+      default: false,
+    }
+  },
   data: () => ({
     drawer: false,
     loading: false,
