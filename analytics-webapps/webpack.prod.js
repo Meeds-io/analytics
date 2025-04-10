@@ -50,6 +50,7 @@ const config = {
     spacesListWidget:'./src/main/webapp/vue-app/spaces-list-widget/main.js',
     spacesAdministrationExtension:'./src/main/webapp/vue-app/spaces-administration-extension/main.js',
     analyticsApi:'./src/main/webapp/vue-app/analytics-api/main.js',
+    analyticsQuickActionExtensions: "./src/main/webapp/vue-app/quick-actions/extensions.js",
   },
   output: {
     path: path.join(__dirname, 'target/analytics/'),
