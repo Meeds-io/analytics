@@ -540,8 +540,7 @@ public class AnalyticsUtils {
       Map<String, Object> properties = identity.getProfile().getProperties();
       List<ProfilePropertySetting> propertySettings = getProfilePropertyService().getPropertySettings();
       propertySettings.stream()
-                      .filter(profilePropertySetting -> profilePropertySetting.isVisible()
-                          && profilePropertySetting.isIndexInAnalytics())
+                      .filter(ProfilePropertySetting::isIndexInAnalytics)
                       .forEach(property -> {
                         String propertyName = property.getPropertyName();
                         Object propertyValue = properties.get(propertyName);
