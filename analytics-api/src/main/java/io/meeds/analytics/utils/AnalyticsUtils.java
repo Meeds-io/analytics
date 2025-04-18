@@ -32,20 +32,17 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.SignStyle;
 import java.time.temporal.IsoFields;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.TimeZone;
+import java.util.*;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.time.LocalDate;
 
-import org.apache.commons.lang3.ArrayUtils;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import org.exoplatform.commons.api.persistence.ExoTransactional;
@@ -118,6 +115,8 @@ public class AnalyticsUtils {
   public static final String            ACTIVITY_COMMENT                 = "comment";
 
   public static final String            PROFILE_PROPERTIES               = "profileProperties";
+  
+  private static final String           PROPERTIES                       = "properties";
 
   public static final List<String>      COMPUTED_CHART_LABEL             = Arrays.asList(FIELD_MODIFIER_USER_SOCIAL_ID,                                 // NOSONAR
                                                                                          FIELD_SOCIAL_IDENTITY_ID,
@@ -293,40 +292,39 @@ public class AnalyticsUtils {
     return new JSONArray(valuesList.stream().map(String::trim).toList()).toString();
   }
 
-  public static JSONObject getJSONObject(JSONObject jsonObject, int i, String... keys) { // NOSONAR
+  public static JsonNode getJsonNode(JsonNode jsonNode, int i, String... keys) {
     if (keys == null || i >= keys.length) {
       return null;
     }
     try {
       if (keys[i] == null) {
-        String[] names = JSONObject.getNames(jsonObject);
-        if (ArrayUtils.isNotEmpty(names)) {
-          i++;
-          JSONObject resultJsonObject = new JSONObject();
-          for (String name : names) {
-            JSONObject subJsonObject = jsonObject.getJSONObject(name);
-            JSONObject resultSubJsonObject = getJSONObject(subJsonObject, i, keys);
-
-            if (resultSubJsonObject != null) {
-              mergeKeyMappings(resultJsonObject, resultSubJsonObject);
-            }
-          }
-          return resultJsonObject;
-        } else {
+        Iterator<String> fieldNames = jsonNode.fieldNames();
+        if (!fieldNames.hasNext()) {
           return null;
         }
-      } else if (jsonObject.has(keys[i])) {
-        jsonObject = jsonObject.getJSONObject(keys[i]);
+        ObjectNode resultNode = JsonNodeFactory.instance.objectNode();
+        while (fieldNames.hasNext()) {
+          String fieldName = fieldNames.next();
+          JsonNode subNode = jsonNode.get(fieldName);
+          JsonNode resultSubNode = getJsonNode(subNode, i + 1, keys);
+
+          if (resultSubNode != null && resultSubNode.isObject()) {
+            mergeObjectNodes(resultNode, (ObjectNode) resultSubNode);
+          }
+        }
+        return resultNode;
+      } else if (jsonNode.has(keys[i])) {
+        JsonNode nextNode = jsonNode.get(keys[i]);
         i++;
         if (i == keys.length) {
-          return jsonObject;
+          return nextNode;
         } else {
-          return getJSONObject(jsonObject, i, keys);
+          return getJsonNode(nextNode, i, keys);
         }
       } else {
         return null;
       }
-    } catch (JSONException e) {
+    } catch (Exception e) {
       LOG.warn("Error getting key object with {}", keys[i], e);
       return null;
     }
@@ -561,23 +559,75 @@ public class AnalyticsUtils {
     }
   }
 
-  private static void mergeKeyMappings(JSONObject target, JSONObject source) {
-    for (String key : JSONObject.getNames(source)) {
-      Object newValue = source.get(key);
+  private static void mergeObjectNodes(ObjectNode target, ObjectNode source) {
+    for (Iterator<Map.Entry<String, JsonNode>> it = source.fields(); it.hasNext();) {
+      Map.Entry<String, JsonNode> entry = it.next();
+      String key = entry.getKey();
+      JsonNode newValue = entry.getValue();
       if (!target.has(key)) {
-        target.put(key, newValue);
-      } else {
-        Object existingValue = target.get(key);
-        if (existingValue instanceof JSONObject && newValue instanceof JSONObject) {
-          mergeKeyMappings((JSONObject) existingValue, (JSONObject) newValue);
+        target.set(key, newValue);
+        continue;
+      }
+      JsonNode existingValue = target.get(key);
+      if (existingValue.isObject() && newValue.isObject()) {
+        ObjectNode existingObj = (ObjectNode) existingValue;
+        ObjectNode newObj = (ObjectNode) newValue;
+        JsonNode existingProps = existingObj.get(PROPERTIES);
+        JsonNode newProps = newObj.get(PROPERTIES);
+        if (existingProps != null && newProps != null && existingProps.isObject() && newProps.isObject()) {
+          ObjectNode existingPropsObj = (ObjectNode) existingProps;
+          ObjectNode newPropsObj = (ObjectNode) newProps;
+          if (hasNewKeys(existingPropsObj, newPropsObj)) {
+            mergeObjectNodes(existingPropsObj, newPropsObj);
+            existingObj.set(PROPERTIES, existingPropsObj);
+          }
+          target.set(key, existingObj);
         } else {
-          target.put(key, newValue);
+          target.set(key, newValue);
         }
+      } else {
+        target.set(key, newValue);
       }
     }
   }
 
-  
+  private static boolean hasNewKeys(ObjectNode existing, ObjectNode incoming) {
+    Iterator<String> it = incoming.fieldNames();
+    while (it.hasNext()) {
+      if (!existing.has(it.next())) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public static ObjectNode sortByAnalyticsDate(JSONObject input) {
+    Map<LocalDate, String> dateKeyMap = new TreeMap<>();
+    Pattern pattern = Pattern.compile("analytics_(\\d{4}-\\d{2}-\\d{2})");
+
+    for (String key : input.keySet()) {
+      Matcher matcher = pattern.matcher(key);
+      if (matcher.matches()) {
+        LocalDate date = LocalDate.parse(matcher.group(1));
+        dateKeyMap.put(date, key);
+      }
+    }
+    ObjectMapper mapper = new ObjectMapper();
+    ObjectNode sortedNode = mapper.createObjectNode();
+
+    for (Map.Entry<LocalDate, String> entry : dateKeyMap.entrySet()) {
+      String key = entry.getValue();
+      Object raw = input.get(key);
+      try {
+        JsonNode valueNode = mapper.readTree(raw.toString());
+        sortedNode.set(key, valueNode);
+      } catch (Exception e) {
+        sortedNode.putPOJO(key, raw);
+      }
+    }
+    return sortedNode;
+  }
+
   private static ProfilePropertyService getProfilePropertyService() {
     if (profilePropertyService == null) {
       profilePropertyService = CommonsUtils.getService(ProfilePropertyService.class);
