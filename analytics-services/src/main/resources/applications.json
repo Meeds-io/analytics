@@ -15,6 +15,7 @@
                 "mandatory": false,
                 "mobile": true,
                 "default": false,
+                "shortcut": "i",
                 "pwa": false,
                 "permissions": [
                     "*:/platform/analytics"
