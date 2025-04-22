@@ -19,14 +19,6 @@
  */
 package io.meeds.analytics.elasticsearch.service;
 
-import static io.meeds.analytics.utils.AnalyticsUtils.DEFAULT_FIELDS;
-import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_TIMESTAMP;
-import static io.meeds.analytics.utils.AnalyticsUtils.collectionToJSONString;
-import static io.meeds.analytics.utils.AnalyticsUtils.fixJSONStringFormat;
-import static io.meeds.analytics.utils.AnalyticsUtils.fromJsonString;
-import static io.meeds.analytics.utils.AnalyticsUtils.getJSONObject;
-import static io.meeds.analytics.utils.AnalyticsUtils.toJsonString;
-
 import java.math.BigDecimal;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -45,6 +37,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
@@ -94,6 +88,8 @@ import io.meeds.common.ContainerTransactional;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.Getter;
+
+import static io.meeds.analytics.utils.AnalyticsUtils.*;
 
 @Service
 public class ElasticsearchAnalyticsService implements AnalyticsService {
@@ -213,8 +209,8 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
         return new HashSet<>(esMappings.values());
       }
 
-      JSONObject result = new JSONObject(mappingJsonString);
-      JSONObject mappingObject = getJSONObject(result, 0, null, "mappings", "properties");
+      ObjectNode result = sortByAnalyticsDate(new JSONObject(mappingJsonString));
+      JsonNode mappingObject = getJsonNode(result, 0, null, "mappings", "properties");
 
       if (mappingObject != null) {
         processFields(mappingObject, "", esMappings);
@@ -1380,24 +1376,29 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
     return Objects.toString(value, null);
   }
 
-  private void processFields(JSONObject fieldsObject, String parentPath, Map<String, StatisticFieldMapping> esMappings) {
-    String[] fieldNames = JSONObject.getNames(fieldsObject);
-    if (fieldNames == null) {
+  private void processFields(JsonNode fieldsNode, String parentPath, Map<String, StatisticFieldMapping> esMappings) {
+    if (fieldsNode == null || !fieldsNode.isObject()) {
       return;
     }
-    for (String fieldName : fieldNames) {
-      JSONObject esField = fieldsObject.getJSONObject(fieldName);
-      if (esField == null) {
+    Iterator<Map.Entry<String, JsonNode>> fields = fieldsNode.fields();
+    while (fields.hasNext()) {
+      Map.Entry<String, JsonNode> entry = fields.next();
+      String fieldName = entry.getKey();
+      JsonNode esField = entry.getValue();
+
+      if (esField == null || !esField.isObject()) {
         continue;
       }
-      // Handle nested fields with "properties"
       if (esField.has("properties")) {
-        processFields(esField.getJSONObject("properties"), parentPath + fieldName + ".", esMappings);
+        JsonNode nestedProperties = esField.get("properties");
+        processFields(nestedProperties, parentPath + fieldName + ".", esMappings);
       } else if (esField.has("type")) {
         // Process regular fields with a "type"
-        String fieldType = esField.getString("type");
-        JSONObject keywordField = getJSONObject(esField, 0, "fields", "keyword");
-        StatisticFieldMapping esFieldMapping = new StatisticFieldMapping(parentPath + fieldName, fieldType, keywordField != null);
+        String fieldType = esField.get("type").asText();
+        JsonNode keywordField = getJsonNode(esField, 0, "fields", "keyword");
+        boolean hasKeyword = keywordField != null && keywordField.isObject();
+        StatisticFieldMapping esFieldMapping = new StatisticFieldMapping(parentPath + fieldName, fieldType, hasKeyword);
+
         esMappings.put(parentPath + fieldName, esFieldMapping);
       }
     }
