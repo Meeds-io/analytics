@@ -11,7 +11,7 @@
                 "description": "Measure platform usage",
                 "url": "./analytics",
                 "system": true,
-                "active": true,
+                "active": false,
                 "mandatory": false,
                 "mobile": true,
                 "default": false,
