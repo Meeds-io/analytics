@@ -77,6 +77,10 @@
           </v-list>
         </v-tab-item>
       </v-tabs-items>
+      <div v-if="emptyList" class="d-flex flex-column align-center justify-center full-width">
+        <v-icon color="tertiary" size="40">fa-people-arrows</v-icon>
+        <span class="mt-5">{{ $t('analytics.spacesListWidget.noSpaces') }}</span>
+      </div>
     </template>
     <template v-if="drawer && hasMore" slot="footer">
       <v-spacer />
@@ -118,6 +122,9 @@ export default {
       case 'member': return this.memberSpaces;
       default: return null;
       }
+    },
+    emptyList() {
+      return !this.list?.length;
     },
     memberSpacesToDisplay() {
       return this.memberSpaces?.slice?.(0, this.limit);
