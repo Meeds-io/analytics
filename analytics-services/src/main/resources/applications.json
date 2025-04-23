@@ -8,7 +8,6 @@
             "enabled": true,
             "application": {
                 "title": "Analytics",
-                "description": "Measure platform usage",
                 "url": "./analytics",
                 "system": true,
                 "active": false,
