@@ -28,10 +28,11 @@
     class="spacesListOverviewDrawer"
     allow-expand>
     <template #title>
-      {{ $t('analytics.spacesListWidget.drawer.title') }}
+      {{ memberSpacesOnly && $t('analytics.spacesListWidget.tab.userSpaces') || $t('analytics.spacesListWidget.drawer.title') }}
     </template>
     <template v-if="drawer" #content>
       <v-tabs
+        v-if="!memberSpacesOnly"
         v-model="tabName"
         slider-size="4">
         <v-tab
@@ -51,7 +52,13 @@
           {{ $t('analytics.spacesListWidget.tab.mostActive') }}
         </v-tab>
       </v-tabs>
+      <v-list
+        v-if="memberSpacesOnly"
+        class="ma-5">
+        <spaces-list-widget-list :list="memberSpacesToDisplay" />
+      </v-list>
       <v-tabs-items
+        v-else
         v-model="tabName"
         class="px-4">
         <v-tab-item value="member">
@@ -70,6 +77,10 @@
           </v-list>
         </v-tab-item>
       </v-tabs-items>
+      <div v-if="emptyList" class="d-flex flex-column align-center justify-center full-width">
+        <v-icon color="tertiary" size="40">fa-people-arrows</v-icon>
+        <span class="mt-5">{{ $t('analytics.spacesListWidget.noSpaces') }}</span>
+      </div>
     </template>
     <template v-if="drawer && hasMore" slot="footer">
       <v-spacer />
@@ -87,6 +98,12 @@
 </template>
 <script>
 export default {
+  props: {
+    memberSpacesOnly: {
+      type: Boolean,
+      default: false,
+    }
+  },
   data: () => ({
     drawer: false,
     loading: false,
@@ -105,6 +122,9 @@ export default {
       case 'member': return this.memberSpaces;
       default: return null;
       }
+    },
+    emptyList() {
+      return !this.list?.length;
     },
     memberSpacesToDisplay() {
       return this.memberSpaces?.slice?.(0, this.limit);

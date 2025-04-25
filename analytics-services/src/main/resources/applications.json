@@ -8,14 +8,15 @@
             "enabled": true,
             "application": {
                 "title": "Analytics",
-                "description": "Analytics applications",
                 "url": "./analytics",
                 "system": true,
-                "active": true,
+                "active": false,
                 "mandatory": false,
                 "mobile": true,
+                "default": false,
+                "shortcut": "i",
+                "pwa": false,
                 "permissions": [
-                    "*:/platform/administrators",
                     "*:/platform/analytics"
                 ]
             }
