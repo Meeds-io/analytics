@@ -114,7 +114,9 @@ export default {
         } else {
           chartOptions.xAxis[0].axisTick = {alignWithLabel: true};
         }
-
+        if (charts.length === 1 && (!charts[0].chartLabel || charts[0].chartLabel === 'null')) {
+          chartOptions.tooltip.formatter = '<center>{c}</center>';
+        }
         const isMultipleCharts = charts.length > 1;
         charts.forEach(chartData => {
           const serie = {
