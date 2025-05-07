@@ -59,15 +59,14 @@
               </v-btn>
             </template>
             <span>
+              <div v-if="title != ''">- {{ title }}</div>
               <div>- {{ $t('analytics.dataRestriction') }}: {{ scopeTooltip }}</div>
-              <div>- {{ $t('analytics.totalSamplesCount') }}: {{ chartsData.dataCount }}</div>
-              <div>- {{ $t('analytics.computingTime') }}: {{ chartsData.computingTime }} ms</div>
             </span>
           </v-tooltip>
           <div
             :title="title"
             class="my-auto text-header text-truncate analytics-chart-title">
-            {{ $t(title) }}
+            {{ title }}
           </div>
         </v-toolbar-title>
         <v-spacer />
@@ -250,7 +249,7 @@ export default {
           this.scope = settings && settings.scope;
           this.canEdit = settings && settings.canEdit;
           this.chartType = settings && settings.chartType;
-          this.title = settings && settings.title || this.$t('analytics.chartDataPlaceholder');
+          this.title = settings && this.$t(settings.title) || this.$t('analytics.chartDataPlaceholder');
         })
         .catch((e) => {
           console.error('Error retrieving chart filters', e);
