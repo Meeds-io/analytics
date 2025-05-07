@@ -61,7 +61,7 @@
             v-if="title"
             :title="title"
             class="my-auto text-header text-truncate analytics-chart-title">
-            {{ $t(title) }}
+            {{ title }}
           </div>
         </v-toolbar-title>
         <v-spacer />
@@ -239,7 +239,7 @@ export default {
           }
           this.canEdit = settings && settings.canEdit;
           this.chartType = settings && settings.chartType;
-          this.title = settings && settings.title || '';
+          this.title = settings && this.$t(settings.title) || '';
         })
         .catch((e) => {
           console.error('Error retrieving chart filters', e);
