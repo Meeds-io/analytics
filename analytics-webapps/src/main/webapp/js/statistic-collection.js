@@ -448,8 +448,8 @@ function() {
             '');
         }
         let data = {
-          name: 'pageUIDisplay',
-          operation: 'pageFullUIDisplay',
+          name: 'pageDisplay',
+          operation: 'pageDisplay',
           userName: eXo.env.portal.userName,
           spaceId: eXo.env.portal.spaceId,
           parameters: {
@@ -503,42 +503,10 @@ function() {
         }
       });
 
-      function pageCompleteLoadedCallback (nowDate) {
-        if (eXo.env.portal.requestStartTime && nowDate > eXo.env.portal.requestStartTime) {
-          const loadingTime = nowDate - eXo.env.portal.requestStartTime;
-          const loadingTimeStyle = (loadingTime > (isMobile && 5000 || 3000)) && 'color:red;font-weight:bold;' || 'color:green;font-weight:bold;';
-          // eslint-disable-next-line no-console
-          console.warn(`%cPage displayed within: %c${loadingTime} %cms`,
-            'font-weight:bold;',
-            loadingTimeStyle,
-            '');
-          window.setTimeout(() => {
-            api.sendMessage({
-              name: 'pageUIDisplay',
-              operation: 'pageUIDisplay',
-              userName: eXo.env.portal.userName,
-              spaceId: eXo.env.portal.spaceId,
-              parameters: {
-                duration: loadingTime,
-                portalName: eXo.env.portal.portalName,
-                portalUri: eXo.env.server.portalBaseURL,
-                pageUri: window.location.pathname,
-                pageTitle: eXo.env.portal.pageTitle,
-                pageUri: eXo.env.portal.selectedNodeUri,
-                applicationNames: eXo.env.portal.applicationNames,
-                isMobile,
-                isPwa,
-              },
-            });
-          }, 500);
-        }
-      }
-
       document.addEventListener('readystatechange', function (event){
         if (event.target.readyState === 'complete') {
           const now = eXo.env.portal.lastAppLoadingFinished = Date.now();
           window.setTimeout(pageFullyLoadedCallback, fullyLoadedCallbackIdle);
-          pageCompleteLoadedCallback(now);
         }
       }, false);
 
@@ -572,28 +540,6 @@ function() {
           '',
           durationTimeStyle,
           '');
-
-          window.setTimeout(() => {
-            api.sendMessage({
-              name: 'pageUIDisplay',
-              operation: 'applicationUIDisplay',
-              userName: eXo.env.portal.userName,
-              spaceId: eXo.env.portal.spaceId,
-              parameters: {
-                duration: durationLoadingTime,
-                portalName: eXo.env.portal.portalName,
-                portalUri: eXo.env.server.portalBaseURL,
-                pageUri: window.location.pathname,
-                pageTitle: eXo.env.portal.pageTitle,
-                pageUri: eXo.env.portal.selectedNodeUri,
-                applicationName: appName,
-                isMobile,
-                isPwa,
-                startLoadingTime: startLoadingTime,
-                endLoadingTime: endLoadingTime,
-              },
-            });
-          }, 500);
 
           if (!Object.keys(eXo.env.portal.loadingAppsStartTime).length && document.readyState === 'complete') {
             window.setTimeout(pageFullyLoadedCallback, fullyLoadedCallbackIdle);
