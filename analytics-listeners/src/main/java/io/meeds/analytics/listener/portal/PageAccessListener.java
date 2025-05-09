@@ -108,9 +108,6 @@ public class PageAccessListener extends BaseComponentPlugin implements Applicati
       if (ajaxQuery) {
         statisticData.setSubModule("webui");
         statisticData.setOperation("ajaxRequest");
-      } else {
-        statisticData.setSubModule("page");
-        statisticData.setOperation("pageDisplay");
       }
       long userIdentityId = getUserIdentityId(context.getRemoteUser());
       statisticData.setUserId(userIdentityId);
