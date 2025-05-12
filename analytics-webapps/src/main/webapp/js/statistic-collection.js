@@ -458,16 +458,12 @@ function() {
             pageUrl: window.location.pathname,
             pageTitle: eXo.env.portal.pageTitle,
             pageUri: eXo.env.portal.selectedNodeUri,
-            applicationNames: eXo.env.portal.applicationNames,
             isPwa,
             isMobile,
             deviceType: deviceType,
             connectedWith: connectedWith,
           },
         };
-        if(endLoadingTime){
-          data.parameters.duration = endLoadingTime;
-        }
         api.sendMessage(data);
         let identityType = localStorage.getItem('popover-identity-type');
         if ((eXo.env.portal.pageTitle === 'Profile' || eXo.env.portal.selectedNodeUri === 'profile' || window.location.pathname.startsWith('/portal/g/:spaces')) && identityType) {
