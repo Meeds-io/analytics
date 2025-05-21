@@ -8,7 +8,7 @@ on:
 jobs:
   upload-crowdin-branch:
     name: CI Build
-    uses: exoplatform/swf-scripts/.github/workflows/upload-crowdin-branches.yml@master
+    uses: Meeds-io/meeds-actions/.github/workflows/upload-crowdin-branches.yml@develop
     with:
       YML_CROWDIN_LANGUAGES_ARG: ${{vars.YML_CROWDIN_LANGUAGES_ARG}}
     secrets:
