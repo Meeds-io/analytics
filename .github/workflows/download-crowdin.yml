@@ -1,10 +1,8 @@
 name: Crowdin  download Action
-
 on:
   schedule:
     - cron: "15 1 * * *"
   workflow_dispatch:
-
 jobs:
   crowdin-download-develop:
     name: Crowdin Download Develop
@@ -13,7 +11,7 @@ jobs:
     steps:
       - name: Crowdin Download
         uses: exo-actions/crowdin-download-action@v1
-        with: 
+        with:
           PROJECT_VERSION: ${{ vars.CROWDIN_DEVELOP_VERSION }}
           PROJECT_BRANCH: develop
           CROWDIN_LANGUAGES_ARG: ${{ vars.CROWDIN_LANGUAGES_ARG }}
@@ -35,7 +33,7 @@ jobs:
     steps:
       - name: Crowdin Download
         uses: exo-actions/crowdin-download-action@v1
-        with: 
+        with:
           PROJECT_VERSION: ${{ vars.CROWDIN_MAINTENANCE_EXO_VERSION }}
           PROJECT_BRANCH: stable/${{ vars.CROWDIN_MAINTENANCE_EXO_VERSION }}
           CROWDIN_BRANCH: maintenance
