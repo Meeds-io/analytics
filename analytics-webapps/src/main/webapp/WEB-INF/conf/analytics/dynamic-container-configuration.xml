@@ -48,7 +48,7 @@
         </value-param>
         <value-param>
           <name>containerName</name>
-          <value>left-topNavigation-container</value>
+          <value>body-end-container</value>
         </value-param>
         <object-param>
           <name>statistics-portlet</name>
