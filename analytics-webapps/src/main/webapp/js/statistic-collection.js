@@ -66,6 +66,7 @@ function() {
         document.addEventListener('download-file', event => this.addStatisticDownload(event?.detail));
         document.addEventListener('document-change', event => this.addStatisticDocument(event?.detail));
         document.addEventListener('search-tag', () => this.addStatisticSearchByTag());
+        document.addEventListener('search-by-space', () => this.addStatisticSearchBySpace(event?.detail));
         document.addEventListener('editors-options-opened', event => this.addStatisticEditorOptionsOpened(event?.detail));
         document.addEventListener('manage-access', event => this.addStatisticManageAccess(event?.detail));
         document.addEventListener('editor-option-added', event => this.addStatisticEditorOptionAdded(event?.detail));
@@ -273,6 +274,19 @@ function() {
         'timestamp': Date.now()
       }
       this.sendMessage(tagSearch);
+    },
+    addStatisticSearchBySpace: function (spaceId) {
+      const spaceSearch = {
+        'module': 'portal',
+        'subModule': 'ui',
+        'userId': eXo.env.portal.userIdentityId,
+        'userName': eXo.env.portal.userName,
+        'spaceId':spaceId,
+        'operation': 'click',
+        'name': 'search by space',
+        'timestamp': Date.now()
+      }
+      this.sendMessage(spaceSearch);
     },
     addStatisticProfileAccess: function (identityType) {
       this.sendMessage({
