@@ -482,8 +482,7 @@ public class AnalyticsUtils {
     }
     statisticData.addParameter("categoryId", category.getId());
     statisticData.addParameter("categoryIcon", category.getIcon());
-    statisticData.addParameter("categoryAccessPermissionIds", category.getAccessPermissionIds());
-    statisticData.addParameter("categoryLinkPermissionIds", category.getLinkPermissionIds());
+    statisticData.addParameter("categoryLinkPermissions", category.getLinkPermissions());
     statisticData.addParameter("categoryCreatorId", category.getCreatorId());
     statisticData.addParameter("categoryOwnerId", category.getOwnerId());
     statisticData.addParameter("categoryParentId", category.getParentId());
