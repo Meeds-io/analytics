@@ -337,7 +337,7 @@ public class ElasticsearchAnalyticsStorage {
       document.setListFields(data.getListParameters());
     }
     JSONObject createRequest = new JSONObject();
-    createRequest.put("create", jsonObject);
+    createRequest.put("index", jsonObject);
     return createRequest.toString() + "\n" + document.toJSON() + "\n";
   }
 
