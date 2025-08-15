@@ -25,10 +25,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.exoplatform.services.cache.CacheService;
 import org.exoplatform.services.cache.ExoCache;
@@ -61,8 +60,8 @@ public class DummyStatisticDataQueueService implements StatisticDataQueueService
   private ExoCache<Long, StatisticDataQueueEntry> statisticQueueCache        = null;
 
   private ScheduledExecutorService                queueProcessingExecutor    =
-                                                                          Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setNameFormat("Analytics-ingestor-%d")
-                                                                                                                                               .build());
+                                                                          Executors.newSingleThreadScheduledExecutor(new BasicThreadFactory.Builder().namingPattern("Analytics-ingestor-%d")
+                                                                                                                                                     .build());
 
   private BigInteger                              totalExecutionTime         = BigInteger.ZERO;
 
