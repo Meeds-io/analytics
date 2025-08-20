@@ -67,6 +67,7 @@ function() {
         document.addEventListener('document-change', event => this.addStatisticDocument(event?.detail));
         document.addEventListener('search-tag', () => this.addStatisticSearchByTag());
         document.addEventListener('search-by-space', () => this.addStatisticSearchBySpace(event?.detail));
+        document.addEventListener('search-sort-by-date-action', () => this.addStatisticSortSearchByDate());
         document.addEventListener('editors-options-opened', event => this.addStatisticEditorOptionsOpened(event?.detail));
         document.addEventListener('manage-access', event => this.addStatisticManageAccess(event?.detail));
         document.addEventListener('editor-option-added', event => this.addStatisticEditorOptionAdded(event?.detail));
@@ -287,6 +288,18 @@ function() {
         'timestamp': Date.now()
       }
       this.sendMessage(spaceSearch);
+    },
+    addStatisticSortSearchByDate: function () {
+      const sortSearchByDate = {
+        'module': 'portal',
+        'subModule': 'ui',
+        'userId': eXo.env.portal.userIdentityId,
+        'userName': eXo.env.portal.userName,
+        'operation': 'click',
+        'name': 'sort search by date',
+        'timestamp': Date.now()
+      }
+      this.sendMessage(sortSearchByDate);
     },
     addStatisticProfileAccess: function (identityType) {
       this.sendMessage({
