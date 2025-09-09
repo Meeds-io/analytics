@@ -229,7 +229,7 @@ public class AnalyticsActivityListener extends ActivityListenerPlugin {
         Space space = spaceService.getSpaceByPrettyName(streamIdentity.getRemoteId());
         addSpaceStatistics(statisticData, space);
       }
-      statisticData.addParameter("streamIdentityId", Long.parseLong(streamIdentity.getId()));
+      statisticData.addParameter("streamIdentityId", streamIdentity.getIdentityId());
     }
 
     statisticData.setModule("social");

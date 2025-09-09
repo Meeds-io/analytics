@@ -34,6 +34,9 @@ public class ElasticsearchStatisticDataProcessorService implements StatisticData
   @Autowired
   private ElasticsearchAnalyticsStorage elasticsearchStorage;
 
+  @Autowired
+  private ElasticsearchAnalyticsService elasticsearchAnalyticsService;
+
   @Override
   public String getId() {
     return "analytics.processor.elasticsearch";
@@ -41,7 +44,7 @@ public class ElasticsearchStatisticDataProcessorService implements StatisticData
 
   @Override
   public void process(List<StatisticDataQueueEntry> processorQueueEntries) {
-    elasticsearchStorage.sendCreateBulkDocumentsRequest(processorQueueEntries);
+    elasticsearchStorage.sendCreateBulkDocumentsRequest(processorQueueEntries, elasticsearchAnalyticsService.retrieveMapping(false));
   }
 
 }
