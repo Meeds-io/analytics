@@ -88,11 +88,16 @@ import io.meeds.common.ContainerTransactional;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.Getter;
+import lombok.Synchronized;
 
 import static io.meeds.analytics.utils.AnalyticsUtils.*;
 
 @Service
 public class ElasticsearchAnalyticsService implements AnalyticsService {
+
+  private static final String                MAPPINGS_SUB_NODE                        = "mappings";
+
+  private static final String                PROPERTIES_SUB_NODE                      = "properties";
 
   private static final String                VALUE_PARAM                              = "value";
 
@@ -195,6 +200,7 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
   }
 
   @Override
+  @Synchronized
   @ContainerTransactional
   public Set<StatisticFieldMapping> retrieveMapping(boolean forceRefresh) {
     if (!forceRefresh) {
@@ -204,13 +210,14 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
       return new HashSet<>(esMappings.values());
     }
     try {
+      LOG.info("Retrieve Elasticsearch Field Mappings");
       String mappingJsonString = elasticsearchStorage.retrieveAllAnalyticsIndexesMapping();
       if (StringUtils.isBlank(mappingJsonString)) {
         return new HashSet<>(esMappings.values());
       }
 
       ObjectNode result = sortByAnalyticsDate(new JSONObject(mappingJsonString));
-      JsonNode mappingObject = getJsonNode(result, 0, null, "mappings", "properties");
+      JsonNode mappingObject = getJsonNode(result, 0, null, MAPPINGS_SUB_NODE, PROPERTIES_SUB_NODE);
 
       if (mappingObject != null) {
         processFields(mappingObject, "", esMappings);
@@ -1376,21 +1383,21 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
     return Objects.toString(value, null);
   }
 
-  private void processFields(JsonNode fieldsNode, String parentPath, Map<String, StatisticFieldMapping> esMappings) {
+  private void processFields(JsonNode fieldsNode,
+                             String parentPath,
+                             Map<String, StatisticFieldMapping> esMappings) {
     if (fieldsNode == null || !fieldsNode.isObject()) {
       return;
     }
-    Iterator<Map.Entry<String, JsonNode>> fields = fieldsNode.fields();
+    Iterator<Map.Entry<String, JsonNode>> fields = fieldsNode.properties().iterator();
     while (fields.hasNext()) {
       Map.Entry<String, JsonNode> entry = fields.next();
       String fieldName = entry.getKey();
       JsonNode esField = entry.getValue();
-
       if (esField == null || !esField.isObject()) {
-        continue;
-      }
-      if (esField.has("properties")) {
-        JsonNode nestedProperties = esField.get("properties");
+        continue; // NOSONAR
+      } else if (esField.has(PROPERTIES_SUB_NODE)) {
+        JsonNode nestedProperties = esField.get(PROPERTIES_SUB_NODE);
         processFields(nestedProperties, parentPath + fieldName + ".", esMappings);
       } else if (esField.has("type")) {
         // Process regular fields with a "type"
@@ -1403,4 +1410,5 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
       }
     }
   }
+
 }

@@ -146,7 +146,7 @@ public class ElasticsearchConfiguration {
 
   @SneakyThrows
   private void computeIndexTemplateMapping() {
-    InputStream mappingFileIS = getClass().getClassLoader().getResourceAsStream("analytics-es-template.json");
+    InputStream mappingFileIS = getClass().getClassLoader().getResourceAsStream(indexTemplateMappingFilePath);
     indexTemplateMapping = IOUtil.getStreamContentAsString(mappingFileIS);
     indexTemplateMapping = indexTemplateMapping.replace(ElasticsearchConfiguration.DEFAULT_ES_INDEX_TEMPLATE,
                                                         getIndexAlias())
