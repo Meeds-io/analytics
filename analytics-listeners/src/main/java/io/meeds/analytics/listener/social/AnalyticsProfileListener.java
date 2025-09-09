@@ -132,7 +132,7 @@ public class AnalyticsProfileListener extends ProfileListenerPlugin {
     statisticData.setSubModule("profile");
     statisticData.setOperation(operation);
     statisticData.setUserId(Long.parseLong(identity.getId()));
-    statisticData.addParameter(FIELD_SOCIAL_IDENTITY_ID, Long.parseLong(identity.getId()));
+    statisticData.addParameter(FIELD_SOCIAL_IDENTITY_ID, identity.getIdentityId());
     statisticData.addParameter("userCreatedDate", identity.getProfile() != null ? identity.getProfile().getCreatedTime() : 0);
     return statisticData;
   }

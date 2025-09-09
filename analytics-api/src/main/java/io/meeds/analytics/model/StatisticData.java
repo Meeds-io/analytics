@@ -27,14 +27,14 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 
 import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 import lombok.ToString;
 
-@ToString
+@Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class StatisticData implements Serializable {
@@ -43,56 +43,34 @@ public class StatisticData implements Serializable {
 
   private static final int                PRIME            = 59;
 
+  private final String                    uuid             = UUID.randomUUID().toString();
+
   @ToString.Exclude
   private DateFormat                      dateFormat;
 
-  @Getter
-  @Setter
   private long                            timestamp;
 
-  @Getter
-  @Setter
   private long                            userId;
 
-  @Getter
-  @Setter
   private long                            spaceId;
 
-  @Getter
-  @Setter
   private String                          module;
 
-  @Getter
-  @Setter
   private String                          subModule;
 
-  @Getter
-  @Setter
   private String                          operation;
 
-  @Getter
-  @Setter
   private StatisticStatus                 status           = StatisticStatus.OK;
 
-  @Getter
-  @Setter
   private String                          errorMessage;
 
-  @Getter
-  @Setter
   private long                            duration;
 
-  @Getter
-  @Setter
   private long                            errorCode;
 
-  @Getter
-  @Setter
-  private Map<String, String>             parameters;
+  private Map<String, Object>             parameters;
 
-  @Getter
-  @Setter
-  private Map<String, Collection<String>> listParameters;
+  private Map<String, Collection<Object>> listParameters;
 
   public void addParameter(String key, Object value) {
     if (parameters == null) {
@@ -103,7 +81,7 @@ public class StatisticData implements Serializable {
     }
     if (value instanceof Collection) {
       Collection<?> collection = (Collection<?>) value;
-      Collection<String> values = collection.stream()
+      Collection<Object> values = collection.stream()
                                             .filter(Objects::nonNull)
                                             .map(this::getFieldValue)
                                             .toList();
@@ -116,9 +94,11 @@ public class StatisticData implements Serializable {
     }
   }
 
-  private String getFieldValue(Object value) {
+  private Object getFieldValue(Object value) {
     if (value instanceof Date) {
       return buildDateFormat().format(value);
+    } else if (value == null || value.getClass().isPrimitive()) {
+      return value;
     } else {
       return String.valueOf(value);
     }
@@ -132,8 +112,7 @@ public class StatisticData implements Serializable {
   }
 
   public enum StatisticStatus {
-    OK,
-    KO;
+    OK, KO;
   }
 
   public long computeId() {
@@ -144,6 +123,7 @@ public class StatisticData implements Serializable {
     result = result * PRIME + (subModule == null ? 43 : subModule.hashCode());
     result = result * PRIME + (operation == null ? 43 : operation.hashCode());
     result = result * PRIME + (parameters == null ? 43 : parameters.hashCode());
+    result = result * PRIME + uuid.hashCode();
     return result;
   }
 

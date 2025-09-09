@@ -19,6 +19,7 @@
  */
 package io.meeds.analytics.elasticsearch.storage;
 
+import static io.meeds.analytics.elasticsearch.listener.ElasticsearchMappingListener.FIELD_MAPPING_CREATED_EVENT;
 import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_DURATION;
 import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_ERROR_CODE;
 import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_ERROR_MESSAGE;
@@ -32,17 +33,26 @@ import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_TIMESTAMP;
 import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_USER_ID;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.ResolverStyle;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hc.client5.http.classic.HttpClient;
 import org.apache.hc.client5.http.classic.methods.HttpDelete;
@@ -65,18 +75,30 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
 
 import org.exoplatform.commons.search.domain.Document;
+import org.exoplatform.services.listener.ListenerService;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 
 import io.meeds.analytics.elasticsearch.model.ElasticsearchResponse;
 import io.meeds.analytics.model.StatisticData;
 import io.meeds.analytics.model.StatisticDataQueueEntry;
+import io.meeds.analytics.model.StatisticFieldMapping;
 
 import jakarta.annotation.PostConstruct;
 import lombok.SneakyThrows;
 
 @Component
 public class ElasticsearchAnalyticsStorage {
+
+  private static final String           TEXT_MAPPING_TYPE    = "text";
+
+  private static final String           KEYWORD_MAPPING_TYPE = "keyword";
+
+  private static final String           BOOLEAN_MAPPING_TYPE = "boolean";
+
+  private static final String           FLOAT_MAPPING_TYPE   = "float";
+
+  private static final String           LONG_MAPPING_TYPE    = "long";
 
   private static final Log              LOG                =
                                             ExoLogger.getExoLogger(ElasticsearchAnalyticsStorage.class);
@@ -87,6 +109,11 @@ public class ElasticsearchAnalyticsStorage {
 
   public static final DateTimeFormatter DAY_DATE_FORMATTER = DateTimeFormatter.ofPattern(DAY_DATE_FORMAT)
                                                                               .withResolverStyle(ResolverStyle.LENIENT);
+
+  private List<String>                  ignoredFieldNames    = Collections.synchronizedList(new ArrayList<>());
+
+  @Autowired
+  private ListenerService               listenerService;
 
   @Autowired
   private ElasticsearchConfiguration    elasticsearchConfiguration;
@@ -105,7 +132,8 @@ public class ElasticsearchAnalyticsStorage {
     }
   }
 
-  public void sendCreateBulkDocumentsRequest(List<StatisticDataQueueEntry> dataQueueEntries) {
+  public void sendCreateBulkDocumentsRequest(List<StatisticDataQueueEntry> dataQueueEntries,
+                                             Set<StatisticFieldMapping> esMappings) {
     if (dataQueueEntries == null || dataQueueEntries.isEmpty()) {
       return;
     }
@@ -116,7 +144,8 @@ public class ElasticsearchAnalyticsStorage {
     StringBuilder request = new StringBuilder();
     for (StatisticDataQueueEntry statisticDataQueueEntry : dataQueueEntries) {
       String singleDocumentQuery = getCreateDocumentRequestContent(String.valueOf(statisticDataQueueEntry.getId()),
-                                                                   statisticDataQueueEntry.getStatisticData());
+                                                                   statisticDataQueueEntry.getStatisticData(),
+                                                                   esMappings);
       request.append(singleDocumentQuery);
     }
 
@@ -308,7 +337,9 @@ public class ElasticsearchAnalyticsStorage {
         "}";
   }
 
-  private String getCreateDocumentRequestContent(String id, StatisticData data) {
+  private String getCreateDocumentRequestContent(String id,
+                                                 StatisticData data,
+                                                 Set<StatisticFieldMapping> esMappings) {
     JSONObject jsonObject = createCUDHeaderRequestContent(id);
     String timestampString = String.valueOf(data.getTimestamp());
 
@@ -325,20 +356,150 @@ public class ElasticsearchAnalyticsStorage {
     fields.put(FIELD_ERROR_MESSAGE, data.getErrorMessage());
     fields.put(FIELD_DURATION, String.valueOf(data.getDuration()));
     fields.put(FIELD_IS_ANALYTICS, "true");
-    if (data.getParameters() != null && !data.getParameters().isEmpty()) {
-      fields.putAll(data.getParameters());
+    Map<String, StatisticFieldMapping> mappedFields = esMappings.stream()
+                                                                .collect(Collectors.toMap(StatisticFieldMapping::getName,
+                                                                                          Function.identity()));
+    if (MapUtils.isNotEmpty(data.getParameters())) {
+      data.getParameters()
+          .keySet()
+          .stream()
+          .filter(p -> !mappedFields.containsKey(p))
+          .forEach(f -> createFieldMapping(f, data.getParameters().get(f)));
+      Map<String, String> parameters = data.getParameters()
+                                           .entrySet()
+                                           .stream()
+                                           .filter(e -> e.getValue() != null && StringUtils.isNotBlank(e.getValue().toString()))
+                                           .filter(e -> {
+                                             String name = e.getKey();
+                                             Object value = e.getValue();
+                                             StatisticFieldMapping mapping = mappedFields.get(name);
+                                             if (checkFieldMapping(value, mapping)) {
+                                               return true;
+                                             } else {
+                                               if (!ignoredFieldNames.contains(name)) {
+                                                 ignoredFieldNames.add(name);
+                                                 LOG.warn("Field with name '{}' and type '{}' isn't compatible with ES type '{}'. Ignore adding it in indexed document.",
+                                                          name,
+                                                          getFieldMappingType(value),
+                                                          mapping.getType());
+                                               }
+                                               return false;
+                                             }
+                                           })
+                                           .collect(Collectors.toMap(Entry::getKey, e -> getFieldValue(e.getValue())));
+      fields.putAll(parameters);
     }
     Document document = new Document(String.valueOf(id),
                                      null,
                                      null,
                                      (Set<String>) null,
                                      fields);
-    if (data.getListParameters() != null && !data.getListParameters().isEmpty()) {
-      document.setListFields(data.getListParameters());
+    if (MapUtils.isNotEmpty(data.getListParameters())) {
+      data.getListParameters()
+          .keySet()
+          .stream()
+          .filter(p -> !mappedFields.containsKey(p))
+          .filter(p -> CollectionUtils.isNotEmpty(data.getListParameters().get(p)))
+          .forEach(p -> createFieldMapping(p, data.getListParameters().get(p)));
+      Map<String, Collection<String>> parameters = data.getListParameters()
+                                                       .entrySet()
+                                                       .stream()
+                                                       .filter(e -> CollectionUtils.isNotEmpty(e.getValue()))
+                                                       .filter(e -> {
+                                                         Collection<Object> value = e.getValue();
+                                                         String name = e.getKey();
+                                                         StatisticFieldMapping mapping = mappedFields.get(name);
+                                                         if (checkFieldMapping(value, mapping)) {
+                                                           return true;
+                                                         } else {
+                                                           if (!ignoredFieldNames.contains(name)) {
+                                                             ignoredFieldNames.add(name);
+                                                             LOG.warn("Field with name '{}' doesn't have the expected type {} in ES ('{}'). Ignore adding it in indexed document.",
+                                                                      name,
+                                                                      getFieldMappingType(value),
+                                                                      mapping.getType());
+                                                           }
+                                                           return false;
+                                                         }
+                                                       })
+                                                       .collect(Collectors.toMap(Entry::getKey,
+                                                                                 e -> getFieldValue(e.getValue())));
+      document.setListFields(parameters);
     }
     JSONObject createRequest = new JSONObject();
     createRequest.put("create", jsonObject);
     return createRequest.toString() + "\n" + document.toJSON() + "\n";
+  }
+
+  private void createFieldMapping(String f, Object value) {
+    String type = getFieldMappingType(value);
+    try {
+      sendPutRequest(elasticsearchConfiguration.getIndexAlias() + "/_mapping", String.format("""
+          {
+            "properties": {
+              "%s" : {
+                "type" : "%s"
+              }
+            }
+          }
+          """, f, type));
+      LOG.info("Create ES Mapping for field '{}' with type '{}'", f, type);
+      listenerService.broadcast(FIELD_MAPPING_CREATED_EVENT, f, type);
+    } catch (Exception e) {
+      LOG.warn("Error while creating ES Mapping for field '{}' with type '{}'. It may already exists.",
+               f,
+               type,
+               e);
+    }
+  }
+
+  private boolean checkFieldMapping(Object value, StatisticFieldMapping mapping) {
+    if (mapping == null) {
+      return true;
+    } else {
+      String fieldMappingType = getFieldMappingType(value);
+      String mappedType = mapping.getType();
+      if (StringUtils.equalsIgnoreCase(mappedType, fieldMappingType)) {
+        return true;
+      } else {
+        return switch (mappedType) {
+        case LONG_MAPPING_TYPE -> StringUtils.isNumeric(value.toString());
+        case FLOAT_MAPPING_TYPE -> LONG_MAPPING_TYPE.equals(fieldMappingType);
+        case BOOLEAN_MAPPING_TYPE -> StringUtils.equalsAny(value.toString(), "true", "false");
+        case KEYWORD_MAPPING_TYPE -> true;
+        case TEXT_MAPPING_TYPE -> true;
+        default -> false;
+        };
+      }
+    }
+  }
+
+  private String getFieldMappingType(Object value) {
+    return switch (value) {
+    case Integer v -> LONG_MAPPING_TYPE;
+    case Long v -> LONG_MAPPING_TYPE;
+    case Byte v -> LONG_MAPPING_TYPE;
+    case Float v -> FLOAT_MAPPING_TYPE;
+    case Double v -> FLOAT_MAPPING_TYPE;
+    case Boolean v -> BOOLEAN_MAPPING_TYPE;
+    case Collection<?> v -> getFieldMappingType(v.toArray()[0]);
+    default -> KEYWORD_MAPPING_TYPE;
+    };
+  }
+
+  private String getFieldValue(Object value) {
+    return switch (value) {
+    case Integer v -> BigDecimal.valueOf(v).toPlainString();
+    case Long v -> BigDecimal.valueOf(v).toPlainString();
+    case Byte v -> BigDecimal.valueOf(v).toPlainString();
+    case Float v -> BigDecimal.valueOf(v).toPlainString();
+    case Double v -> BigDecimal.valueOf(v).toPlainString();
+    default -> String.valueOf(value);
+    };
+  }
+
+  private Collection<String> getFieldValue(Collection<Object> value) {
+    return value.stream().map(this::getFieldValue).toList();
   }
 
   private JSONObject createCUDHeaderRequestContent(String id) {
@@ -378,9 +539,9 @@ public class ElasticsearchAnalyticsStorage {
     }
     if (StringUtils.contains(response.getMessage(), "\"errors\":true")) {
       if (StringUtils.contains(response.getMessage(), "\"type\":\"version_conflict_engine_exception\"")
-          && StringUtils.countMatches(response.getMessage(),"{\"create\":{") == 1) {
-        //the ES response is not answer of a bulk, but of a single insert
-        //it means the entry already exists in ES, no need to raise an error
+          && StringUtils.countMatches(response.getMessage(), "{\"create\":{") == 1) {
+        // the ES response is not answer of a bulk, but of a single insert
+        // it means the entry already exists in ES, no need to raise an error
         LOG.warn("ID conflict in some content: {}", response.getMessage());
       } else {
         throw new IllegalStateException(String.format("Error message returned from ES: %s. URI: %s. Content: %s",

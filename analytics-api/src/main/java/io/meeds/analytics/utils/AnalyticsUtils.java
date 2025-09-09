@@ -544,7 +544,8 @@ public class AnalyticsUtils {
                         if (properties.containsKey(propertyName)) {
                           if (propertyValue instanceof String value) {
                             statisticData.addParameter(String.join(".", PROFILE_PROPERTIES, propertyName), value);
-                          } else if (propertyValue instanceof List<?> values && !property.isHasChildProperties()) {
+                          } else if (!property.isHasChildProperties()
+                              && propertyValue instanceof List<?> values) {
                             @SuppressWarnings("unchecked")
                             List<Map<String, String>> multiValues = (List<Map<String, String>>) values;
                             List<String> valuesList = multiValues.stream()
