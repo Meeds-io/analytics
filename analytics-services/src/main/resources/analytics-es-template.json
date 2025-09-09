@@ -11,7 +11,7 @@
       "number_of_replicas": replica.number
     },
     "mappings": {
-      "numeric_detection": true,
+      "numeric_detection": false,
       "dynamic_date_formats": [
         "yyyy/MM/dd",
         "yyyy/MM/dd HH:mm:ss",

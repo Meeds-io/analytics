@@ -226,7 +226,7 @@ function() {
         'timestamp': Date.now(),
         'parameters': {
           'type': eventDetail.type,
-          'contentId': eventDetail.id,
+          'downloadAttachmentId': eventDetail.id,
           'spaceId': eventDetail.spaceId,
         },
       });
