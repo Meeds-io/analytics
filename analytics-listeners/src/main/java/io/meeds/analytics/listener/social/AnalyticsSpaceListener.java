@@ -101,6 +101,16 @@ public class AnalyticsSpaceListener extends SpaceListenerPlugin {
   }
 
   @Override
+  public void spaceSovereigntyEdited(SpaceLifeCycleEvent event) {
+    try {
+      StatisticData statisticData = addSpaceStatisticEvent(event, "spaceSovereigntyEdited");
+      addStatisticData(statisticData);
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
+    }
+  }
+
+  @Override
   public void spaceDescriptionEdited(SpaceLifeCycleEvent event) {
     try {
       StatisticData statisticData = addSpaceStatisticEvent(event, "spaceDescriptionEdited");
