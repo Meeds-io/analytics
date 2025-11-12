@@ -47,7 +47,7 @@ export default {
   },
   computed: {
     formattedDuration() {
-      return this.formatDuration(this.attrValue);
+      return this.formatDuration(Math.floor((this.attrValue || 0) / 1000));
     }
   },
   methods: {
