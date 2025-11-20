@@ -448,6 +448,7 @@ public class AnalyticsUtils {
     statisticData.addParameter("spaceRedactorsCount", getSize(space.getRedactors()));
     statisticData.addParameter("spaceInviteesCount", getSize(space.getInvitedUsers()));
     statisticData.addParameter("spacePendingCount", getSize(space.getPendingUsers()));
+    statisticData.addParameter("spaceSovereign", space.isSovereign());
   }
 
   public static void addActivityStatisticsData(StatisticData statisticData, ExoSocialActivity activity) {
