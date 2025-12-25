@@ -31,6 +31,18 @@
       {{ $t('analytics.spacesListWidgetSettings.title') }}
     </template>
     <template v-if="drawer" #content>
+      <div class="d-flex flex-column pa-5">
+        <translation-text-field
+          ref="headerTitleInput"
+          id="headerTitleInput"
+          v-model="headerTranslations"
+          :placeholder="$t('analytics.spacesListWidgetSettings.updateHeader.label')"
+          no-expand-icon>
+          <template #title>
+            <span class="text-body">{{ $t('analytics.spacesListWidgetSettings.updateHeader.label') }}</span>
+          </template>
+        </translation-text-field>
+      </div>
       <div class="d-flex align-center text-start pa-5">
         <div>{{ $t('analytics.spacesListWidget.settings.spacesMemberOf') }}</div>
         <v-switch
@@ -125,6 +137,7 @@ export default {
     spacesRecentlyVisitedLimit: 0,
     spacesMostActiveLimit: 0,
     spacesMostActivePeriod: 0,
+    headerTranslations: {}
   }),
   created() {
     this.$root.$on('spaces-list-widget-settings', this.open);
@@ -144,6 +157,7 @@ export default {
       this.spacesRecentlyVisitedPeriod = this.$root.spacesRecentlyVisitedPeriod;
       this.spacesMostActiveLimit = this.$root.spacesMostActiveLimit;
       this.spacesMostActivePeriod = this.$root.spacesMostActivePeriod;
+      this.headerTranslations = this.$root.headerTranslations;
       this.loading = false;
     },
     close() {
@@ -172,6 +186,9 @@ export default {
             name: 'spacesRecentlyVisitedLimit',
             value: String(this.spacesRecentlyVisitedLimit),
           }, {
+            name: 'headerTranslations',
+            value: JSON.stringify(this.headerTranslations),
+          }, {
             name: 'spacesRecentlyVisitedPeriod',
             value: String(this.spacesRecentlyVisitedPeriod),
           }, {
@@ -190,6 +207,7 @@ export default {
           this.$root.spacesRecentlyVisitedPeriod = this.spacesRecentlyVisitedPeriod;
           this.$root.spacesMostActiveLimit = this.spacesMostActiveLimit;
           this.$root.spacesMostActivePeriod = this.spacesMostActivePeriod;
+          this.$root.headerTranslations = this.headerTranslations;
           this.close();
         })
         .finally(() => this.loading = false);
