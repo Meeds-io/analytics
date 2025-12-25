@@ -148,7 +148,7 @@ export default {
     },
     title() {
       if (this.sectionsCount > 1) {
-        return this.$t('analytics.spacesListWidget.header');
+        return this.$root.headerTitle;
       } else if (this.spacesMostActiveLimit) {
         return this.$t('analytics.spacesListWidget.active.header');
       } else if (this.spacesRecentlyVisitedLimit) {
@@ -156,7 +156,7 @@ export default {
       } else if (this.userSpacesLimit) {
         return this.$t('analytics.spacesListWidget.member.header');
       } else {
-        return this.$t('analytics.spacesListWidget.header');
+        return this.$root.headerTitle;
       }
     },
   },
