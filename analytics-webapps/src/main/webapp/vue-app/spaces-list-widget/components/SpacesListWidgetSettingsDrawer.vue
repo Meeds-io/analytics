@@ -43,7 +43,7 @@
           </template>
         </translation-text-field>
       </div>
-      <div class="d-flex align-center text-start pa-5">
+      <div class="d-flex align-center text-start px-5 pb-5">
         <div>{{ $t('analytics.spacesListWidget.settings.spacesMemberOf') }}</div>
         <v-switch
           v-model="spacesMemberOf"
