@@ -159,6 +159,16 @@ export default {
         return this.$root.headerTitle;
       }
     },
+    listOnlySubSpaces() {
+      return this.$root.listOnlySubSpaces;
+    },
+    parentSpaceId() {
+      return this.$root.spaceId;
+    },
+    appendParentSpaceParam() {
+      return !!(this.listOnlySubSpaces && this.parentSpaceId);
+    },
+
   },
   watch: {
     loading() {
@@ -196,6 +206,11 @@ export default {
         this.refresh();
       }
     },
+    listOnlySubSpaces() {
+      if (!this.loading) {
+        this.refresh();
+      }
+    }
   },
   created() {
     this.refresh();
@@ -216,7 +231,14 @@ export default {
       ]).finally(() => this.loading = false);
     },
     getUserSpaces() {
-      return this.$spaceService.getSpaces(null, 0, this.$root.userSpacesLimit, 'member', 'spaceId')
+      return this.$spaceService.getSpacesByFilter({
+        query: null,
+        offset: 0,
+        limit: this.$root.userSpacesLimit,
+        filter: 'member',
+        expand: 'spaceId',
+        parentSpaceId: this.appendParentSpaceParam && this.parentSpaceId || null
+      })
         .then(data => this.$root.spaceIds = data?.spaces?.map(s => s.id) || []);
     },
     getRecentyVisitedSpaces() {
@@ -239,7 +261,11 @@ export default {
       if (this.$root.spacesMemberOf) {
         queryName += '.memberOnly';
       }
-      return fetch(`${this.$root.resourceURL}&queryName=${queryName}&xLimit=${limit}&fromTimestamp=${this.getPeriodTimestamp(period)}`)
+      let fetchUrl = `${this.$root.resourceURL}&queryName=${queryName}&xLimit=${limit}&fromTimestamp=${this.getPeriodTimestamp(period)}`;
+      if (this.appendParentSpaceParam) {
+        fetchUrl = `${fetchUrl}&parentSpaceId=${this.parentSpaceId}`;
+      }
+      return fetch(fetchUrl)
         .then(resp => resp?.ok && resp.json());
     },
     getPeriodTimestamp(period) {
