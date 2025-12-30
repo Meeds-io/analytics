@@ -50,6 +50,12 @@
           class="ms-auto me-n1 mt-0 mb-n2 pa-0" />
       </div>
       <div class="d-flex align-center text-start px-5 pb-5">
+        <div>{{ $t('analytics.spacesListWidget.settings.listSubSpaces') }}</div>
+        <v-switch
+          v-model="listOnlySubSpaces"
+          class="ms-auto me-n1 mt-0 mb-n2 pa-0" />
+      </div>
+      <div class="d-flex align-center text-start px-5 pb-5">
         {{ $t('analytics.spacesListWidgetSettings.numberOfItemsToList') }}
       </div>
       <div class="d-flex align-center text-start px-5">
@@ -137,7 +143,8 @@ export default {
     spacesRecentlyVisitedLimit: 0,
     spacesMostActiveLimit: 0,
     spacesMostActivePeriod: 0,
-    headerTranslations: {}
+    headerTranslations: {},
+    listOnlySubSpaces: false
   }),
   created() {
     this.$root.$on('spaces-list-widget-settings', this.open);
@@ -158,6 +165,7 @@ export default {
       this.spacesMostActiveLimit = this.$root.spacesMostActiveLimit;
       this.spacesMostActivePeriod = this.$root.spacesMostActivePeriod;
       this.headerTranslations = this.$root.headerTranslations;
+      this.listOnlySubSpaces = this.$root.listOnlySubSpaces;
       this.loading = false;
     },
     close() {
@@ -189,6 +197,9 @@ export default {
             name: 'headerTranslations',
             value: JSON.stringify(this.headerTranslations),
           }, {
+            name: 'listOnlySubSpaces',
+            value: String(this.listOnlySubSpaces),
+          }, {
             name: 'spacesRecentlyVisitedPeriod',
             value: String(this.spacesRecentlyVisitedPeriod),
           }, {
@@ -208,6 +219,7 @@ export default {
           this.$root.spacesMostActiveLimit = this.spacesMostActiveLimit;
           this.$root.spacesMostActivePeriod = this.spacesMostActivePeriod;
           this.$root.headerTranslations = this.headerTranslations;
+          this.$root.listOnlySubSpaces = this.listOnlySubSpaces;
           this.close();
         })
         .finally(() => this.loading = false);
