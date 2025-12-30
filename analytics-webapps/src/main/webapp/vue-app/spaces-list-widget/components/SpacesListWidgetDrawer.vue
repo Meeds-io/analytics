@@ -138,6 +138,15 @@ export default {
     hasMore() {
       return this.list && this.list.length > this.limit;
     },
+    listOnlySubSpaces() {
+      return this.$root.listOnlySubSpaces;
+    },
+    parentSpaceId() {
+      return this.$root.spaceId;
+    },
+    appendParentSpaceParam() {
+      return !!(this.listOnlySubSpaces && this.parentSpaceId);
+    },
   },
   watch: {
     tabName() {
@@ -178,7 +187,14 @@ export default {
       }
     },
     getUserSpaces() {
-      return this.$spaceService.getSpaces(null, 0, this.limit + 1, 'member', 'spaceId')
+      return this.$spaceService.getSpacesByFilter({
+        query: null,
+        offset: 0,
+        limit: this.limit +1,
+        filter: 'member',
+        expand: 'spaceId',
+        parentSpaceId: this.appendParentSpaceParam && this.parentSpaceId || null
+      })
         .then(data => this.memberSpaces = data?.spaces?.map(s => s.id) || []);
     },
     getRecentyVisitedSpaces() {
@@ -199,7 +215,11 @@ export default {
     },
     getSpaces(queryName, period, limit) {
       const fromTimestamp = this.getPeriodTimestamp(period);
-      return fetch(`${this.$root.resourceURL}&queryName=${queryName}&xLimit=${limit}&fromTimestamp=${fromTimestamp}`)
+      let fetchUrl = `${this.$root.resourceURL}&queryName=${queryName}&xLimit=${limit}&fromTimestamp=${fromTimestamp}`;
+      if (this.appendParentSpaceParam) {
+        fetchUrl = `${fetchUrl}&parentSpaceId=${this.parentSpaceId}`;
+      }
+      return fetch(fetchUrl)
         .then(resp => resp?.ok && resp.json());
     },
     getPeriodTimestamp(period) {
