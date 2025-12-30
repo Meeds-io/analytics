@@ -38,7 +38,8 @@ export function init(
   pageRef,
   canCreateSpace,
   isExternal,
-  headerTranslations) {
+  headerTranslations,
+  listOnlySubSpaces) {
   exoi18n.loadLanguageAsync(lang, urls)
     .then(i18n => {
       Vue.createApp({
@@ -58,6 +59,8 @@ export function init(
           spaceIds: null,
           headerTranslations: headerTranslations,
           defaultLanguage: eXo?.env?.portal?.defaultLanguage,
+          spaceId: eXo?.env?.portal?.spaceId,
+          listOnlySubSpaces: listOnlySubSpaces
         },
         computed: {
           headerTitle() {
