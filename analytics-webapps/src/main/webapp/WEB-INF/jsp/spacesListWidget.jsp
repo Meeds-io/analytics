@@ -46,6 +46,7 @@
   if (request.getAttribute("headerTranslations") != null) {
     headerTranslations = ((String[]) request.getAttribute("headerTranslations"))[0];
   };
+  String listOnlySubSpaces = request.getAttribute("listOnlySubSpaces") == null ? "false" : ((String[]) request.getAttribute("listOnlySubSpaces"))[0];
   String valueDomId = "spacesListWidgetHeaderTranslationValue" + portletStorageId;
   Page currentPage = PortalRequestContext.getCurrentInstance().getPage();
   boolean canEdit = ExoContainerContext.getService(UserACL.class)
@@ -73,7 +74,8 @@
         '<%=pageRef%>',
         <%=canCreateSpace%>,
         <%=isExternal%>,
-        JSON.parse(document.getElementById('spacesListWidget<%=valueDomId%>').value)
+        JSON.parse(document.getElementById('spacesListWidget<%=valueDomId%>').value),
+        <%=listOnlySubSpaces%>
       ));
     </script>
   </div>

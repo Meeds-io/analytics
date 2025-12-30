@@ -20,6 +20,7 @@
 package io.meeds.analytics.portlet;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -28,6 +29,8 @@ import javax.portlet.PortletException;
 import javax.portlet.ResourceRequest;
 import javax.portlet.ResourceResponse;
 
+import io.meeds.analytics.model.filter.search.AnalyticsFieldFilter;
+import io.meeds.analytics.model.filter.search.AnalyticsFieldFilterType;
 import org.apache.commons.lang3.StringUtils;
 
 import com.google.javascript.jscomp.jarjar.com.google.re2j.Pattern;
@@ -56,6 +59,8 @@ public class AnalyticsQueryPortlet extends GenericDispatchedViewPortlet {
 
   private static final int           MAX_SPACE_IDS          = 1000;
 
+  private static final String        PARENT_SPACE_ID        = "parentSpaceId";
+
   private static Map<String, String> filters                = new ConcurrentHashMap<>();
 
   private AnalyticsService           analyticsService;
@@ -78,6 +83,7 @@ public class AnalyticsQueryPortlet extends GenericDispatchedViewPortlet {
     } else {
       filter.setLimit(Long.parseLong(limit));
     }
+    applyParentSpaceFilter(request, filter);
     ChartDataList result = getAnalyticsService().computeChartData(filter);
     response.getWriter().write(AnalyticsUtils.toJsonString(result));
     response.setContentType("application/json");
@@ -136,6 +142,19 @@ public class AnalyticsQueryPortlet extends GenericDispatchedViewPortlet {
       spaceService = ExoContainerContext.getService(SpaceService.class);
     }
     return spaceService;
+  }
+
+  private void applyParentSpaceFilter(ResourceRequest request, AnalyticsFilter filter) {
+    String parentSpaceId = request.getParameter(PARENT_SPACE_ID);
+    if (StringUtils.isBlank(parentSpaceId)) {
+      return;
+    }
+    List<AnalyticsFieldFilter> filters = filter.getFilters();
+    if (filters == null) {
+      filters = new ArrayList<>();
+    }
+    filters.add(new AnalyticsFieldFilter(PARENT_SPACE_ID, AnalyticsFieldFilterType.EQUAL, parentSpaceId));
+    filter.setFilters(filters);
   }
 
 }
