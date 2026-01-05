@@ -147,17 +147,7 @@ export default {
       return this.$root.userSpacesLimit && this.$root.spaceIds?.slice?.(0, this.$root.userSpacesLimit);
     },
     title() {
-      if (this.sectionsCount > 1) {
-        return this.$root.headerTitle;
-      } else if (this.spacesMostActiveLimit) {
-        return this.$t('analytics.spacesListWidget.active.header');
-      } else if (this.spacesRecentlyVisitedLimit) {
-        return this.$t('analytics.spacesListWidget.recent.header');
-      } else if (this.userSpacesLimit) {
-        return this.$t('analytics.spacesListWidget.member.header');
-      } else {
-        return this.$root.headerTitle;
-      }
+      return this.$root.headerTitle;
     },
     listOnlySubSpaces() {
       return this.$root.listOnlySubSpaces;
