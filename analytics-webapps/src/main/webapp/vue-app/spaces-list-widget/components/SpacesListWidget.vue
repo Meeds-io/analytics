@@ -73,15 +73,14 @@
           <div v-if="emptyWidget" class="d-flex flex-column align-center justify-center full-width full-height">
             <v-icon color="tertiary" size="60">fa-people-arrows</v-icon>
             <span class="mt-5">{{ $t('analytics.spacesListWidget.noSpaces') }}</span>
-            <v-btn
-              v-if="$root.canCreateSpace"
-              :href="createSpaceLink"
-              id="addNewSpaceButton"
-              color="primary"
-              elevation="0"
-              class="my-4">
-              {{ $t('analytics.spacesListWidget.addNewSpace') }}
-            </v-btn>
+            <span class="my-4">
+              <space-creation-button
+                v-if="$root.canCreateSpace"
+                :color="'primary'"
+                :elevation="0"
+                require-form-drawer
+                display-label />
+            </span>
           </div>
           <div v-else>
             <spaces-list-widget-list
@@ -114,9 +113,6 @@ export default {
     mostActiveSpaces: null,
   }),
   computed: {
-    createSpaceLink() {
-      return `${eXo.env.portal.context}/${eXo.env.portal.metaPortalName}/spaces?createSpace=true`;
-    },
     hoverEdit() {
       return this.hover && this.$root.canEdit;
     },
