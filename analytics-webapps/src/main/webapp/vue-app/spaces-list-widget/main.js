@@ -76,5 +76,5 @@ export function init(
         i18n,
         vuetify: Vue.prototype.vuetifyOptions,
       }, `#${appId}`, 'Space List Widget');
-    });
+    }).finally(() => Vue.prototype?.$utils?.includeExtensions('SpaceListExtension'));
 }
