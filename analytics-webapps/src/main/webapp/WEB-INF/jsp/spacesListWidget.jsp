@@ -59,7 +59,7 @@
 %>
 <div class="VuetifyApp">
   <div id="spacesListWidget">
-    <textarea id="spacesListWidget<%=valueDomId%>" style="display:none;"><%=headerTranslations == null ? "{}" : StringEscapeUtils.escapeJava(headerTranslations).replace("\\\"", "\"").replace("\\\\\"", "\\\"").replace("\\n", "") %></textarea>
+    <textarea id="<%=valueDomId%>" style="display:none;"><%=headerTranslations == null ? "{}" : StringEscapeUtils.escapeJava(headerTranslations).replace("\\\"", "\"").replace("\\\\\"", "\\\"").replace("\\n", "") %></textarea>
     <script type="text/javascript">
       window.require(['PORTLET/analytics/SpacesListWidget'], app => app.init(
         '<%=resourceURL%>',
@@ -74,7 +74,7 @@
         '<%=pageRef%>',
         <%=canCreateSpace%>,
         <%=isExternal%>,
-        JSON.parse(document.getElementById('spacesListWidget<%=valueDomId%>').value),
+        JSON.parse(document.getElementById('<%=valueDomId%>').value),
         <%=listOnlySubSpaces%>
       ));
     </script>
