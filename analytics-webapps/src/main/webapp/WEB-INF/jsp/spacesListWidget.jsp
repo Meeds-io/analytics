@@ -29,6 +29,7 @@
 <%@ page import="org.exoplatform.social.core.identity.model.Identity"%>
 <%@ page import="io.meeds.social.space.template.service.SpaceTemplateService"%>
 <%@ page import="org.exoplatform.services.security.ConversationState"%>
+<%@ page import="org.apache.commons.text.StringEscapeUtils" %>
 
 <portlet:defineObjects />
 <portlet:resourceURL var="resourceURL" />
@@ -41,6 +42,12 @@
   String spacesRecentlyVisitedPeriod = request.getAttribute("spacesRecentlyVisitedPeriod") == null ? "30" : ((String[]) request.getAttribute("spacesRecentlyVisitedPeriod"))[0];
   String spacesMostActiveLimit = request.getAttribute("spacesMostActiveLimit") == null ? "2" : ((String[]) request.getAttribute("spacesMostActiveLimit"))[0];
   String spacesMostActivePeriod = request.getAttribute("spacesMostActivePeriod") == null ? "30" : ((String[]) request.getAttribute("spacesMostActivePeriod"))[0];
+  String headerTranslations = null;
+  if (request.getAttribute("headerTranslations") != null) {
+    headerTranslations = ((String[]) request.getAttribute("headerTranslations"))[0];
+  };
+  String listOnlySubSpaces = request.getAttribute("listOnlySubSpaces") == null ? "false" : ((String[]) request.getAttribute("listOnlySubSpaces"))[0];
+  String valueDomId = "spacesListWidgetHeaderTranslationValue" + portletStorageId;
   Page currentPage = PortalRequestContext.getCurrentInstance().getPage();
   boolean canEdit = ExoContainerContext.getService(UserACL.class)
       .hasEditPermission(currentPage, ConversationState.getCurrent().getIdentity());
@@ -52,6 +59,7 @@
 %>
 <div class="VuetifyApp">
   <div id="spacesListWidget">
+    <textarea id="<%=valueDomId%>" style="display:none;"><%=headerTranslations == null ? "{}" : StringEscapeUtils.escapeJava(headerTranslations).replace("\\\"", "\"").replace("\\\\\"", "\\\"").replace("\\n", "") %></textarea>
     <script type="text/javascript">
       window.require(['PORTLET/analytics/SpacesListWidget'], app => app.init(
         '<%=resourceURL%>',
@@ -65,7 +73,9 @@
         <%=canEdit%>,
         '<%=pageRef%>',
         <%=canCreateSpace%>,
-        <%=isExternal%>
+        <%=isExternal%>,
+        JSON.parse(document.getElementById('<%=valueDomId%>').value),
+        <%=listOnlySubSpaces%>
       ));
     </script>
   </div>

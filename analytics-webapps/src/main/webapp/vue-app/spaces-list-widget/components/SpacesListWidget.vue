@@ -73,15 +73,14 @@
           <div v-if="emptyWidget" class="d-flex flex-column align-center justify-center full-width full-height">
             <v-icon color="tertiary" size="60">fa-people-arrows</v-icon>
             <span class="mt-5">{{ $t('analytics.spacesListWidget.noSpaces') }}</span>
-            <v-btn
-              v-if="$root.canCreateSpace"
-              :href="createSpaceLink"
-              id="addNewSpaceButton"
-              color="primary"
-              elevation="0"
-              class="my-4">
-              {{ $t('analytics.spacesListWidget.addNewSpace') }}
-            </v-btn>
+            <span class="my-4">
+              <space-creation-button
+                v-if="$root.canCreateSpace"
+                :color="'primary'"
+                :elevation="0"
+                require-form-drawer
+                display-label />
+            </span>
           </div>
           <div v-else>
             <spaces-list-widget-list
@@ -114,9 +113,6 @@ export default {
     mostActiveSpaces: null,
   }),
   computed: {
-    createSpaceLink() {
-      return `${eXo.env.portal.context}/${eXo.env.portal.metaPortalName}/spaces?createSpace=true`;
-    },
     hoverEdit() {
       return this.hover && this.$root.canEdit;
     },
@@ -147,18 +143,18 @@ export default {
       return this.$root.userSpacesLimit && this.$root.spaceIds?.slice?.(0, this.$root.userSpacesLimit);
     },
     title() {
-      if (this.sectionsCount > 1) {
-        return this.$t('analytics.spacesListWidget.header');
-      } else if (this.spacesMostActiveLimit) {
-        return this.$t('analytics.spacesListWidget.active.header');
-      } else if (this.spacesRecentlyVisitedLimit) {
-        return this.$t('analytics.spacesListWidget.recent.header');
-      } else if (this.userSpacesLimit) {
-        return this.$t('analytics.spacesListWidget.member.header');
-      } else {
-        return this.$t('analytics.spacesListWidget.header');
-      }
+      return this.$root.headerTitle;
     },
+    listOnlySubSpaces() {
+      return this.$root.listOnlySubSpaces;
+    },
+    parentSpaceId() {
+      return this.$root.spaceId;
+    },
+    appendParentSpaceParam() {
+      return !!(this.listOnlySubSpaces && this.parentSpaceId);
+    },
+
   },
   watch: {
     loading() {
@@ -196,6 +192,11 @@ export default {
         this.refresh();
       }
     },
+    listOnlySubSpaces() {
+      if (!this.loading) {
+        this.refresh();
+      }
+    }
   },
   created() {
     this.refresh();
@@ -216,7 +217,14 @@ export default {
       ]).finally(() => this.loading = false);
     },
     getUserSpaces() {
-      return this.$spaceService.getSpaces(null, 0, this.$root.userSpacesLimit, 'member', 'spaceId')
+      return this.$spaceService.getSpacesByFilter({
+        query: null,
+        offset: 0,
+        limit: this.$root.userSpacesLimit,
+        filter: 'member',
+        expand: 'spaceId',
+        parentSpaceId: this.appendParentSpaceParam && this.parentSpaceId || null
+      })
         .then(data => this.$root.spaceIds = data?.spaces?.map(s => s.id) || []);
     },
     getRecentyVisitedSpaces() {
@@ -239,7 +247,11 @@ export default {
       if (this.$root.spacesMemberOf) {
         queryName += '.memberOnly';
       }
-      return fetch(`${this.$root.resourceURL}&queryName=${queryName}&xLimit=${limit}&fromTimestamp=${this.getPeriodTimestamp(period)}`)
+      let fetchUrl = `${this.$root.resourceURL}&queryName=${queryName}&xLimit=${limit}&fromTimestamp=${this.getPeriodTimestamp(period)}`;
+      if (this.appendParentSpaceParam) {
+        fetchUrl = `${fetchUrl}&parentSpaceId=${this.parentSpaceId}`;
+      }
+      return fetch(fetchUrl)
         .then(resp => resp?.ok && resp.json());
     },
     getPeriodTimestamp(period) {
