@@ -107,8 +107,10 @@ export default {
       if (this.isProfilePropertyOption) {
         return await this.getProfilePropertyOptionTranslation(value);
       }
-      const key = `analytics.${value}`;
-      return this.$te(key) ? this.$t(key) : value;
+      const key = `analytics.${value?.replace?.('_alt', '')}`;
+      return this.$te(key) ?
+        (value?.includes?.('_alt') ? this.$t('analytics.field.alternative', {0: this.$t(key)}) : this.$t(key)) // NOSONAR
+        : value;
     },
     selectValue(value) {
       if (this.multipleOperator) {
