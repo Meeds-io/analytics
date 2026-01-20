@@ -127,8 +127,8 @@ export default {
         if (!fieldMapping.label) {
           const label = fieldMapping.name;
           const labelPart = label.indexOf('.') >= 0 ? label.substring(label.lastIndexOf('.') + 1) : label;
-          const fieldLabelI18NKey = `analytics.field.label.${labelPart}`;
-          const fieldLabelI18NValue = this.$t(fieldLabelI18NKey);
+          const fieldLabelI18NKey = `analytics.field.label.${labelPart?.replace?.('_alt', '')}`;
+          const fieldLabelI18NValue = labelPart?.includes?.('_alt') && this.$te(fieldLabelI18NKey) ? this.$t('analytics.field.alternative', {0: this.$t(fieldLabelI18NKey)}) : this.$t(fieldLabelI18NKey);
           fieldMapping.label = fieldLabelI18NValue === fieldLabelI18NKey ? `${this.$t('analytics.field.label.default')} ${label}` : fieldLabelI18NValue;
         }
       });

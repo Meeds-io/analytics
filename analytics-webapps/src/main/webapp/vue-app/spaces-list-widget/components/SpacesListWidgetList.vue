@@ -22,7 +22,7 @@
 <template>
   <v-list v-if="hasSpaces" class="pa-0">
     <div v-if="labelKey" class="d-flex text-body align-center justify-center px-0">
-      <span class="pe-2">{{ $t(labelKey) }}</span>
+      <span class="pe-2">{{ label }}</span>
       <v-divider class="flex-grow-1" />
     </div>
     <spaces-list-widget-item
@@ -44,6 +44,9 @@ export default {
     },
   },
   computed: {
+    label() {
+      return this.labelKey?.includes?.('_alt') ? this.$t('analytics.field.alternative', {0: this.$t(this.labelKey?.replace?.('_alt', ''))}) : this.$t(this.labelKey);
+    },
     hasSpaces() {
       return this.list?.length;
     },

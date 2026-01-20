@@ -78,7 +78,7 @@ public class AnalyticsTableFilter extends AbstractAnalyticsFilter {
     return null;
   }
 
-  public AnalyticsFilter buildColumnFilter(AnalyticsPeriod period,
+  public AnalyticsFilter buildColumnFilter(AnalyticsPeriod period, // NOSONAR
                                            AnalyticsPeriodType periodType,
                                            AnalyticsFieldFilter fieldFilter,
                                            int limit,
