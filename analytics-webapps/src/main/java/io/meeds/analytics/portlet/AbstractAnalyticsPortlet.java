@@ -21,6 +21,8 @@ package io.meeds.analytics.portlet;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import javax.portlet.*;
 import javax.ws.rs.core.MediaType;
@@ -301,6 +303,14 @@ public abstract class AbstractAnalyticsPortlet<T> extends GenericPortlet {
     String fromDateString = request.getParameter("min");
     String toDateString = request.getParameter("max");
     filter.addRangeFilter("timestamp", fromDateString, toDateString);
+  }
+
+  protected void convertToAltFieldName(Supplier<String> supplier, Consumer<String> consumer, Set<String> fieldNames) {
+    String fieldName = supplier.get();
+    String altFieldName = fieldName + "_alt";
+    if (fieldNames.contains(altFieldName)) {
+      consumer.accept(altFieldName);
+    }
   }
 
   protected void addScopeFilter(ResourceRequest request, AnalyticsFilter filter) throws PortletException {

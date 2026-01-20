@@ -22,14 +22,22 @@ package io.meeds.analytics.portlet;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.portlet.*;
 import javax.ws.rs.core.MediaType;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
 
+import io.meeds.analytics.model.StatisticFieldMapping;
 import io.meeds.analytics.model.filter.*;
+import io.meeds.analytics.model.filter.aggregation.AnalyticsAggregation;
+import io.meeds.analytics.model.filter.aggregation.AnalyticsPercentageLimit;
+import io.meeds.analytics.model.filter.search.AnalyticsFieldFilter;
 import io.meeds.analytics.utils.AnalyticsUtils;
 
 public class AnalyticsRatePortlet extends AbstractAnalyticsPortlet<AnalyticsPercentageFilter> {
@@ -45,7 +53,7 @@ public class AnalyticsRatePortlet extends AbstractAnalyticsPortlet<AnalyticsPerc
 
   @Override
   protected void readSettingsReadOnly(ResourceRequest request, ResourceResponse response) throws PortletException, IOException {
-    AnalyticsPercentageFilter filter = getFilterFromPreferences(request);
+    AnalyticsPercentageFilter filter = getFilter(request);
     JSONObject jsonResponse = new JSONObject();
     addJSONParam(jsonResponse, "title", filter.getTitle());
     addJSONParam(jsonResponse, "chartType", filter.getChartType());
@@ -57,14 +65,14 @@ public class AnalyticsRatePortlet extends AbstractAnalyticsPortlet<AnalyticsPerc
 
   @Override
   protected void readSettings(ResourceRequest request, ResourceResponse response) throws PortletException, IOException {
-    AnalyticsPercentageFilter filter = getFilterFromPreferences(request);
+    AnalyticsPercentageFilter filter = getFilter(request);
     response.setContentType(MediaType.APPLICATION_JSON);
     response.getWriter().write(AnalyticsUtils.toJsonString(filter));
   }
 
   @Override
   protected void readData(ResourceRequest request, ResourceResponse response) throws PortletException, IOException {
-    AnalyticsPercentageFilter filter = getFilterFromPreferences(request);
+    AnalyticsPercentageFilter filter = getFilter(request);
     addLanguageFilter(request, filter);
     addTimeZoneFilter(request, filter);
     addPeriodFilter(request, filter);
@@ -96,4 +104,44 @@ public class AnalyticsRatePortlet extends AbstractAnalyticsPortlet<AnalyticsPerc
       filter.setCustomPeriod(period);
     }
   }
+
+  private AnalyticsPercentageFilter getFilter(ResourceRequest request) {
+    AnalyticsPercentageFilter filter = getFilterFromPreferences(request);
+    Set<StatisticFieldMapping> mappings = getAnalyticsService().retrieveMapping(false);
+    Set<String> fieldNames = mappings.stream()
+                                     .map(StatisticFieldMapping::getName)
+                                     .collect(Collectors.toSet());
+
+    convertToAltFieldName(filter.getValue(), fieldNames);
+    convertToAltFieldName(filter.getThreshold(), fieldNames);
+
+    AnalyticsPercentageLimit percentageLimit = filter.getPercentageLimit();
+    if (percentageLimit != null) {
+      convertToAltFieldName(percentageLimit::getField,
+                            percentageLimit::setField,
+                            fieldNames);
+      convertToAltFieldName(percentageLimit.getAggregation(), fieldNames);
+    }
+    return filter;
+  }
+
+  private void convertToAltFieldName(AnalyticsPercentageItemFilter valueFilter, Set<String> fieldNames) {
+    if (valueFilter != null) {
+      AnalyticsAggregation aggregation = valueFilter.getYAxisAggregation();
+      if (aggregation != null) {
+        convertToAltFieldName(aggregation::getField,
+                              aggregation::setField,
+                              fieldNames);
+      }
+      List<AnalyticsFieldFilter> filters = valueFilter.getFilters();
+      if (CollectionUtils.isNotEmpty(filters)) {
+        for (AnalyticsFieldFilter analyticsFilter : filters) {
+          convertToAltFieldName(analyticsFilter::getField,
+                                analyticsFilter::setField,
+                                fieldNames);
+        }
+      }
+    }
+  }
+
 }

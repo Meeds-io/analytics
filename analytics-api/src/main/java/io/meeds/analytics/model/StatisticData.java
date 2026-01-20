@@ -25,6 +25,7 @@ import java.text.SimpleDateFormat;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -38,6 +39,14 @@ import lombok.ToString;
 @AllArgsConstructor
 @NoArgsConstructor
 public class StatisticData implements Serializable {
+
+  private static final List<Class<?>>     PRIMITIVE_TYPES  = List.of(Boolean.class,
+                                                                     Byte.class,
+                                                                     Short.class,
+                                                                     Integer.class,
+                                                                     Long.class,
+                                                                     Float.class,
+                                                                     Double.class);
 
   private static final long               serialVersionUID = -2660993500359866340L;
 
@@ -97,11 +106,15 @@ public class StatisticData implements Serializable {
   private Object getFieldValue(Object value) {
     if (value instanceof Date) {
       return buildDateFormat().format(value);
-    } else if (value == null || value.getClass().isPrimitive()) {
+    } else if (value == null || isOfTypePrimitiveClass(value)) {
       return value;
     } else {
       return String.valueOf(value);
     }
+  }
+
+  private static boolean isOfTypePrimitiveClass(Object value) {
+    return PRIMITIVE_TYPES.stream().anyMatch(c -> c.isAssignableFrom(value.getClass()));
   }
 
   private DateFormat buildDateFormat() {
