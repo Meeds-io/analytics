@@ -152,9 +152,10 @@ export default {
   }),
   computed: {
     i18NValue() {
-      const key = `analytics.${this.value}`;
-      const i18NValue = this.$t(key);
-      return i18NValue === key ? this.value : i18NValue;
+      const key = `analytics.${this.value?.replace?.('_alt', '')}`;
+      return this.$te(key) ?
+        (this.value?.includes?.('_alt') ? this.$t('analytics.field.alternative', {0: this.$t(key)}) : this.$t(key)) // NOSONAR
+        : this.value;
     },
     isNumeric() {
       return (this.dataType === 'long' || this.dataType === 'double')
