@@ -22,24 +22,15 @@ package io.meeds.analytics.portlet;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
-import javax.portlet.PortletException;
-import javax.portlet.ResourceRequest;
-import javax.portlet.ResourceResponse;
+import javax.portlet.*;
 import javax.ws.rs.core.MediaType;
 
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import io.meeds.analytics.model.StatisticData;
-import io.meeds.analytics.model.StatisticFieldMapping;
 import io.meeds.analytics.model.filter.AnalyticsFilter;
-import io.meeds.analytics.model.filter.aggregation.AnalyticsAggregation;
-import io.meeds.analytics.model.filter.search.AnalyticsFieldFilter;
 import io.meeds.analytics.utils.AnalyticsUtils;
 
 public class AnalyticsPortlet extends AbstractAnalyticsPortlet<AnalyticsFilter> {
@@ -56,14 +47,14 @@ public class AnalyticsPortlet extends AbstractAnalyticsPortlet<AnalyticsFilter> 
 
   @Override
   protected void readSettings(ResourceRequest request, ResourceResponse response) throws PortletException, IOException {
-    AnalyticsFilter filter = getFilter(request);
+    AnalyticsFilter filter = getFilterFromPreferences(request);
     response.setContentType(MediaType.APPLICATION_JSON);
     response.getWriter().write(AnalyticsUtils.toJsonString(filter));
   }
 
   @Override
   protected void readSettingsReadOnly(ResourceRequest request, ResourceResponse response) throws PortletException, IOException {
-    AnalyticsFilter filter = getFilter(request);
+    AnalyticsFilter filter = getFilterFromPreferences(request);
     JSONObject jsonResponse = new JSONObject();
     addJSONParam(jsonResponse, "title", filter.getTitle());
     addJSONParam(jsonResponse, "chartType", filter.getChartType());
@@ -77,7 +68,7 @@ public class AnalyticsPortlet extends AbstractAnalyticsPortlet<AnalyticsFilter> 
 
   @Override
   protected void readSamples(ResourceRequest request, ResourceResponse response) throws PortletException, IOException {
-    AnalyticsFilter filter = getFilter(request);
+    AnalyticsFilter filter = getFilterFromPreferences(request);
     addPeriodFilter(request, filter);
     addScopeFilter(request, filter);
     addLanguageFilter(request, filter);
@@ -100,7 +91,7 @@ public class AnalyticsPortlet extends AbstractAnalyticsPortlet<AnalyticsFilter> 
 
   @Override
   protected void readData(ResourceRequest request, ResourceResponse response) throws PortletException, IOException {
-    AnalyticsFilter filter = getFilter(request);
+    AnalyticsFilter filter = getFilterFromPreferences(request);
     addPeriodFilter(request, filter);
     addScopeFilter(request, filter);
     addLanguageFilter(request, filter);
@@ -109,35 +100,6 @@ public class AnalyticsPortlet extends AbstractAnalyticsPortlet<AnalyticsFilter> 
     Object result = getAnalyticsService().computeChartData(filter);
     response.setContentType(MediaType.APPLICATION_JSON);
     response.getWriter().write(AnalyticsUtils.toJsonString(result));
-  }
-
-  private AnalyticsFilter getFilter(ResourceRequest request) {
-    AnalyticsFilter filter = getFilterFromPreferences(request);
-    Set<StatisticFieldMapping> mappings = getAnalyticsService().retrieveMapping(false);
-    Set<String> fieldNames = mappings.stream()
-                                     .map(StatisticFieldMapping::getName)
-                                     .collect(Collectors.toSet());
-
-    if (StringUtils.isNotBlank(filter.getMultipleChartsField())) {
-      convertToAltFieldName(filter::getMultipleChartsField,
-                            filter::setMultipleChartsField,
-                            fieldNames);
-    }
-    if (CollectionUtils.isNotEmpty(filter.getAggregations())) {
-      for (AnalyticsAggregation analyticsAggregation : filter.getAggregations()) {
-        convertToAltFieldName(analyticsAggregation::getField,
-                              analyticsAggregation::setField,
-                              fieldNames);
-      }
-    }
-    if (CollectionUtils.isNotEmpty(filter.getFilters())) {
-      for (AnalyticsFieldFilter analyticsFilter : filter.getFilters()) {
-        convertToAltFieldName(analyticsFilter::getField,
-                              analyticsFilter::setField,
-                              fieldNames);
-      }
-    }
-    return filter;
   }
 
 }

@@ -58,16 +58,12 @@ export default {
   },
   computed: {
     keyLabel() {
-      const fieldLabelI18NKey = `analytics.field.label.${this.attrKey?.replace?.('_alt', '')}`;
-      return this.$te(fieldLabelI18NKey) ?
-        (this.attrKey?.includes?.('_alt') ? this.$t('analytics.field.alternative', {0: this.$t(fieldLabelI18NKey)}) : this.$t(fieldLabelI18NKey)) // NOSONAR
-        : this.attrKey;
+      const fieldLabelI18NKey = `analytics.field.label.${this.attrKey}`;
+      return this.$te(fieldLabelI18NKey) ? this.$t(fieldLabelI18NKey) : this.attrKey;
     },
     valueLabel() {
-      const fieldLabelI18NValue = `analytics.${this.attrValue?.replace?.('_alt', '')}`;
-      return this.$te(fieldLabelI18NValue) ?
-        (this.attrValue?.includes?.('_alt') ? this.$t('analytics.field.alternative', {0: this.$t(fieldLabelI18NValue)}) : this.$t(fieldLabelI18NValue)) // NOSONAR
-        : this.attrValue;
+      const fieldLabelI18NValue = `analytics.${this.attrValue}`;
+      return this.$te(fieldLabelI18NValue) ? this.$t(fieldLabelI18NValue) : this.attrValue;
     },
     sampleItemExtension() {
       if (this.sampleItemExtensions) {

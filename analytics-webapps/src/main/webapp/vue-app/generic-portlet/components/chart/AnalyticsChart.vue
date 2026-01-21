@@ -235,16 +235,8 @@ export default {
         if (extension) {
           return extension.getLabel(fieldName, fieldValue);
         } else {
-          let fieldLabelI18NKey = `analytics.${fieldValue?.replace?.('_alt', '')}`;
-          if (this.$te(fieldLabelI18NKey)) {
-            return fieldValue?.includes?.('_alt') ? this.$t('analytics.field.alternative', {0: this.$t(fieldLabelI18NKey)}) : this.$t(fieldLabelI18NKey);
-          } else {
-            fieldLabelI18NKey = `analytics.field.label.${fieldValue?.replace?.('_alt', '')}`;
-            return this.$te(fieldLabelI18NKey) ?
-              (fieldValue?.includes?.('_alt') ? this.$t('analytics.field.alternative', {0: this.$t(fieldLabelI18NKey)}) : this.$t(fieldLabelI18NKey)) // NOSONAR
-              : label;
-          }
-          
+          const fieldLabelI18NKey = `analytics.${fieldValue}`;
+          return this.$te(fieldLabelI18NKey) ? this.$t(fieldLabelI18NKey) : label;
         }
       } else {
         return label;

@@ -81,16 +81,12 @@ export default {
     propertyName() {
       return this.property?.split('.')?.[1];
     },
-    propertyNameKey() {
-      return this.propertyName?.replace?.('_alt', '');
-    },
     hasLabel() {
-      return this.$te(`analytics.field.label.${this.propertyNameKey}`);
+      return this.$te(`analytics.field.label.${this.propertyName}`);
     },
     propertyLabel() {
-      return this.translatedLabel
-          || (this.hasLabel && this.propertyName?.includes?.('_alt') && this.$t('analytics.field.alternative', {0: this.$t(`analytics.field.label.${this.propertyNameKey}`)}))
-          || (this.hasLabel && this.$t(`analytics.field.label.${this.propertyNameKey}`))
+      return this.hasLabel && this.$t(`analytics.field.label.${this.propertyName}`)
+          || this.translatedLabel
           || this.propertyName;
     }
   },

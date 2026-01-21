@@ -20,28 +20,15 @@
 package io.meeds.analytics.portlet;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
-import javax.portlet.PortletException;
-import javax.portlet.ResourceRequest;
-import javax.portlet.ResourceResponse;
+import javax.portlet.*;
 import javax.ws.rs.core.MediaType;
 
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
 
-import io.meeds.analytics.model.StatisticFieldMapping;
 import io.meeds.analytics.model.chart.TableColumnResult;
-import io.meeds.analytics.model.filter.AnalyticsFilter;
-import io.meeds.analytics.model.filter.AnalyticsPeriod;
-import io.meeds.analytics.model.filter.AnalyticsPeriodType;
-import io.meeds.analytics.model.filter.AnalyticsTableColumnAggregation;
-import io.meeds.analytics.model.filter.AnalyticsTableColumnFilter;
-import io.meeds.analytics.model.filter.AnalyticsTableFilter;
-import io.meeds.analytics.model.filter.aggregation.AnalyticsAggregation;
+import io.meeds.analytics.model.filter.*;
 import io.meeds.analytics.model.filter.search.AnalyticsFieldFilter;
 import io.meeds.analytics.model.filter.search.AnalyticsFieldFilterType;
 import io.meeds.analytics.utils.AnalyticsUtils;
@@ -60,7 +47,7 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
 
   @Override
   protected void readSettingsReadOnly(ResourceRequest request, ResourceResponse response) throws PortletException, IOException {
-    AnalyticsTableFilter filter = getFilter(request);
+    AnalyticsTableFilter filter = getFilterFromPreferences(request);
     JSONObject jsonResponse = new JSONObject();
     addJSONParam(jsonResponse, "title", filter.getTitle());
     addJSONParam(jsonResponse, "pageSize", filter.getPageSize());
@@ -72,15 +59,15 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
 
   @Override
   protected void readSettings(ResourceRequest request, ResourceResponse response) throws PortletException, IOException {
-    AnalyticsTableFilter filter = getFilter(request);
+    AnalyticsTableFilter filter = getFilterFromPreferences(request);
     response.setContentType("application/json");
     response.getWriter().write(AnalyticsUtils.toJsonString(filter));
   }
 
   @Override
   protected void readData(ResourceRequest request, ResourceResponse response) throws PortletException, IOException {
-    AnalyticsTableFilter tableFilter = getFilter(request);
-    if (tableFilter.getMainColumn() == null
+    AnalyticsTableFilter tableFilter = getFilterFromPreferences(request);
+    if (tableFilter == null || tableFilter.getMainColumn() == null
         || tableFilter.getMainColumn().getValueAggregation() == null
         || tableFilter.getMainColumn().getValueAggregation().getAggregation() == null
         || tableFilter.getMainColumn().getValueAggregation().getAggregation().getField() == null) {
@@ -164,53 +151,4 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
     response.setContentType(MediaType.APPLICATION_JSON);
     response.getWriter().write(AnalyticsUtils.toJsonString(result));
   }
-
-  private AnalyticsTableFilter getFilter(ResourceRequest request) {
-    AnalyticsTableFilter filter = getFilterFromPreferences(request);
-    Set<StatisticFieldMapping> mappings = getAnalyticsService().retrieveMapping(false);
-    Set<String> fieldNames = mappings.stream()
-                                     .map(StatisticFieldMapping::getName)
-                                     .collect(Collectors.toSet());
-    List<AnalyticsTableColumnFilter> columns = filter.getColumns();
-    for (AnalyticsTableColumnFilter analyticsTableColumnFilter : columns) {
-      convertToAltFieldName(analyticsTableColumnFilter, fieldNames);
-    }
-    convertToAltFieldName(filter.getMainColumn(), fieldNames);
-    return filter;
-  }
-
-  private void convertToAltFieldName(AnalyticsTableColumnFilter columnFilter, Set<String> fieldNames) {
-    if (columnFilter != null) {
-      convertToAltFieldName(columnFilter::getUserField,
-                            columnFilter::setUserField,
-                            fieldNames);
-      convertToAltFieldName(columnFilter::getSpaceField,
-                            columnFilter::setSpaceField,
-                            fieldNames);
-      convertToAltFieldName(columnFilter.getThresholdAggregation(),
-                            fieldNames);
-      convertToAltFieldName(columnFilter.getValueAggregation(),
-                            fieldNames);
-    }
-  }
-
-  private void convertToAltFieldName(AnalyticsTableColumnAggregation columnAggregation, Set<String> fieldNames) {
-    if (columnAggregation != null) {
-      AnalyticsAggregation aggregation = columnAggregation.getAggregation();
-      if (aggregation != null) {
-        convertToAltFieldName(aggregation::getField,
-                              aggregation::setField,
-                              fieldNames);
-      }
-      List<AnalyticsFieldFilter> filters = columnAggregation.getFilters();
-      if (CollectionUtils.isNotEmpty(filters)) {
-        for (AnalyticsFieldFilter analyticsFilter : filters) {
-          convertToAltFieldName(analyticsFilter::getField,
-                                analyticsFilter::setField,
-                                fieldNames);
-        }
-      }
-    }
-  }
-
 }
