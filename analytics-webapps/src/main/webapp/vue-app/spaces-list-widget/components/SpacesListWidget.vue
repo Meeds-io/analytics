@@ -167,11 +167,6 @@ export default {
         this.$root.$applicationLoaded();
       }
     },
-    emptyWidget() {
-      if (this.emptyWidget && !this.$root.canEdit) {
-        this.$root.$updateApplicationVisibility(false);
-      }
-    },
     spacesRecentlyVisitedLimit() {
       if (!this.loading) {
         this.refresh();
