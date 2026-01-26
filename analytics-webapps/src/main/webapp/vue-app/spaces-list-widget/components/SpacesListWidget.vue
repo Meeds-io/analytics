@@ -71,13 +71,14 @@
         </template>
         <template v-if="initialized" #default>
           <div v-if="emptyWidget" class="d-flex flex-column align-center justify-center full-width full-height">
-            <v-icon color="tertiary" size="60">fa-people-arrows</v-icon>
+            <v-icon color="tertiary" size="60">fa-layer-group</v-icon>
             <span class="mt-5">{{ $t('analytics.spacesListWidget.noSpaces') }}</span>
             <span class="my-4">
               <space-creation-button
                 v-if="$root.canCreateSpace"
                 :color="'primary'"
                 :elevation="0"
+                outlined
                 require-form-drawer
                 display-label />
             </span>
