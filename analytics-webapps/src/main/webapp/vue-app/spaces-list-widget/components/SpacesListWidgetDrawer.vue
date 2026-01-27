@@ -28,7 +28,16 @@
     class="spacesListOverviewDrawer"
     allow-expand>
     <template #title>
-      {{ memberSpacesOnly && $t('analytics.spacesListWidget.tab.userSpaces') || $t('analytics.spacesListWidget.drawer.title') }}
+      <div class="d-flex justify-space-between">
+        <span> {{ memberSpacesOnly && $t('analytics.spacesListWidget.tab.userSpaces') || $t('analytics.spacesListWidget.drawer.title') }} </span>
+        <space-creation-button
+          v-if="$root.canCreateSpace"
+          :color="'primary'"
+          :elevation="0"
+          :display-icon="false"
+          require-form-drawer
+          display-label />
+      </div>
     </template>
     <template v-if="drawer" #content>
       <v-tabs
