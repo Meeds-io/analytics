@@ -78,6 +78,7 @@
                 v-if="$root.canCreateSpace"
                 :color="'primary'"
                 :elevation="0"
+                :display-icon="false"
                 outlined
                 require-form-drawer
                 display-label />
