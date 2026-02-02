@@ -27,14 +27,12 @@
         extra-class="application-body fill-height">
         <template #title>
           <div class="d-flex flex-grow-1 flex-shrink-1 full-width align-center position-relative">
-            <div
-              v-if="!emptyWidget"
-              class="widget-text-header text-none text-truncate d-flex align-center">
+            <div class="widget-text-header text-none text-truncate d-flex align-center">
               {{ title }}
             </div>
             <div
               :class="{
-                'mt-2 me-2': emptyWidget,
+                'me-2': emptyWidget,
                 'l-0': $vuetify.rtl,
                 'r-0': !$vuetify.rtl,
               }"
