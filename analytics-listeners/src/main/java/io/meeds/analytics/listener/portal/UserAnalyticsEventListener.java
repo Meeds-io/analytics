@@ -19,11 +19,7 @@
  */
 package io.meeds.analytics.listener.portal;
 
-import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_SOCIAL_IDENTITY_ID;
-import static io.meeds.analytics.utils.AnalyticsUtils.addStatisticData;
-import static io.meeds.analytics.utils.AnalyticsUtils.getCurrentUserIdentityId;
-import static io.meeds.analytics.utils.AnalyticsUtils.getUserIdentityId;
-
+import static io.meeds.analytics.utils.AnalyticsUtils.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -83,7 +79,7 @@ public class UserAnalyticsEventListener extends UserEventListener {
   @Override
   @ContainerTransactional
   public void postSetEnabled(User user) throws Exception {
-    StatisticData statisticData = buildStatisticData("enableUser", user);
+    StatisticData statisticData = buildStatisticData(user.isEnabled() ? "enableUser" : "disableUser", user);
     addStatisticData(statisticData);
   }
 
@@ -104,6 +100,11 @@ public class UserAnalyticsEventListener extends UserEventListener {
       statisticData.setUserId(getCurrentUserIdentityId());
       statisticData.addParameter(FIELD_SOCIAL_IDENTITY_ID, getUserIdentityId(user.getUserName()));
       statisticData.addParameter("isEnabled", user.isEnabled());
+      if (OrganizationService.EXTERNAL_STORE.equals(user.getOriginatingStore())) {
+        statisticData.addParameter("userSource", EXTERNAL_USER_SOURCE);
+      } else {
+        statisticData.addParameter("userSource", user.getCreationSource());
+      }
       return statisticData;
     } catch (Exception e) {
       LOG.warn("Error building analytics Queue entry for operation {}", operation, e);
