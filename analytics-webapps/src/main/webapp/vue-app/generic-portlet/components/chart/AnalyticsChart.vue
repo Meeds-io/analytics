@@ -231,7 +231,7 @@ export default {
       const fieldName = label.split('=')[0];
       const fieldValue = label.split('=')[1];
       if (fieldValue) {
-        const extension = this.$root.fieldNameValueExtensions.find(ext => ext.match(fieldName, fieldValue));
+        const extension = this.$root.fieldNameValueExtensions.find(ext => ext?.match?.(fieldName?.replace?.('_alt', ''), fieldValue));
         if (extension) {
           return extension.getLabel(fieldName, fieldValue);
         } else {
