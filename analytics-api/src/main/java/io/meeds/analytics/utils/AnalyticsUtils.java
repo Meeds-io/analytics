@@ -115,7 +115,10 @@ public class AnalyticsUtils {
   public static final String            ACTIVITY_COMMENT                 = "comment";
 
   public static final String            PROFILE_PROPERTIES               = "profileProperties";
-  
+
+  public static final String           EXTERNAL_USER_SOURCE             = "externalUserSource";
+
+
   private static final String           PROPERTIES                       = "properties";
 
   public static final List<String>      COMPUTED_CHART_LABEL             = Arrays.asList(FIELD_MODIFIER_USER_SOCIAL_ID,                                 // NOSONAR
