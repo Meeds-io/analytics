@@ -20,6 +20,8 @@
 package io.meeds.analytics.listener.portal;
 
 import static io.meeds.analytics.utils.AnalyticsUtils.*;
+
+import io.meeds.core.organization.util.UserModificationSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -105,6 +107,7 @@ public class UserAnalyticsEventListener extends UserEventListener {
       } else {
         statisticData.addParameter("userSource", user.getCreationSource());
       }
+      statisticData.addParameter("modificationSource", UserModificationSource.getSourceOrDefault("ui"));
       return statisticData;
     } catch (Exception e) {
       LOG.warn("Error building analytics Queue entry for operation {}", operation, e);
