@@ -25,7 +25,7 @@ extensionRegistry.registerExtension('AnalyticsSamples', 'SampleItem', {
     rank: 10,
     // Used Vue component to display cell value
     vueComponent: Vue.options.components['analytics-profile-sample-item-attribute'],
-    match: fieldName => (fieldName === 'userId' || fieldName === 'modifierSocialId'),
+    match: fieldName => (fieldName === 'userId' || fieldName === 'modifierSocialId' || fieldName === 'identityId' || fieldName === 'identityId_alt'),
     options: {
       isUser: true,
     },
