@@ -117,9 +117,9 @@ public class AnalyticsRatePortlet extends AbstractAnalyticsPortlet<AnalyticsPerc
 
     AnalyticsPercentageLimit percentageLimit = filter.getPercentageLimit();
     if (percentageLimit != null) {
-      convertToAltFieldName(percentageLimit::getField,
-                            percentageLimit::setField,
-                            fieldNames);
+      AnalyticsUtils.convertToAltFieldName(percentageLimit::getField,
+                                           percentageLimit::setField,
+                                           fieldNames);
       convertToAltFieldName(percentageLimit.getAggregation(), fieldNames);
     }
     return filter;
@@ -129,16 +129,16 @@ public class AnalyticsRatePortlet extends AbstractAnalyticsPortlet<AnalyticsPerc
     if (valueFilter != null) {
       AnalyticsAggregation aggregation = valueFilter.getYAxisAggregation();
       if (aggregation != null) {
-        convertToAltFieldName(aggregation::getField,
-                              aggregation::setField,
-                              fieldNames);
+        AnalyticsUtils.convertToAltFieldName(aggregation::getField,
+                                             aggregation::setField,
+                                             fieldNames);
       }
       List<AnalyticsFieldFilter> filters = valueFilter.getFilters();
       if (CollectionUtils.isNotEmpty(filters)) {
         for (AnalyticsFieldFilter analyticsFilter : filters) {
-          convertToAltFieldName(analyticsFilter::getField,
-                                analyticsFilter::setField,
-                                fieldNames);
+          AnalyticsUtils.convertToAltFieldName(analyticsFilter::getField,
+                                               analyticsFilter::setField,
+                                               fieldNames);
         }
       }
     }

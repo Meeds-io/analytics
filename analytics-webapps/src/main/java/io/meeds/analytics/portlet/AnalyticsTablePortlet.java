@@ -181,12 +181,12 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
 
   private void convertToAltFieldName(AnalyticsTableColumnFilter columnFilter, Set<String> fieldNames) {
     if (columnFilter != null) {
-      convertToAltFieldName(columnFilter::getUserField,
-                            columnFilter::setUserField,
-                            fieldNames);
-      convertToAltFieldName(columnFilter::getSpaceField,
-                            columnFilter::setSpaceField,
-                            fieldNames);
+      AnalyticsUtils.convertToAltFieldName(columnFilter::getUserField,
+                                           columnFilter::setUserField,
+                                           fieldNames);
+      AnalyticsUtils.convertToAltFieldName(columnFilter::getSpaceField,
+                                           columnFilter::setSpaceField,
+                                           fieldNames);
       convertToAltFieldName(columnFilter.getThresholdAggregation(),
                             fieldNames);
       convertToAltFieldName(columnFilter.getValueAggregation(),
@@ -198,16 +198,16 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
     if (columnAggregation != null) {
       AnalyticsAggregation aggregation = columnAggregation.getAggregation();
       if (aggregation != null) {
-        convertToAltFieldName(aggregation::getField,
-                              aggregation::setField,
-                              fieldNames);
+        AnalyticsUtils.convertToAltFieldName(aggregation::getField,
+                                             aggregation::setField,
+                                             fieldNames);
       }
       List<AnalyticsFieldFilter> filters = columnAggregation.getFilters();
       if (CollectionUtils.isNotEmpty(filters)) {
         for (AnalyticsFieldFilter analyticsFilter : filters) {
-          convertToAltFieldName(analyticsFilter::getField,
-                                analyticsFilter::setField,
-                                fieldNames);
+          AnalyticsUtils.convertToAltFieldName(analyticsFilter::getField,
+                                               analyticsFilter::setField,
+                                               fieldNames);
         }
       }
     }

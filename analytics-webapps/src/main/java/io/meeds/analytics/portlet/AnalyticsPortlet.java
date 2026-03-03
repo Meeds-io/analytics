@@ -42,6 +42,8 @@ import io.meeds.analytics.model.filter.aggregation.AnalyticsAggregation;
 import io.meeds.analytics.model.filter.search.AnalyticsFieldFilter;
 import io.meeds.analytics.utils.AnalyticsUtils;
 
+import static io.meeds.analytics.utils.AnalyticsUtils.convertToAltFieldName;
+
 public class AnalyticsPortlet extends AbstractAnalyticsPortlet<AnalyticsFilter> {
 
   @Override
