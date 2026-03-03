@@ -23,14 +23,19 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import javax.portlet.PortletException;
 import javax.portlet.ResourceRequest;
 import javax.portlet.ResourceResponse;
 
+import io.meeds.analytics.model.StatisticFieldMapping;
+import io.meeds.analytics.model.filter.aggregation.AnalyticsAggregation;
 import io.meeds.analytics.model.filter.search.AnalyticsFieldFilter;
 import io.meeds.analytics.model.filter.search.AnalyticsFieldFilterType;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import com.google.javascript.jscomp.jarjar.com.google.re2j.Pattern;
@@ -44,6 +49,8 @@ import io.meeds.analytics.api.service.AnalyticsService;
 import io.meeds.analytics.model.chart.ChartDataList;
 import io.meeds.analytics.model.filter.AnalyticsFilter;
 import io.meeds.analytics.utils.AnalyticsUtils;
+
+import static io.meeds.analytics.utils.AnalyticsUtils.convertToAltFieldName;
 
 public class AnalyticsQueryPortlet extends GenericDispatchedViewPortlet {
 
@@ -89,7 +96,7 @@ public class AnalyticsQueryPortlet extends GenericDispatchedViewPortlet {
     response.setContentType("application/json");
   }
 
-  private AnalyticsFilter getFilter(ResourceRequest request) throws IllegalAccessException {
+  private AnalyticsFilter getFilterFromRequest(ResourceRequest request) throws IllegalAccessException {
     String filterName = request.getParameter("queryName");
     String filterString = getFilterContent(filterName);
     if (filterString.contains("{userIdentityId}")) {
@@ -124,6 +131,28 @@ public class AnalyticsQueryPortlet extends GenericDispatchedViewPortlet {
       filterString = filterString.replace(TO_TIMESTAMP_PARAM, toTimestamp);
     }
     return AnalyticsUtils.fromJsonString(filterString, AnalyticsFilter.class);
+  }
+
+  private AnalyticsFilter getFilter(ResourceRequest request) throws IllegalAccessException {
+    AnalyticsFilter filter = getFilterFromRequest(request);
+    applyParentSpaceFilter(request, filter);
+    Set<StatisticFieldMapping> mappings = getAnalyticsService().retrieveMapping(false);
+    Set<String> fieldNames = mappings.stream().map(StatisticFieldMapping::getName).collect(Collectors.toSet());
+    if (CollectionUtils.isNotEmpty(filter.getAggregations())) {
+      for (AnalyticsAggregation analyticsAggregation : filter.getAggregations()) {
+        convertToAltFieldName(analyticsAggregation::getField,
+                              analyticsAggregation::setField,
+                              fieldNames);
+      }
+    }
+    if (CollectionUtils.isNotEmpty(filter.getFilters())) {
+      for (AnalyticsFieldFilter analyticsFilter : filter.getFilters()) {
+        convertToAltFieldName(analyticsFilter::getField,
+                              analyticsFilter::setField,
+                              fieldNames);
+      }
+    }
+    return filter;
   }
 
   private String getFilterContent(String filterName) {

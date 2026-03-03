@@ -33,6 +33,8 @@ import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.SignStyle;
 import java.time.temporal.IsoFields;
 import java.util.*;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.time.LocalDate;
@@ -503,6 +505,14 @@ public class AnalyticsUtils {
       if (space != null) {
         addSpaceStatistics(statisticData, space);
       }
+    }
+  }
+
+  public static void convertToAltFieldName(Supplier<String> supplier, Consumer<String> consumer, Set<String> fieldNames) {
+    String fieldName = supplier.get();
+    String altFieldName = fieldName + "_alt";
+    if (fieldNames.contains(altFieldName)) {
+      consumer.accept(altFieldName);
     }
   }
 
