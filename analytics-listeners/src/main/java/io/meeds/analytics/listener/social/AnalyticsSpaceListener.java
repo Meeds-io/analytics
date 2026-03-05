@@ -19,10 +19,7 @@
  */
 package io.meeds.analytics.listener.social;
 
-import static io.meeds.analytics.utils.AnalyticsUtils.addSpaceStatistics;
-import static io.meeds.analytics.utils.AnalyticsUtils.addStatisticData;
-import static io.meeds.analytics.utils.AnalyticsUtils.getCurrentUserIdentityId;
-
+import io.meeds.social.space.plugin.SpaceInvitationLifeCycleEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -36,6 +33,8 @@ import org.exoplatform.social.core.space.spi.SpaceService;
 import io.meeds.analytics.model.StatisticData;
 
 import jakarta.annotation.PostConstruct;
+
+import static io.meeds.analytics.utils.AnalyticsUtils.*;
 
 @Component
 public class AnalyticsSpaceListener extends SpaceListenerPlugin {
@@ -161,6 +160,15 @@ public class AnalyticsSpaceListener extends SpaceListenerPlugin {
   }
 
   @Override
+  public void userJoinedByInvitationLink(SpaceInvitationLifeCycleEvent event) {
+    try {
+      addStatisticData(addUserJoinedByInvitationLinkStatisticEvent(event));
+    } catch (Exception e) {
+      handleErrorProcessingOperation(event, e);
+    }
+  }
+
+  @Override
   public void left(SpaceLifeCycleEvent event) {
     try {
       StatisticData statisticData = addUserStatisticEvent(event, "left");
@@ -207,6 +215,18 @@ public class AnalyticsSpaceListener extends SpaceListenerPlugin {
   private StatisticData addUserStatisticEvent(SpaceLifeCycleEvent event, String operation) {
     Space space = event.getSpace();
     return buildStatisticData(operation, space);
+  }
+
+  private StatisticData addUserJoinedByInvitationLinkStatisticEvent(SpaceInvitationLifeCycleEvent event) {
+    Space space = event.getSpace();
+    StatisticData statisticData = new StatisticData();
+    statisticData.setModule("social");
+    statisticData.setSubModule("space");
+    statisticData.setOperation("joinedByInvitationLink");
+    statisticData.setSpaceId(space.getSpaceId());
+    statisticData.setUserId(getUserIdentityId(event.getInviterId()));
+    statisticData.addParameter("invitedUserId", getUserIdentityId(event.getSource()));
+    return statisticData;
   }
 
   private StatisticData buildStatisticData(String operation, Space space) {
