@@ -25,7 +25,13 @@ import static io.meeds.analytics.utils.AnalyticsUtils.addStatisticData;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.exoplatform.social.core.activity.model.ExoSocialActivity;
+import org.exoplatform.social.core.manager.ActivityManager;
+import org.exoplatform.social.metadata.MetadataService;
+import org.exoplatform.social.metadata.model.MetadataItem;
+import org.exoplatform.social.metadata.model.MetadataKey;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -58,6 +64,12 @@ public class AnalyticsSpaceWebNotificationListener extends Listener<SpaceWebNoti
   @Autowired
   private ListenerService           listenerService;
 
+  @Autowired
+  private ActivityManager           activityManager;
+
+  @Autowired
+  private MetadataService           metadataService;
+
   @PostConstruct
   public void init() {
     EVENT_NAMES.forEach(name -> listenerService.addListener(name, this));
@@ -74,6 +86,15 @@ public class AnalyticsSpaceWebNotificationListener extends Listener<SpaceWebNoti
       statisticData = buildStatisticData("markAsRead",
                                          spaceWebNotificationItem.getSpaceId(),
                                          spaceWebNotificationItem.getUserId());
+
+      ExoSocialActivity activity = activityManager.getActivity(spaceWebNotificationItem.getActivityId());
+      MetadataKey viewersMetadataKey = new MetadataKey("viewers", activity.getUserId(), Long.parseLong(activity.getUserId()));
+      List<MetadataItem> viewersMetadataItems = metadataService.getMetadataItemsByMetadataAndObject(viewersMetadataKey, activity.getMetadataObject());
+      if (CollectionUtils.isNotEmpty(viewersMetadataItems)) {
+        for (MetadataItem viewersMetadataItem : viewersMetadataItems) {
+          metadataService.deleteMetadataItem(viewersMetadataItem.getId(), true);
+        }
+      }
       break;
     case SpaceWebNotificationService.NOTIFICATION_UNREAD_EVENT_NAME:
       statisticData = buildStatisticData("markAsUnRead",
