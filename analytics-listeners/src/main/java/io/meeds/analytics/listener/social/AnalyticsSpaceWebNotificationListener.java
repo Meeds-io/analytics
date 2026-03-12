@@ -27,11 +27,15 @@ import java.util.List;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.exoplatform.commons.exception.ObjectNotFoundException;
+import org.exoplatform.services.log.ExoLogger;
+import org.exoplatform.services.log.Log;
 import org.exoplatform.social.core.activity.model.ExoSocialActivity;
 import org.exoplatform.social.core.manager.ActivityManager;
 import org.exoplatform.social.metadata.MetadataService;
 import org.exoplatform.social.metadata.model.MetadataItem;
 import org.exoplatform.social.metadata.model.MetadataKey;
+import org.exoplatform.social.metadata.model.MetadataType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -54,9 +58,15 @@ import jakarta.annotation.PostConstruct;
 @Component
 public class AnalyticsSpaceWebNotificationListener extends Listener<SpaceWebNotificationItem, Long> {
 
-  private static final List<String> EVENT_NAMES = Arrays.asList("notification.read.item",
-                                                                "notification.unread.item",
-                                                                "notification.read.allItems");
+  private static final Log          LOG           = ExoLogger.getLogger(AnalyticsSpaceWebNotificationListener.class);
+
+  private static final List<String> EVENT_NAMES   = Arrays.asList("notification.read.item",
+                                                                  "notification.unread.item",
+                                                                  "notification.read.allItems");
+
+  private static final String       METADATA_NAME = "viewers";
+
+  public static final MetadataType  METADATA_TYPE = new MetadataType(METADATA_NAME.hashCode(), METADATA_NAME);
 
   @Autowired
   private SpaceService              spaceService;
@@ -86,15 +96,7 @@ public class AnalyticsSpaceWebNotificationListener extends Listener<SpaceWebNoti
       statisticData = buildStatisticData("markAsRead",
                                          spaceWebNotificationItem.getSpaceId(),
                                          spaceWebNotificationItem.getUserId());
-
-      ExoSocialActivity activity = activityManager.getActivity(spaceWebNotificationItem.getActivityId());
-      MetadataKey viewersMetadataKey = new MetadataKey("viewers", activity.getUserId(), Long.parseLong(activity.getUserId()));
-      List<MetadataItem> viewersMetadataItems = metadataService.getMetadataItemsByMetadataAndObject(viewersMetadataKey, activity.getMetadataObject());
-      if (CollectionUtils.isNotEmpty(viewersMetadataItems)) {
-        for (MetadataItem viewersMetadataItem : viewersMetadataItems) {
-          metadataService.deleteMetadataItem(viewersMetadataItem.getId(), true);
-        }
-      }
+      deleteViewersMetadata(spaceWebNotificationItem.getApplicationItemId());
       break;
     case SpaceWebNotificationService.NOTIFICATION_UNREAD_EVENT_NAME:
       statisticData = buildStatisticData("markAsUnRead",
@@ -138,5 +140,20 @@ public class AnalyticsSpaceWebNotificationListener extends Listener<SpaceWebNoti
     statisticData.setUserId(userId);
     addSpaceStatistics(statisticData, space);
     return statisticData;
+  }
+
+  private void deleteViewersMetadata(String activityId) {
+    ExoSocialActivity activity = activityManager.getActivity(activityId);
+    MetadataKey viewersMetadataKey = new MetadataKey(METADATA_TYPE.getName(), METADATA_NAME, Long.parseLong(activity.getUserId()));
+    List<MetadataItem> viewersMetadataItems = metadataService.getMetadataItemsByMetadataAndObject(viewersMetadataKey, activity.getMetadataObject());
+    if (CollectionUtils.isNotEmpty(viewersMetadataItems)) {
+      for (MetadataItem viewersMetadataItem : viewersMetadataItems) {
+        try {
+          metadataService.deleteMetadataItem(viewersMetadataItem.getId(), true);
+        } catch (ObjectNotFoundException e) {
+          LOG.debug("Unable to delete viewers metadata for activity {}", activityId, e);
+        }
+      }
+    }
   }
 }
