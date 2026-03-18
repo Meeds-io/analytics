@@ -1,8 +1,30 @@
+/**
+ * This file is part of the Meeds project (https://meeds.io/).
+ *
+ * Copyright (C) 2020 - 2026 Meeds Association contact@meeds.io
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
 package io.meeds.analytics.activity.processor;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.meeds.analytics.api.service.AnalyticsService;
-import io.meeds.analytics.model.StatisticData;
+import io.meeds.analytics.model.chart.ChartDataList;
 import io.meeds.analytics.model.filter.AnalyticsFilter;
+import io.meeds.analytics.model.filter.aggregation.AnalyticsAggregation;
 import jakarta.annotation.PostConstruct;
 import org.apache.commons.collections4.CollectionUtils;
 import org.exoplatform.commons.ObjectAlreadyExistsException;
@@ -20,7 +42,9 @@ import org.exoplatform.social.metadata.model.MetadataType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Component
 public class ActivityViewersProcessor extends BaseActivityProcessorPlugin {
@@ -43,22 +67,21 @@ public class ActivityViewersProcessor extends BaseActivityProcessorPlugin {
   private AnalyticsService         analyticsService;
 
   public ActivityViewersProcessor() {
-        super(initParams());
-    }
+    super(initParams());
+  }
 
   @Override
   public String getName() {
-        return ACTIVITY_PROCESSOR_NAME;
-    }
+    return ACTIVITY_PROCESSOR_NAME;
+  }
 
   @PostConstruct
   public void init() {
-        activityManager.addProcessor(this);
-    }
+    activityManager.addProcessor(this);
+  }
 
   @Override
   public void processActivity(ExoSocialActivity activity) {
-
     String authorId = activity.getUserId();
     MetadataKey metadataKey = new MetadataKey(METADATA_TYPE.getName(), METADATA_NAME, Long.parseLong(authorId));
     List<MetadataItem> viewersIdentityIds = metadataService.getMetadataItemsByMetadataAndObject(metadataKey, activity.getMetadataObject());
@@ -68,16 +91,30 @@ public class ActivityViewersProcessor extends BaseActivityProcessorPlugin {
       filter.addEqualFilter("entityType", "activity");
       filter.addEqualFilter("entityId", activity.getId());
       filter.addEqualFilter("event-type", "read");
-      List<StatisticData> stats = analyticsService.retrieveData(filter);
-      for (StatisticData stat : stats) {
-        long viewerId = stat.getUserId();
-        if (String.valueOf(viewerId).equals(authorId)) {
-          continue;
-        }
+      AnalyticsAggregation userAgg = new AnalyticsAggregation("userId");
+      filter.addXAxisAggregation(userAgg);
+
+      ChartDataList chartData = analyticsService.computeChartData(filter);
+
+      List<Long> viewerIds = chartData.getAggregationLabels().stream()
+                                                             .flatMap(label -> label.getAggregationValues().stream())
+                                                             .map(value -> Long.parseLong(value.getFieldValue()))
+                                                             .filter(viewerId -> !String.valueOf(viewerId).equals(authorId))
+                                                             .toList();
+      if (CollectionUtils.isNotEmpty(viewerIds)) {
+        ObjectMapper mapper = new ObjectMapper();
+        String jsonIds = null;
         try {
-          metadataService.createMetadataItem(activity.getMetadataObject(), metadataKey, viewerId);
+          jsonIds = mapper.writeValueAsString(viewerIds);
+        } catch (JsonProcessingException e) {
+          throw new RuntimeException(e);
+        }
+        Map<String, String> properties = new HashMap<>();
+        properties.put("viewerIds", jsonIds);
+        try {
+          metadataService.createMetadataItem(activity.getMetadataObject(), metadataKey, properties);
         } catch (ObjectAlreadyExistsException e) {
-          LOG.warn("Metadata already exists for viewer {} on activity {}", viewerId, activity.getId(), e);
+          LOG.warn("Viewers metadata already exists for activity {}", activity.getId(), e);
         }
       }
     }
