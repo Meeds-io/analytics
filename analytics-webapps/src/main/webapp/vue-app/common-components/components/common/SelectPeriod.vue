@@ -320,8 +320,10 @@ export default {
           this.dates[0] = this.dates[1];
           this.dates[1] = value;
         }
-        selectedPeriod.min = new Date(`${this.dates[0]}T${this.fromTime || '00:00'}`).getTime();
-        selectedPeriod.max = new Date(`${this.dates[1]}T${this.toTime || '23:59'}`).getTime();
+        const startDate = this.dates[0].split('-');
+        const endDate = this.dates[1].split('-');
+        selectedPeriod.min = Date.UTC(startDate[0], startDate[1] - 1, startDate[2], 0, 0, 0);
+        selectedPeriod.max = Date.UTC(endDate[0], endDate[1] - 1 , endDate[2], 23, 59, 59);
         this.$emit('input', selectedPeriod);
         return true;
       }
