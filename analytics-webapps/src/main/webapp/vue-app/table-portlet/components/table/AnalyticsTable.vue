@@ -291,7 +291,7 @@ export default {
           limit: String(limit || 0),
           periodType: this.period.period || '',
           min: this.period.min,
-          max: this.period.max + 60000,
+          max: this.period.max + 1000,
           timeZone: this.$analyticsUtils.USER_TIMEZONE_ID,
         };
         if (sort) {
