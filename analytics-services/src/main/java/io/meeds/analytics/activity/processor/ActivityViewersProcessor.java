@@ -90,7 +90,6 @@ public class ActivityViewersProcessor extends BaseActivityProcessorPlugin {
       filter.addEqualFilter("operation", "markAsRead");
       filter.addEqualFilter("entityType", "activity");
       filter.addEqualFilter("entityId", activity.getId());
-      filter.addEqualFilter("event-type", "read");
       AnalyticsAggregation userAgg = new AnalyticsAggregation("userId");
       filter.addXAxisAggregation(userAgg);
 
