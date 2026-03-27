@@ -20,7 +20,7 @@
 
 -->
 <template>
-  <div>
+  <div v-if="viewersMetadata.length">
     <v-icon
       size="4"
       class="px-2">
@@ -49,13 +49,9 @@ export default {
     },
   },
   computed: {
-    actId() {
-      console.warn('rr', this.activity, this.viewersMetadata.length);
-      return this.activity.id;
-    },
     viewersMetadata() {
-      return this.activity?.metadatas?.viewers?.length && JSON.parse(this.activity?.metadatas?.viewers[0]?.properties?.viewerIds);
-
+      const viewerIds = this.activity?.metadatas?.viewers?.[0]?.properties?.viewerIds;
+      return (viewerIds && JSON.parse(viewerIds)) || [];
     }
   }
 };

@@ -83,7 +83,7 @@ public class ActivityViewersProcessor extends BaseActivityProcessorPlugin {
   @Override
   public void processActivity(ExoSocialActivity activity) {
     String authorId = activity.getUserId();
-    MetadataKey metadataKey = new MetadataKey(METADATA_TYPE.getName(), METADATA_NAME, Long.parseLong(authorId));
+    MetadataKey metadataKey = new MetadataKey(METADATA_TYPE.getName(), METADATA_NAME, Long.parseLong(activity.getId()));
     List<MetadataItem> viewersIdentityIds = metadataService.getMetadataItemsByMetadataAndObject(metadataKey, activity.getMetadataObject());
     if (CollectionUtils.isEmpty(viewersIdentityIds)) {
       AnalyticsFilter filter = new AnalyticsFilter();
