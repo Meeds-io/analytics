@@ -36,7 +36,7 @@
           fas fa-eye
         </v-icon>
       </template>
-      <span> {{ viewersCount }} {{ $t('analytics.activity.views') }} </span>
+      <span> {{ $t('analytics.activity.views', {0: viewersCount}) }} </span>
     </v-tooltip>
   </div>
 </template>

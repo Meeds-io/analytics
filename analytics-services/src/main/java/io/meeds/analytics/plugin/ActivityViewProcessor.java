@@ -40,7 +40,6 @@ import org.exoplatform.social.metadata.MetadataService;
 import org.exoplatform.social.metadata.model.MetadataItem;
 import org.exoplatform.social.metadata.model.MetadataKey;
 import org.exoplatform.social.metadata.model.MetadataType;
-import org.exoplatform.social.notification.model.SpaceWebNotificationItem;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -126,7 +125,7 @@ public class ActivityViewProcessor extends BaseActivityProcessorPlugin {
     String authorId = activity.getUserId();
     MetadataKey viewersMetadataKey = new MetadataKey(METADATA_TYPE.getName(), METADATA_NAME, Long.parseLong(authorId));
     List<MetadataItem> viewersMetadataItems = metadataService.getMetadataItemsByMetadataAndObject(viewersMetadataKey, activity.getMetadataObject());
-    if (org.apache.commons.collections.CollectionUtils.isNotEmpty(viewersMetadataItems)) {
+    if (CollectionUtils.isNotEmpty(viewersMetadataItems)) {
       MetadataItem viewersMetadataItem = viewersMetadataItems.get(0);
       Map<String, String> properties = viewersMetadataItem.getProperties();
       String viewerIdsJson = properties.get("viewerIds");
@@ -143,7 +142,7 @@ public class ActivityViewProcessor extends BaseActivityProcessorPlugin {
       viewersMetadataItem.setProperties(properties);
       metadataService.updateMetadataItem(viewersMetadataItem, Long.parseLong(authorId));
     } else {
-      List<Long> viewerIds = new ArrayList<>();
+      Set<Long> viewerIds = new LinkedHashSet<>();
       viewerIds.add(userIdentityId);
       String jsonIds = JsonUtils.toJsonString(viewerIds);
       Map<String, String> properties = new HashMap<>();
