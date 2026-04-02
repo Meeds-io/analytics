@@ -51,6 +51,7 @@ const config = {
     spacesAdministrationExtension:'./src/main/webapp/vue-app/spaces-administration-extension/main.js',
     analyticsApi:'./src/main/webapp/vue-app/analytics-api/main.js',
     analyticsQuickActionExtensions: "./src/main/webapp/vue-app/quick-actions/extensions.js",
+    analyticsActivityStreamExtension: "./src/main/webapp/vue-app/analytics-extensions/number-views/main.js"
   },
   output: {
     path: path.join(__dirname, 'target/analytics/'),
