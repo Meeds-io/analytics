@@ -17,14 +17,13 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package io.meeds.analytics.activity.processor;
+package io.meeds.analytics.plugin;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.meeds.analytics.api.service.AnalyticsService;
 import io.meeds.analytics.model.chart.ChartDataList;
 import io.meeds.analytics.model.filter.AnalyticsFilter;
 import io.meeds.analytics.model.filter.aggregation.AnalyticsAggregation;
+import io.meeds.social.util.JsonUtils;
 import jakarta.annotation.PostConstruct;
 import org.apache.commons.collections4.CollectionUtils;
 import org.exoplatform.commons.ObjectAlreadyExistsException;
@@ -35,6 +34,8 @@ import org.exoplatform.services.log.Log;
 import org.exoplatform.social.core.BaseActivityProcessorPlugin;
 import org.exoplatform.social.core.activity.model.ExoSocialActivity;
 import org.exoplatform.social.core.manager.ActivityManager;
+import org.exoplatform.social.core.storage.api.ActivityStorage;
+import org.exoplatform.social.core.storage.cache.CachedActivityStorage;
 import org.exoplatform.social.metadata.MetadataService;
 import org.exoplatform.social.metadata.model.MetadataItem;
 import org.exoplatform.social.metadata.model.MetadataKey;
@@ -42,16 +43,14 @@ import org.exoplatform.social.metadata.model.MetadataType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Component
-public class ActivityViewersProcessor extends BaseActivityProcessorPlugin {
+public class ActivityViewProcessor extends BaseActivityProcessorPlugin {
 
-  private static final Log         LOG                     = ExoLogger.getLogger(ActivityViewersProcessor.class);
+  private static final Log         LOG                     = ExoLogger.getLogger(ActivityViewProcessor.class);
 
-  private static final String      ACTIVITY_PROCESSOR_NAME = "ActivityViewersProcessor";
+  private static final String      ACTIVITY_PROCESSOR_NAME = "ActivityViewProcessor";
 
   private static final String      METADATA_NAME           = "viewers";
 
@@ -66,7 +65,12 @@ public class ActivityViewersProcessor extends BaseActivityProcessorPlugin {
   @Autowired
   private AnalyticsService         analyticsService;
 
-  public ActivityViewersProcessor() {
+  @Autowired
+  private ActivityStorage activityStorage;
+
+  private CachedActivityStorage cachedActivityStorage;
+
+  public ActivityViewProcessor() {
     super(initParams());
   }
 
@@ -77,6 +81,9 @@ public class ActivityViewersProcessor extends BaseActivityProcessorPlugin {
 
   @PostConstruct
   public void init() {
+    if (activityStorage instanceof CachedActivityStorage) {
+      this.cachedActivityStorage = (CachedActivityStorage) activityStorage;
+    }
     activityManager.addProcessor(this);
   }
 
@@ -90,7 +97,6 @@ public class ActivityViewersProcessor extends BaseActivityProcessorPlugin {
       filter.addEqualFilter("operation", "markAsRead");
       filter.addEqualFilter("entityType", "activity");
       filter.addEqualFilter("entityId", activity.getId());
-      filter.addEqualFilter("event-type", "read");
       AnalyticsAggregation userAgg = new AnalyticsAggregation("userId");
       filter.addXAxisAggregation(userAgg);
 
@@ -102,13 +108,7 @@ public class ActivityViewersProcessor extends BaseActivityProcessorPlugin {
                                                              .filter(viewerId -> !String.valueOf(viewerId).equals(authorId))
                                                              .toList();
       if (CollectionUtils.isNotEmpty(viewerIds)) {
-        ObjectMapper mapper = new ObjectMapper();
-        String jsonIds = null;
-        try {
-          jsonIds = mapper.writeValueAsString(viewerIds);
-        } catch (JsonProcessingException e) {
-          throw new RuntimeException(e);
-        }
+        String jsonIds = JsonUtils.toJsonString(viewerIds);
         Map<String, String> properties = new HashMap<>();
         properties.put("viewerIds", jsonIds);
         try {
@@ -117,6 +117,48 @@ public class ActivityViewersProcessor extends BaseActivityProcessorPlugin {
           LOG.warn("Viewers metadata already exists for activity {}", activity.getId(), e);
         }
       }
+    }
+  }
+
+  public void addActivityViewer(String activityId, long userIdentityId) {
+    ExoSocialActivity activity = activityManager.getActivity(activityId);
+    String authorId = activity.getUserId();
+    MetadataKey viewersMetadataKey = new MetadataKey(METADATA_TYPE.getName(), METADATA_NAME, Long.parseLong(authorId));
+    List<MetadataItem> viewersMetadataItems = metadataService.getMetadataItemsByMetadataAndObject(viewersMetadataKey, activity.getMetadataObject());
+    if (CollectionUtils.isNotEmpty(viewersMetadataItems)) {
+      MetadataItem viewersMetadataItem = viewersMetadataItems.get(0);
+      Map<String, String> properties = viewersMetadataItem.getProperties();
+      String viewerIdsJson = properties.get("viewerIds");
+      LinkedHashSet<String> viewerIds = new LinkedHashSet<>();
+      if (viewerIdsJson != null && !viewerIdsJson.isEmpty()) {
+        viewerIds = JsonUtils.fromJsonString(viewerIdsJson, LinkedHashSet.class);
+      }
+      String newId = String.valueOf(userIdentityId);
+      if (!viewerIds.contains(newId) && !newId.equals(authorId)) {
+        viewerIds.add(newId);
+      }
+      String updatedJson = JsonUtils.toJsonString(viewerIds);
+      properties.put("viewerIds", updatedJson);
+      viewersMetadataItem.setProperties(properties);
+      metadataService.updateMetadataItem(viewersMetadataItem, Long.parseLong(authorId));
+    } else {
+      Set<Long> viewerIds = new LinkedHashSet<>();
+      viewerIds.add(userIdentityId);
+      String jsonIds = JsonUtils.toJsonString(viewerIds);
+      Map<String, String> properties = new HashMap<>();
+      properties.put("viewerIds", jsonIds);
+      try {
+        metadataService.createMetadataItem(activity.getMetadataObject(), viewersMetadataKey, properties);
+      } catch (ObjectAlreadyExistsException e) {
+        LOG.warn("Viewers metadata already exists for activity {}", activity.getId(), e);
+      }
+    }
+    clearCache(activity.getId());
+  }
+
+  private void clearCache(String activityId) {
+    if (cachedActivityStorage != null) {
+      cachedActivityStorage.clearActivityCached(activityId);
     }
   }
 
