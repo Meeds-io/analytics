@@ -20,7 +20,7 @@
 
 -->
 <template>
-  <div v-if="viewersMetadata.length">
+  <div v-if="showViewersCount && viewersCount" class="d-flex">
     <v-icon
       size="4"
       class="px-2">
@@ -28,7 +28,7 @@
     </v-icon>
     <v-tooltip bottom>
       <template #activator="{ on, attrs}">
-        <span class="ps-1"> {{ viewersMetadata.length }} </span>
+        <span class="ps-1 text-subtitle"> {{ viewersCount }} </span>
         <v-icon
           v-bind="attrs"
           v-on="on"
@@ -36,7 +36,7 @@
           fas fa-eye
         </v-icon>
       </template>
-      <span> {{ viewersMetadata.length }} {{ $t('analytics.views') }} </span>
+      <span> {{ viewersCount }} {{ $t('analytics.activity.views') }} </span>
     </v-tooltip>
   </div>
 </template>
@@ -47,11 +47,17 @@ export default {
       type: Object,
       default: null,
     },
+    activityTypeExtension: {
+      type: Object,
+      default: null,
+    },
   },
   computed: {
-    viewersMetadata() {
-      const viewerIds = this.activity?.metadatas?.viewers?.[0]?.properties?.viewerIds;
-      return (viewerIds && JSON.parse(viewerIds)) || [];
+    viewersCount() {
+      return this.activity?.viewersCount || 0;
+    },
+    showViewersCount() {
+      return !this.activityTypeExtension?.hideViewersCounter?.(this.activity);
     }
   }
 };

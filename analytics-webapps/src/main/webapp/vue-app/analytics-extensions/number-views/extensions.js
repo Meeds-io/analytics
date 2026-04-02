@@ -17,7 +17,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-extensionRegistry.registerComponent('ActivityNumberViews', 'activity-number-views', {
+extensionRegistry.registerComponent('ActivitySubtitle', 'activity-header-subtitle', {
   id: 'activityNumberViews',
   vueComponent: Vue.options.components['activity-number-views'],
   rank: 10,

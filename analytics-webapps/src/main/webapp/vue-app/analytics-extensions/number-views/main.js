@@ -19,4 +19,3 @@
  */
 import './initComponents.js';
 import './extensions.js';
-Vue.use(Vuetify);
