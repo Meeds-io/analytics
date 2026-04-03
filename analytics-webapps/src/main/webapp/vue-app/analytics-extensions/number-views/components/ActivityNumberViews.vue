@@ -28,7 +28,9 @@
     </v-icon>
     <v-tooltip bottom>
       <template #activator="{ on, attrs}">
-        <span class="ps-1 text-subtitle"> {{ viewersCount }} </span>
+        <span
+          :title="$t('analytics.activity.number.views', {0: viewersCount})"
+          class="ps-1 text-subtitle"> {{ viewersCount }} </span>
         <v-icon
           v-bind="attrs"
           v-on="on"
