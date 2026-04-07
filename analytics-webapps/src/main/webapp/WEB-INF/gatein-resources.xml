@@ -236,6 +236,30 @@
   </portlet>
 
   <module>
+    <name>AnalyticsActivityStreamExtension</name>
+    <load-group>ActivityStreamGRP</load-group>
+    <script>
+      <minify>false</minify>
+      <path>/js/analyticsActivityStreamExtension.bundle.js</path>
+    </script>
+    <depends>
+      <module>commonVueComponents</module>
+    </depends>
+    <depends>
+      <module>vue</module>
+    </depends>
+    <depends>
+      <module>vuetify</module>
+    </depends>
+    <depends>
+      <module>eXoVueI18n</module>
+    </depends>
+    <depends>
+      <module>extensionRegistry</module>
+    </depends>
+  </module>
+
+  <module>
     <name>commonAnalyticsVueComponents</name>
     <load-group>commonAnalyticsVueComponentsGroup</load-group>
     <script>

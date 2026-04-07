@@ -37,6 +37,11 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>analytics-services</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
       <groupId>io.meeds.commons</groupId>
       <artifactId>commons-component-common</artifactId>
       <scope>provided</scope>

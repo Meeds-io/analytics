@@ -48,9 +48,9 @@ import jakarta.annotation.PostConstruct;
 @Component
 public class AnalyticsSpaceWebNotificationListener extends Listener<SpaceWebNotificationItem, Long> {
 
-  private static final List<String> EVENT_NAMES = Arrays.asList("notification.read.item",
-                                                                "notification.unread.item",
-                                                                "notification.read.allItems");
+  private static final List<String> EVENT_NAMES   = Arrays.asList("notification.read.item",
+                                                                  "notification.unread.item",
+                                                                  "notification.read.allItems");
 
   @Autowired
   private SpaceService              spaceService;
