@@ -42,6 +42,11 @@
       <artifactId>social-component-core</artifactId>
     </dependency>
 
+    <dependency>
+      <groupId>io.meeds.auth-server</groupId>
+      <artifactId>auth-server-service</artifactId>
+    </dependency>
+
     <!-- Test -->
     <dependency>
       <groupId>io.meeds.social</groupId>

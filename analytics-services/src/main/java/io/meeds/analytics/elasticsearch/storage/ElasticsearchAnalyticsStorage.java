@@ -338,7 +338,7 @@ public class ElasticsearchAnalyticsStorage {
         "}";
   }
 
-  private String getCreateDocumentRequestContent(String id,
+  private String getCreateDocumentRequestContent(String id, // NOSONAR
                                                  StatisticData data,
                                                  Set<StatisticFieldMapping> esMappings) {
     JSONObject jsonObject = createCUDHeaderRequestContent(id);

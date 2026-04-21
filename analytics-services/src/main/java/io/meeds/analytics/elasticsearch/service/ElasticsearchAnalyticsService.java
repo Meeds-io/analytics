@@ -417,16 +417,23 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
 
   @Override
   public List<StatisticData> retrieveData(AnalyticsFilter filter) {
-    List<AnalyticsFieldFilter> filters = filter == null ? Collections.emptyList() : filter.getFilters();
-    long offset = filter == null ? 0 : filter.getOffset();
-    long limit = filter == null ? 10 : filter.getLimit();
-    ZoneId timeZone = filter == null ? null : filter.zoneId();
+    return retrieveData(filter == null ? Collections.emptyList() : filter.getFilters(),
+                        filter == null ? 0 : filter.getOffset(),
+                        filter == null ? 10 : filter.getLimit(),
+                        filter == null ? null : filter.zoneId());
+  }
+
+  @Override
+  public List<StatisticData> retrieveData(List<AnalyticsFieldFilter> filters,
+                                          long offset,
+                                          long limit,
+                                          ZoneId timeZone) {
     String esQueryString = buildAnalyticsQuery(null, filters, timeZone, offset, limit);
     String jsonResponse = this.elasticsearchStorage.search(esQueryString);
     try {
       return buildSearchResultFromESResponse(jsonResponse);
     } catch (JSONException e) {
-      throw new IllegalStateException("Error parsing results with filter: " + filter + ", response: " + jsonResponse, e);
+      throw new IllegalStateException("Error parsing results with filtes: %s, response: %s".formatted(filters, jsonResponse), e);
     }
   }
 
@@ -475,15 +482,15 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
 
   @Override
   public ChartDataList getChart(List<String> operations,
-                                    String fieldName,
-                                    List<String> fieldValues,
-                                    String xAggregationField,
-                                    AnalyticsAggregationType xAggregationType,
-                                    String xAggregationSortDirection,
-                                    String yAggregationField,
-                                    AnalyticsAggregationType yAggregationType,
-                                    String yAggregationSortDirection,
-                                    int limit) {
+                                String fieldName,
+                                List<String> fieldValues,
+                                String xAggregationField,
+                                AnalyticsAggregationType xAggregationType,
+                                String xAggregationSortDirection,
+                                String yAggregationField,
+                                AnalyticsAggregationType yAggregationType,
+                                String yAggregationSortDirection,
+                                int limit) {
     AnalyticsFilter searchFilter;
     searchFilter = new AnalyticsFilter();
     searchFilter.setFilters(new ArrayList<>());
@@ -1035,7 +1042,7 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
     return tableColumnResult;
   }
 
-  private void computeColumnItemValue(TableColumnItemValue itemValue,
+  private void computeColumnItemValue(TableColumnItemValue itemValue, // NOSONAR
                                       JSONObject bucket,
                                       boolean isCurrent,
                                       boolean isValue) throws JSONException {
