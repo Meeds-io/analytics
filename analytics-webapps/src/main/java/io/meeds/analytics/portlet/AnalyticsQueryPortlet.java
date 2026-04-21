@@ -177,12 +177,12 @@ public class AnalyticsQueryPortlet extends GenericDispatchedViewPortlet {
     if (StringUtils.isBlank(parentSpaceId)) {
       return;
     }
-    List<AnalyticsFieldFilter> filters = filter.getFilters();
-    if (filters == null) {
-      filters = new ArrayList<>();
+    List<AnalyticsFieldFilter> fieldFilters = filter.getFilters();
+    if (fieldFilters == null) {
+      fieldFilters = new ArrayList<>();
     }
-    filters.add(new AnalyticsFieldFilter(PARENT_SPACE_ID, AnalyticsFieldFilterType.EQUAL, parentSpaceId));
-    filter.setFilters(filters);
+    fieldFilters.add(new AnalyticsFieldFilter(PARENT_SPACE_ID, AnalyticsFieldFilterType.EQUAL, parentSpaceId));
+    filter.setFilters(fieldFilters);
   }
 
 }

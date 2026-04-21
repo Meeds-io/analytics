@@ -56,5 +56,10 @@
       <artifactId>social-component-notification</artifactId>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>io.meeds.auth-server</groupId>
+      <artifactId>auth-server-service</artifactId>
+      <scope>provided</scope>
+    </dependency>
   </dependencies>
 </project>
