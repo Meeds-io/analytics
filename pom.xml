@@ -49,7 +49,7 @@
     <!-- 3rd party libraries versions -->
     <io.meeds.social.version>7.2.x-exo-SNAPSHOT</io.meeds.social.version>
     <io.meeds.platform-ui.version>7.2.x-exo-SNAPSHOT</io.meeds.platform-ui.version>
-    <io.meeds.auth-server.version>7.2.x-exo-SNAPSHOT</io.meeds.auth-server.version>
+    <addon.meeds.auth-server.version>7.2.x-exo-SNAPSHOT</addon.meeds.auth-server.version>
 
     <!-- Sonar properties -->
     <sonar.organization>meeds-io</sonar.organization>
@@ -67,7 +67,7 @@
       <dependency>
         <groupId>io.meeds.auth-server</groupId>
         <artifactId>auth-server</artifactId>
-        <version>${io.meeds.auth-server.version}</version>
+        <version>${addon.meeds.auth-server.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
