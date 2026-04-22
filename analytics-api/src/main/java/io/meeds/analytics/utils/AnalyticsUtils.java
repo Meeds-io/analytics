@@ -118,10 +118,9 @@ public class AnalyticsUtils {
 
   public static final String            PROFILE_PROPERTIES               = "profileProperties";
 
-  public static final String           EXTERNAL_USER_SOURCE             = "externalUserSource";
+  public static final String            EXTERNAL_USER_SOURCE             = "externalUserSource";
 
-
-  private static final String           PROPERTIES                       = "properties";
+  public static final String            PROPERTIES                       = "properties";
 
   public static final List<String>      COMPUTED_CHART_LABEL             = Arrays.asList(FIELD_MODIFIER_USER_SOCIAL_ID,                                 // NOSONAR
                                                                                          FIELD_SOCIAL_IDENTITY_ID,
@@ -297,7 +296,7 @@ public class AnalyticsUtils {
     return new JSONArray(valuesList.stream().map(String::trim).toList()).toString();
   }
 
-  public static JsonNode getJsonNode(JsonNode jsonNode, int i, String... keys) {
+  public static JsonNode getJsonNode(JsonNode jsonNode, int i, String... keys) { // NOSONAR
     if (keys == null || i >= keys.length) {
       return null;
     }
@@ -574,7 +573,7 @@ public class AnalyticsUtils {
     }
   }
 
-  private static void mergeObjectNodes(ObjectNode target, ObjectNode source) {
+  private static void mergeObjectNodes(ObjectNode target, ObjectNode source) { // NOSONAR
     for (Iterator<Map.Entry<String, JsonNode>> it = source.properties().iterator(); it.hasNext();) {
       Map.Entry<String, JsonNode> entry = it.next();
       String key = entry.getKey();

@@ -19,6 +19,7 @@
  */
 package io.meeds.analytics.api.service;
 
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Set;
 
@@ -36,6 +37,7 @@ import io.meeds.analytics.model.filter.AnalyticsPeriod;
 import io.meeds.analytics.model.filter.AnalyticsPeriodType;
 import io.meeds.analytics.model.filter.AnalyticsTableFilter;
 import io.meeds.analytics.model.filter.aggregation.AnalyticsAggregationType;
+import io.meeds.analytics.model.filter.search.AnalyticsFieldFilter;
 
 public interface AnalyticsService {
 
@@ -98,6 +100,17 @@ public interface AnalyticsService {
    * @return {@link List} of {@link StatisticData}
    */
   List<StatisticData> retrieveData(AnalyticsFilter searchFilter);
+
+  /**
+   * Retrieve data using search filters
+   * 
+   * @param filters Search filters
+   * @param offset Search Offset
+   * @param limit Search limit results to return
+   * @param timeZone dates interpretation timezone
+   * @return {@link List} of {@link StatisticData}
+   */
+  List<StatisticData> retrieveData(List<AnalyticsFieldFilter> filters, long offset, long limit, ZoneId timeZone);
 
   /**
    * @param forceRefresh whether force refresh from ES or not
