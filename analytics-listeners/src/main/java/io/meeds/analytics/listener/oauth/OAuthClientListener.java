@@ -26,7 +26,7 @@ import static io.meeds.analytics.oauth.util.Utils.OPERATION_OAUTH_CLIENT_DISPLAY
 import static io.meeds.analytics.oauth.util.Utils.OPERATION_OAUTH_CLIENT_ENABLE;
 import static io.meeds.analytics.oauth.util.Utils.OPERATION_OAUTH_CLIENT_HIDE;
 import static io.meeds.analytics.oauth.util.Utils.OPERATION_OAUTH_CLIENT_UPDATE;
-import static io.meeds.analytics.oauth.util.Utils.SUB_MODULE_OAUTH_AUTHORIZATION;
+import static io.meeds.analytics.oauth.util.Utils.SUB_MODULE_OAUTH_CLIENT;
 import static io.meeds.analytics.oauth.util.Utils.addOAuthClientFields;
 import static io.meeds.analytics.utils.AnalyticsUtils.addStatisticData;
 import static io.meeds.oauth2.server.util.OAuthEventType.CLIENT_CREATED_EVENT;
@@ -89,7 +89,7 @@ public class OAuthClientListener implements ListenerBase<String, RegisteredClien
       if (StringUtils.isNotBlank(operation)) {
         StatisticData statisticData = new StatisticData();
         statisticData.setModule(MODULE_OAUTH);
-        statisticData.setSubModule(SUB_MODULE_OAUTH_AUTHORIZATION);
+        statisticData.setSubModule(SUB_MODULE_OAUTH_CLIENT);
         statisticData.setOperation(operation);
         addOAuthClientFields(statisticData, client);
         addStatisticData(statisticData);
