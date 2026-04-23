@@ -22,7 +22,7 @@ import static io.meeds.analytics.oauth.util.Utils.MODULE_OAUTH;
 import static io.meeds.analytics.oauth.util.Utils.OPERATION_OAUTH_TOKEN_USE;
 import static io.meeds.analytics.oauth.util.Utils.PARAM_OAUTH_CLIENT_ID;
 import static io.meeds.analytics.oauth.util.Utils.PARAM_OAUTH_TOKEN_TYPE;
-import static io.meeds.analytics.oauth.util.Utils.SUB_MODULE_OAUTH_AUTHORIZATION;
+import static io.meeds.analytics.oauth.util.Utils.SUB_MODULE_OAUTH_TOKEN;
 import static io.meeds.analytics.oauth.util.Utils.addOAuthClientFields;
 import static io.meeds.analytics.oauth.util.Utils.addOAuthTokenFields;
 import static io.meeds.analytics.utils.AnalyticsUtils.addStatisticData;
@@ -81,7 +81,7 @@ public class OAuthTokenConsumerListener implements ListenerBase<OAuth2Authorizat
       StatisticData statisticData = new StatisticData();
       statisticData.setUserId(userIdentity.getIdentityId());
       statisticData.setModule(MODULE_OAUTH);
-      statisticData.setSubModule(SUB_MODULE_OAUTH_AUTHORIZATION);
+      statisticData.setSubModule(SUB_MODULE_OAUTH_TOKEN);
       statisticData.setOperation(OPERATION_OAUTH_TOKEN_USE);
       if (client != null) {
         addOAuthClientFields(statisticData, client);

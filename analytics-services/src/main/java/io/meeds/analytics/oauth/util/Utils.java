@@ -32,7 +32,11 @@ public class Utils {
 
   public static final String MODULE_OAUTH                     = "oauth";
 
-  public static final String SUB_MODULE_OAUTH_AUTHORIZATION   = "authorization";
+  public static final String SUB_MODULE_OAUTH_CLIENT          = "oauthClient";
+
+  public static final String SUB_MODULE_OAUTH_TOKEN           = "oauthToken";
+
+  public static final String SUB_MODULE_OAUTH_AUTHORIZATION   = "oauthAuthorization";
 
   public static final String OPERATION_OAUTH_CLIENT_CREATE    = "oauthClientCreate";
 
