@@ -32,11 +32,12 @@
         <span> {{ memberSpacesOnly && $t('analytics.spacesListWidget.tab.userSpaces') || $t('analytics.spacesListWidget.drawer.title') }} </span>
         <space-creation-button
           v-if="$root.canCreateSpace"
+          require-form-drawer
+          display-label
           :color="'primary'"
           :elevation="0"
-          :display-icon="false"
-          require-form-drawer
-          display-label />
+          :parent-space-id="$root.isParentSpace && $root.spaceId || null"
+          :display-icon="false" />
       </div>
     </template>
     <template v-if="drawer" #content>
