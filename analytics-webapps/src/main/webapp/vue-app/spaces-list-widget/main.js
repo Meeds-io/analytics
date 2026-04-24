@@ -60,21 +60,27 @@ export function init(
           headerTranslations: headerTranslations,
           defaultLanguage: eXo?.env?.portal?.defaultLanguage,
           spaceId: eXo?.env?.portal?.spaceId,
-          listOnlySubSpaces: listOnlySubSpaces
+          listOnlySubSpaces: listOnlySubSpaces,
+          isParentSpace: false,
         },
         computed: {
           headerTitle() {
             return this.headerTranslations?.[lang] || this.headerTranslations?.[this.defaultLanguage];
           }
         },
-        created() {
+        async created() {
           if (Object.keys(this.headerTranslations).length === 0) {
             this.headerTranslations = {[this.defaultLanguage]: this.$t('analytics.spacesListWidget.header')};
+          }
+          if (this.spaceId) {
+            const space = await this.$spaceService.getSpaceById(this.spaceId);
+            this.isParentSpace = !!space?.isParentSpace;
           }
         },
         template: `<spaces-list-widget id="${appId}" />`,
         i18n,
         vuetify: Vue.prototype.vuetifyOptions,
       }, `#${appId}`, 'Space List Widget');
-    }).finally(() => Vue.prototype?.$utils?.includeExtensions('SpaceListExtension'));
+    });
 }
+
