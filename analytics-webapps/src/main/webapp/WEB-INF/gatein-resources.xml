@@ -213,6 +213,9 @@
       <depends>
         <module>translationField</module>
       </depends>
+      <depends>
+        <module>spacesListComponents</module>
+      </depends>
     </module>
   </portlet>
 
