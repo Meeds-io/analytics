@@ -76,6 +76,7 @@
                 v-if="$root.canCreateSpace"
                 :color="'primary'"
                 :elevation="0"
+                :parent-space-id="$root.isParentSpace && spaceId || null"
                 outlined
                 require-form-drawer
                 display-label />
@@ -147,11 +148,11 @@ export default {
     listOnlySubSpaces() {
       return this.$root.listOnlySubSpaces;
     },
-    parentSpaceId() {
+    spaceId() {
       return this.$root.spaceId;
     },
     appendParentSpaceParam() {
-      return !!(this.listOnlySubSpaces && this.parentSpaceId);
+      return !!(this.listOnlySubSpaces && this.spaceId);
     },
 
   },
@@ -217,7 +218,7 @@ export default {
         limit: this.$root.userSpacesLimit,
         filter: 'member',
         expand: 'spaceId',
-        parentSpaceId: this.appendParentSpaceParam && this.parentSpaceId || null
+        parentSpaceId: this.appendParentSpaceParam && this.spaceId || null
       })
         .then(data => this.$root.spaceIds = data?.spaces?.map(s => s.id) || []);
     },
@@ -243,7 +244,7 @@ export default {
       }
       let fetchUrl = `${this.$root.resourceURL}&queryName=${queryName}&xLimit=${limit}&fromTimestamp=${this.getPeriodTimestamp(period)}`;
       if (this.appendParentSpaceParam) {
-        fetchUrl = `${fetchUrl}&parentSpaceId=${this.parentSpaceId}`;
+        fetchUrl = `${fetchUrl}&parentSpaceId=${this.spaceId}`;
       }
       return fetch(fetchUrl)
         .then(resp => resp?.ok && resp.json());
