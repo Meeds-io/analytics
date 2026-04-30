@@ -28,15 +28,17 @@
     </v-icon>
     <v-tooltip bottom>
       <template #activator="{ on, attrs}">
-        <span
-          :title="$t('analytics.activity.number.views', {0: viewersCount})"
-          class="ps-1 text-subtitle"> {{ viewersCount }} </span>
-        <v-icon
-          v-bind="attrs"
+        <div
+        :aria-label="$t('analytics.activity.number.views', {0: viewersCount})"
           v-on="on"
-          size="12">
-          fas fa-eye
-        </v-icon>
+          v-bind="attrs"
+          class="d-flex">
+          <v-icon
+            size="12">
+            fas fa-eye
+          </v-icon>
+          <span class="ps-1 text-subtitle"> {{ viewersCount }} </span>
+          </div>
       </template>
       <span> {{ $t('analytics.activity.views', {0: viewersCount}) }} </span>
     </v-tooltip>
