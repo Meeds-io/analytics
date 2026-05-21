@@ -19,13 +19,17 @@
  */
 package io.meeds.analytics.plugin;
 
-import io.meeds.analytics.api.service.AnalyticsService;
-import io.meeds.analytics.model.chart.ChartDataList;
-import io.meeds.analytics.model.filter.AnalyticsFilter;
-import io.meeds.analytics.model.filter.aggregation.AnalyticsAggregation;
-import io.meeds.social.util.JsonUtils;
-import jakarta.annotation.PostConstruct;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
 import org.exoplatform.commons.ObjectAlreadyExistsException;
 import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.container.xml.ValueParam;
@@ -40,10 +44,14 @@ import org.exoplatform.social.metadata.MetadataService;
 import org.exoplatform.social.metadata.model.MetadataItem;
 import org.exoplatform.social.metadata.model.MetadataKey;
 import org.exoplatform.social.metadata.model.MetadataType;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
-import java.util.*;
+import io.meeds.analytics.api.service.AnalyticsService;
+import io.meeds.analytics.model.chart.ChartDataList;
+import io.meeds.analytics.model.filter.AnalyticsFilter;
+import io.meeds.analytics.model.filter.aggregation.AnalyticsAggregation;
+import io.meeds.social.util.JsonUtils;
+
+import jakarta.annotation.PostConstruct;
 
 @Component
 public class ActivityViewProcessor extends BaseActivityProcessorPlugin {
@@ -68,9 +76,9 @@ public class ActivityViewProcessor extends BaseActivityProcessorPlugin {
   private AnalyticsService         analyticsService;
 
   @Autowired
-  private ActivityStorage activityStorage;
+  private ActivityStorage          activityStorage;
 
-  private CachedActivityStorage cachedActivityStorage;
+  private CachedActivityStorage    cachedActivityStorage;
 
   public ActivityViewProcessor() {
     super(initParams());
@@ -91,9 +99,16 @@ public class ActivityViewProcessor extends BaseActivityProcessorPlugin {
 
   @Override
   public void processActivity(ExoSocialActivity activity) {
+    if (activity == null
+        || activity.isComment()
+        || StringUtils.isBlank(activity.getId())
+        || StringUtils.startsWith(activity.getId(), "comment")) {
+      return;
+    }
     String authorId = activity.getUserId();
     MetadataKey metadataKey = new MetadataKey(METADATA_TYPE.getName(), METADATA_NAME, Long.parseLong(authorId));
-    List<MetadataItem> viewersIdentityIds = metadataService.getMetadataItemsByMetadataAndObject(metadataKey, activity.getMetadataObject());
+    List<MetadataItem> viewersIdentityIds = metadataService.getMetadataItemsByMetadataAndObject(metadataKey,
+                                                                                                activity.getMetadataObject());
     if (CollectionUtils.isEmpty(viewersIdentityIds)) {
       AnalyticsFilter filter = new AnalyticsFilter();
       filter.addEqualFilter("operation", "markAsRead");
@@ -104,11 +119,12 @@ public class ActivityViewProcessor extends BaseActivityProcessorPlugin {
 
       ChartDataList chartData = analyticsService.computeChartData(filter);
 
-      List<Long> viewerIds = chartData.getAggregationLabels().stream()
-                                                             .flatMap(label -> label.getAggregationValues().stream())
-                                                             .map(value -> Long.parseLong(value.getFieldValue()))
-                                                             .filter(viewerId -> !String.valueOf(viewerId).equals(authorId))
-                                                             .toList();
+      List<Long> viewerIds = chartData.getAggregationLabels()
+                                      .stream()
+                                      .flatMap(label -> label.getAggregationValues().stream())
+                                      .map(value -> Long.parseLong(value.getFieldValue()))
+                                      .filter(viewerId -> !String.valueOf(viewerId).equals(authorId))
+                                      .toList();
       if (CollectionUtils.isNotEmpty(viewerIds)) {
         String jsonIds = JsonUtils.toJsonString(viewerIds);
         Map<String, String> properties = new HashMap<>();
@@ -127,7 +143,8 @@ public class ActivityViewProcessor extends BaseActivityProcessorPlugin {
     ExoSocialActivity activity = activityManager.getActivity(activityId);
     String authorId = activity.getUserId();
     MetadataKey viewersMetadataKey = new MetadataKey(METADATA_TYPE.getName(), METADATA_NAME, Long.parseLong(authorId));
-    List<MetadataItem> viewersMetadataItems = metadataService.getMetadataItemsByMetadataAndObject(viewersMetadataKey, activity.getMetadataObject());
+    List<MetadataItem> viewersMetadataItems = metadataService.getMetadataItemsByMetadataAndObject(viewersMetadataKey,
+                                                                                                  activity.getMetadataObject());
     if (CollectionUtils.isNotEmpty(viewersMetadataItems)) {
       MetadataItem viewersMetadataItem = viewersMetadataItems.get(0);
       Map<String, String> properties = viewersMetadataItem.getProperties();
