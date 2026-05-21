@@ -128,6 +128,7 @@ public class ActivityViewProcessor extends BaseActivityProcessorPlugin {
     String authorId = activity.getUserId();
     MetadataKey viewersMetadataKey = new MetadataKey(METADATA_TYPE.getName(), METADATA_NAME, Long.parseLong(authorId));
     List<MetadataItem> viewersMetadataItems = metadataService.getMetadataItemsByMetadataAndObject(viewersMetadataKey, activity.getMetadataObject());
+    String newId = String.valueOf(userIdentityId);
     if (CollectionUtils.isNotEmpty(viewersMetadataItems)) {
       MetadataItem viewersMetadataItem = viewersMetadataItems.get(0);
       Map<String, String> properties = viewersMetadataItem.getProperties();
@@ -136,7 +137,6 @@ public class ActivityViewProcessor extends BaseActivityProcessorPlugin {
       if (viewerIdsJson != null && !viewerIdsJson.isEmpty()) {
         viewerIds = JsonUtils.fromJsonString(viewerIdsJson, LinkedHashSet.class);
       }
-      String newId = String.valueOf(userIdentityId);
       if (!viewerIds.contains(newId) && !newId.equals(authorId)) {
         viewerIds.add(newId);
       }
@@ -145,8 +145,8 @@ public class ActivityViewProcessor extends BaseActivityProcessorPlugin {
       viewersMetadataItem.setProperties(properties);
       metadataService.updateMetadataItem(viewersMetadataItem, Long.parseLong(authorId));
     } else {
-      Set<Long> viewerIds = new LinkedHashSet<>();
-      viewerIds.add(userIdentityId);
+      Set<String> viewerIds = new LinkedHashSet<>();
+      viewerIds.add(newId);
       String jsonIds = JsonUtils.toJsonString(viewerIds);
       Map<String, String> properties = new HashMap<>();
       properties.put(FIELD_VIEWER_IDS, jsonIds);
