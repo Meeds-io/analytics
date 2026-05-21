@@ -50,7 +50,6 @@ import io.meeds.analytics.model.chart.ChartDataList;
 import io.meeds.analytics.model.filter.AnalyticsFilter;
 import io.meeds.analytics.model.filter.aggregation.AnalyticsAggregation;
 import io.meeds.social.util.JsonUtils;
-
 import jakarta.annotation.PostConstruct;
 
 @Component
@@ -99,9 +98,7 @@ public class ActivityViewProcessor extends BaseActivityProcessorPlugin {
 
   @Override
   public void processActivity(ExoSocialActivity activity) {
-    if (activity == null
-        || activity.isComment()
-        || StringUtils.isBlank(activity.getId())
+    if (activity == null || activity.isComment() || StringUtils.isBlank(activity.getId())
         || StringUtils.startsWith(activity.getId(), "comment")) {
       return;
     }
@@ -145,6 +142,7 @@ public class ActivityViewProcessor extends BaseActivityProcessorPlugin {
     MetadataKey viewersMetadataKey = new MetadataKey(METADATA_TYPE.getName(), METADATA_NAME, Long.parseLong(authorId));
     List<MetadataItem> viewersMetadataItems = metadataService.getMetadataItemsByMetadataAndObject(viewersMetadataKey,
                                                                                                   activity.getMetadataObject());
+    String newId = String.valueOf(userIdentityId);
     if (CollectionUtils.isNotEmpty(viewersMetadataItems)) {
       MetadataItem viewersMetadataItem = viewersMetadataItems.get(0);
       Map<String, String> properties = viewersMetadataItem.getProperties();
@@ -153,7 +151,6 @@ public class ActivityViewProcessor extends BaseActivityProcessorPlugin {
       if (viewerIdsJson != null && !viewerIdsJson.isEmpty()) {
         viewerIds = JsonUtils.fromJsonString(viewerIdsJson, LinkedHashSet.class);
       }
-      String newId = String.valueOf(userIdentityId);
       if (!viewerIds.contains(newId) && !newId.equals(authorId)) {
         viewerIds.add(newId);
       }
@@ -162,8 +159,8 @@ public class ActivityViewProcessor extends BaseActivityProcessorPlugin {
       viewersMetadataItem.setProperties(properties);
       metadataService.updateMetadataItem(viewersMetadataItem, Long.parseLong(authorId));
     } else {
-      Set<Long> viewerIds = new LinkedHashSet<>();
-      viewerIds.add(userIdentityId);
+      Set<String> viewerIds = new LinkedHashSet<>();
+      viewerIds.add(newId);
       String jsonIds = JsonUtils.toJsonString(viewerIds);
       Map<String, String> properties = new HashMap<>();
       properties.put(FIELD_VIEWER_IDS, jsonIds);
