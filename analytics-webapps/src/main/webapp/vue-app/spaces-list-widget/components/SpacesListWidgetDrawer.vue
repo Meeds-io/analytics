@@ -224,6 +224,9 @@ export default {
         .then(data => this.activeSpaces = data?.labels);
     },
     getSpaces(queryName, period, limit) {
+      if (this.$root.spacesMemberOf) {
+        queryName += '.memberOnly';
+      }
       const fromTimestamp = this.getPeriodTimestamp(period);
       let fetchUrl = `${this.$root.resourceURL}&queryName=${queryName}&xLimit=${limit}&fromTimestamp=${fromTimestamp}`;
       if (this.appendParentSpaceParam) {
