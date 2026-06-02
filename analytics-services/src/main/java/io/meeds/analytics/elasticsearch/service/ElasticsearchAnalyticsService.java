@@ -210,7 +210,7 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
       return new HashSet<>(esMappings.values());
     }
     try {
-      LOG.info("Retrieve Elasticsearch Field Mappings");
+      LOG.debug("Retrieve Elasticsearch Field Mappings");
       String mappingJsonString = elasticsearchStorage.retrieveAllAnalyticsIndexesMapping();
       if (StringUtils.isBlank(mappingJsonString)) {
         return new HashSet<>(esMappings.values());
