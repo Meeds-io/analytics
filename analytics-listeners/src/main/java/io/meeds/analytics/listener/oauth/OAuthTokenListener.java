@@ -36,6 +36,7 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.oauth2.server.authorization.OAuth2Authorization;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.stereotype.Component;
@@ -55,6 +56,7 @@ import jakarta.annotation.PostConstruct;
 
 @Component
 @Asynchronous
+@Profile("auth-server")
 public class OAuthTokenListener implements ListenerBase<OAuth2Authorization, OAuth2Authorization> {
 
   private static final List<String> EVENT_TYPES = Arrays.asList(TOKEN_CREATED,

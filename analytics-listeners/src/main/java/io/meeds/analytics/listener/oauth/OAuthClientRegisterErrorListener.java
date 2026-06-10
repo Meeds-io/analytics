@@ -34,6 +34,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.oauth2.server.authorization.oidc.OidcClientRegistration;
 import org.springframework.stereotype.Component;
 
@@ -48,6 +49,7 @@ import io.meeds.oauth2.server.model.OAuthCimdClientMetadata;
 import jakarta.annotation.PostConstruct;
 
 @Component
+@Profile("auth-server")
 public class OAuthClientRegisterErrorListener implements ListenerBase<Object, RuntimeException> {
 
   private static final List<String> EVENT_TYPES = Arrays.asList(CLIENT_REGISTER_REJECT_EVENT);
