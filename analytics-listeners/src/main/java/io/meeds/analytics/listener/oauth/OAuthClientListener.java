@@ -42,6 +42,7 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.stereotype.Component;
 
@@ -54,6 +55,7 @@ import io.meeds.analytics.model.StatisticData;
 import jakarta.annotation.PostConstruct;
 
 @Component
+@Profile("auth-server")
 public class OAuthClientListener implements ListenerBase<String, RegisteredClient> {
 
   private static final List<String> EVENT_TYPES = Arrays.asList(CLIENT_CREATED_EVENT,
