@@ -39,6 +39,7 @@ extensionRegistry.registerExtension('spaces-administration', 'table-column', {
     currentSpaces,
   }) => {
     const spaces = offset ? currentSpaces?.slice() : [];
+    const currentSpacesIds = new Set(spaces.map(s => s.id));
     const aggregationResults = await Vue.prototype
       .$analyticsService
       .getChart({
@@ -61,7 +62,12 @@ extensionRegistry.registerExtension('spaces-administration', 'table-column', {
         .map(id => Vue.prototype.$spaceService.getSpaceById(id, expand, true).catch(() => {/* Space could be deleted */}))
     );
     const validSpacesResult = spacesResult.filter(s => s).slice(0, limit);
-    validSpacesResult.forEach(s => spaces.push(s));
+    validSpacesResult.forEach(s => {
+      if (!currentSpacesIds.has(s.id)) {
+        spaces.push(s);
+        currentSpacesIds.add(s.id);
+      }
+    });
     if (validSpacesResult.length === 0) {
       const noActivitySpaces = await Vue.prototype.$spaceService.getSpacesByFilter({
         offset: 0,
