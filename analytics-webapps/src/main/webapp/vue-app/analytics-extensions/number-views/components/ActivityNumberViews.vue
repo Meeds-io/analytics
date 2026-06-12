@@ -29,7 +29,7 @@
     <v-tooltip bottom>
       <template #activator="{ on, attrs}">
         <div
-        :aria-label="$t('analytics.activity.number.views', {0: viewersCount})"
+          :aria-label="$t('analytics.activity.number.views', {0: viewersCount})"
           v-on="on"
           v-bind="attrs"
           class="d-flex">
@@ -38,7 +38,7 @@
             fas fa-eye
           </v-icon>
           <span class="ps-1 text-subtitle"> {{ viewersCount }} </span>
-          </div>
+        </div>
       </template>
       <span> {{ $t('analytics.activity.views', {0: viewersCount}) }} </span>
     </v-tooltip>
