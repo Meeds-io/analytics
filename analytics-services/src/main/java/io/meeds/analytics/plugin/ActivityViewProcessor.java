@@ -138,6 +138,16 @@ public class ActivityViewProcessor extends BaseActivityProcessorPlugin {
   @SuppressWarnings("unchecked")
   public void addActivityViewer(String activityId, long userIdentityId) {
     ExoSocialActivity activity = activityManager.getActivity(activityId);
+    if (activity == null) {
+      LOG.warn("Can't add viewer user with IdentityId '{}' as viewer with the not found activity with id '{}'",
+               userIdentityId,
+               activityId);
+      return;
+    } else if (activity.isComment()
+               || StringUtils.isBlank(activity.getId())
+               || StringUtils.startsWith(activity.getId(), "comment")) {
+      return;
+    }
     String authorId = activity.getUserId();
     MetadataKey viewersMetadataKey = new MetadataKey(METADATA_TYPE.getName(), METADATA_NAME, Long.parseLong(authorId));
     List<MetadataItem> viewersMetadataItems = metadataService.getMetadataItemsByMetadataAndObject(viewersMetadataKey,
