@@ -19,9 +19,8 @@
  */
 package io.meeds.analytics.listener.social;
 
-import java.util.*;
+import java.util.List;
 
-import io.meeds.analytics.plugin.ActivityViewProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -30,7 +29,10 @@ import org.exoplatform.services.listener.Event;
 import org.exoplatform.services.listener.Listener;
 import org.exoplatform.services.listener.ListenerService;
 import org.exoplatform.social.notification.model.SpaceWebNotificationItem;
+
+import io.meeds.analytics.plugin.ActivityViewProcessor;
 import io.meeds.common.ContainerTransactional;
+import io.meeds.social.activity.plugin.ActivityContentLinkPlugin;
 
 import jakarta.annotation.PostConstruct;
 
@@ -55,6 +57,8 @@ public class AnalyticsViewListener extends Listener<SpaceWebNotificationItem, Lo
   @ContainerTransactional
   public void onEvent(Event<SpaceWebNotificationItem, Long> event) {
     SpaceWebNotificationItem spaceWebNotificationItem = event.getSource();
-    activityViewProcessor.addActivityViewer(spaceWebNotificationItem.getApplicationItemId(), spaceWebNotificationItem.getUserId());
+    if (ActivityContentLinkPlugin.OBJECT_TYPE.equals(spaceWebNotificationItem.getApplicationName())) {
+      activityViewProcessor.addActivityViewer(spaceWebNotificationItem.getApplicationItemId(), spaceWebNotificationItem.getUserId());
+    }
   }
 }
