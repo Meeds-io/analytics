@@ -38,9 +38,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.ResolverStyle;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,6 +46,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -111,7 +110,9 @@ public class ElasticsearchAnalyticsStorage {
   public static final DateTimeFormatter DAY_DATE_FORMATTER   = DateTimeFormatter.ofPattern(DAY_DATE_FORMAT)
                                                                                 .withResolverStyle(ResolverStyle.LENIENT);
 
-  private List<String>                  ignoredFieldNames    = Collections.synchronizedList(new ArrayList<>());
+  private Set<String>                   ignoredFieldNames    = ConcurrentHashMap.newKeySet();
+
+  private Map<String, String>           mappedFieldNames     = new ConcurrentHashMap<>();
 
   @Autowired
   private ListenerService               listenerService;
@@ -364,7 +365,7 @@ public class ElasticsearchAnalyticsStorage {
       data.getParameters()
           .keySet()
           .stream()
-          .filter(p -> !mappedFields.containsKey(p))
+          .filter(p -> getFieldMapping(mappedFields, p) == null)
           .forEach(f -> createFieldMapping(f, data.getParameters().get(f)));
       Map<String, String> parameters = data.getParameters()
                                            .entrySet()
@@ -373,30 +374,35 @@ public class ElasticsearchAnalyticsStorage {
                                            .map(e -> {
                                              String name = e.getKey();
                                              Object value = e.getValue();
-                                             StatisticFieldMapping mapping = mappedFields.get(name);
+                                             if (value == null) {
+                                               return null;
+                                             }
+                                             StatisticFieldMapping mapping = getFieldMapping(mappedFields, name);
                                              String altFieldName = "%s_alt".formatted(name);
-                                             if (mappedFields.containsKey(altFieldName)) {
-                                               return Pair.of(altFieldName, value);
+                                             StatisticFieldMapping altMapping = getFieldMapping(mappedFields, altFieldName);
+                                             if (altMapping != null) {
+                                               if (checkFieldMapping(value, altMapping)) {
+                                                 return normalizeFieldValueForMapping(Pair.of(altFieldName, value), altMapping);
+                                               }
+                                               if (ignoredFieldNames.add(altFieldName)) {
+                                                 LOG.warn("Field with name '{}' and type '{}' isn't compatible with ES alternative type '{}'. Ignore adding it in indexed document {}",
+                                                          name,
+                                                          getFieldMappingType(value),
+                                                          altMapping.getType(),
+                                                          data.getParameters());
+                                               }
+                                               return null;
                                              } else if (checkFieldMapping(value, mapping)) {
-                                               return e;
-                                             } else if (mapping.getType().equals(KEYWORD_MAPPING_TYPE)
-                                                        || mapping.getType().equals(TEXT_MAPPING_TYPE)) {
-                                               String altFieldType = createFieldMapping(altFieldName, value);
-                                               LOG.warn("ES Field '{}' will be renamed to '{}' due to different type: ES Type = '{}', detected type = '{}'",
-                                                        name,
-                                                        altFieldName,
-                                                        mapping.getType(),
-                                                        altFieldType);
-                                               return Pair.of(altFieldName, value);
+                                               return normalizeFieldValueForMapping(e, mapping);
                                              } else {
                                                // Start:: Log the same field
                                                // only once
-                                               if (!ignoredFieldNames.contains(name)) {
-                                                 ignoredFieldNames.add(name);
-                                                 LOG.warn("Field with name '{}' and type '{}' isn't compatible with ES type '{}'. Ignore adding it in indexed document.",
+                                               if (ignoredFieldNames.add(name)) {
+                                                 LOG.warn("Field with name '{}' and type '{}' isn't compatible with ES type '{}'. Ignore adding it in indexed document {}",
                                                           name,
                                                           getFieldMappingType(value),
-                                                          mapping.getType());
+                                                          mapping.getType(),
+                                                          data.getParameters());
                                                }
                                                // End:: Log the same field only
                                                // once
@@ -416,7 +422,7 @@ public class ElasticsearchAnalyticsStorage {
       data.getListParameters()
           .keySet()
           .stream()
-          .filter(p -> !mappedFields.containsKey(p))
+          .filter(p -> getFieldMapping(mappedFields, p) == null)
           .filter(p -> CollectionUtils.isNotEmpty(data.getListParameters().get(p)))
           .forEach(p -> createFieldMapping(p, data.getListParameters().get(p)));
       Map<String, Collection<String>> parameters = data.getListParameters()
@@ -426,27 +432,30 @@ public class ElasticsearchAnalyticsStorage {
                                                        .map(e -> {
                                                          Collection<Object> value = e.getValue();
                                                          String name = e.getKey();
-                                                         StatisticFieldMapping mapping = mappedFields.get(name);
+                                                         StatisticFieldMapping mapping = getFieldMapping(mappedFields, name);
                                                          String altFieldName = "%s_alt".formatted(name);
-                                                         if (mappedFields.containsKey(altFieldName)) {
-                                                           return Pair.of(altFieldName, value);
+                                                         StatisticFieldMapping altMapping = getFieldMapping(mappedFields,
+                                                                                                            altFieldName);
+                                                         if (altMapping != null) {
+                                                           if (checkFieldMapping(value, altMapping)) {
+                                                             return normalizeFieldValueCollectionForMapping(Pair.of(altFieldName,
+                                                                                                                    value),
+                                                                                                            altMapping);
+                                                           }
+                                                           if (ignoredFieldNames.add(altFieldName)) {
+                                                             LOG.warn("Field with name '{}' and type '{}' isn't compatible with ES alternative type '{}'. Ignore adding it in indexed document.",
+                                                                      name,
+                                                                      getFieldMappingType(value),
+                                                                      altMapping.getType());
+                                                           }
+                                                           return null;
                                                          } else if (checkFieldMapping(value, mapping)) {
-                                                           return e;
-                                                         } else if (mapping.getType().equals(KEYWORD_MAPPING_TYPE)
-                                                                    || mapping.getType().equals(TEXT_MAPPING_TYPE)) {
-                                                           String altFieldType = createFieldMapping(altFieldName, value);
-                                                           LOG.warn("ES Field '{}' will be renamed to '{}' due to different type: ES Type = '{}', detected type = '{}'",
-                                                                    name,
-                                                                    altFieldName,
-                                                                    mapping.getType(),
-                                                                    altFieldType);
-                                                           return Pair.of(altFieldName, value);
+                                                           return normalizeFieldValueCollectionForMapping(e, mapping);
                                                          } else {
                                                            // Start:: Log the
                                                            // same field
                                                            // only once
-                                                           if (!ignoredFieldNames.contains(name)) {
-                                                             ignoredFieldNames.add(name);
+                                                           if (ignoredFieldNames.add(name)) {
                                                              LOG.warn("Field with name '{}' and type '{}' isn't compatible with ES type '{}'. Ignore adding it in indexed document.",
                                                                       name,
                                                                       getFieldMappingType(value),
@@ -468,37 +477,83 @@ public class ElasticsearchAnalyticsStorage {
     return createRequest.toString() + "\n" + document.toJSON() + "\n";
   }
 
-  private String createFieldMapping(String f, Object value) {
-    String type = getFieldMappingType(value);
-    try {
-      sendPutRequest(elasticsearchConfiguration.getIndexAlias() + "/_mapping", String.format("""
-          {
-            "properties": {
-              "%s" : {
-                "type" : "%s"
-              }
-            }
-          }
-          """, f, type));
-      LOG.info("Create ES Mapping for field '{}' with type '{}'", f, type);
-      listenerService.broadcast(FIELD_MAPPING_CREATED_EVENT, f, type);
-    } catch (Exception e) {
-      if (LOG.isDebugEnabled()) {
-        LOG.warn("Error while creating ES Mapping for field '{}' with type '{}'. It may already exists. Continue and consider it as existing.",
-                 f,
-                 type,
-                 e);
-      } else {
-        LOG.warn("Error while creating ES Mapping for field '{}' with type '{}'. It may already exists. Continue and consider it as existing. Error: {}",
-                 f,
-                 type,
-                 e.getMessage());
-      }
+  private Entry<String, ? extends Object> normalizeFieldValueForMapping(Entry<String, Object> pair,
+                                                                        StatisticFieldMapping mapping) {
+    if (mapping != null
+        && (mapping.getType().equals(KEYWORD_MAPPING_TYPE)
+            || mapping.getType().equals(TEXT_MAPPING_TYPE))
+        && !(pair.getValue() instanceof String)) {
+      return Pair.of(pair.getKey(), pair.getValue().toString());
+    } else {
+      return pair;
     }
-    return type;
   }
 
-  private boolean checkFieldMapping(Object value, StatisticFieldMapping mapping) {
+  private Entry<String, ? extends Collection<Object>> normalizeFieldValueCollectionForMapping(Entry<String, Collection<Object>> pair,
+                                                                                              StatisticFieldMapping mapping) {
+    if (mapping != null
+        && (mapping.getType().equals(KEYWORD_MAPPING_TYPE)
+            || mapping.getType().equals(TEXT_MAPPING_TYPE))
+        && pair.getValue().stream().anyMatch(v -> !(v instanceof String))) {
+      return Pair.of(pair.getKey(),
+                     pair.getValue()
+                         .stream()
+                         .filter(Objects::nonNull)
+                         .map(Object::toString)
+                         .map(Object.class::cast)
+                         .toList());
+    } else {
+      return pair;
+    }
+  }
+
+  private StatisticFieldMapping getFieldMapping(Map<String, StatisticFieldMapping> mappedFields, String name) {
+    if (mappedFields.containsKey(name)) {
+      return mappedFields.get(name);
+    } else if (mappedFieldNames.containsKey(name)) {
+      return new StatisticFieldMapping(name, mappedFieldNames.get(name), false);
+    } else {
+      return null;
+    }
+  }
+
+  private String createFieldMapping(String f, Object value) {
+    String type = getFieldMappingType(value);
+    String existingType = mappedFieldNames.putIfAbsent(f, type);
+    if (existingType == null) {
+      try {
+        sendPutRequest(elasticsearchConfiguration.getIndexAlias() + "/_mapping", String.format("""
+            {
+              "properties": {
+                "%s" : {
+                  "type" : "%s"
+                }
+              }
+            }
+            """, f, type));
+        LOG.info("Create ES Mapping for field '{}' with type '{}'", f, type);
+        sendRefreshIndex();
+        listenerService.broadcast(FIELD_MAPPING_CREATED_EVENT, f, type);
+      } catch (Exception e) {
+        if (LOG.isDebugEnabled()) {
+          LOG.warn("Error while creating ES Mapping for field '{}' with type '{}'. It may already exists. Continue and consider it as existing.",
+                   f,
+                   type,
+                   e);
+        } else {
+          LOG.warn("Error while creating ES Mapping for field '{}' with type '{}'. It may already exists. Continue and consider it as existing. Error: {}",
+                   f,
+                   type,
+                   e.getMessage());
+        }
+      }
+      return type;
+    } else {
+      return existingType;
+    }
+  }
+
+  private boolean checkFieldMapping(Object value, StatisticFieldMapping mapping) { // NOSONAR
     if (mapping == null) {
       return true;
     } else {
@@ -507,15 +562,47 @@ public class ElasticsearchAnalyticsStorage {
       if (StringUtils.equalsIgnoreCase(mappedType, fieldMappingType)) {
         return true;
       } else {
-        return switch (fieldMappingType) {
-        case LONG_MAPPING_TYPE -> FLOAT_MAPPING_TYPE.equals(mappedType) || LONG_MAPPING_TYPE.equals(mappedType);
-        case FLOAT_MAPPING_TYPE -> FLOAT_MAPPING_TYPE.equals(mappedType);
-        case BOOLEAN_MAPPING_TYPE -> BOOLEAN_MAPPING_TYPE.equals(mappedType);
-        case KEYWORD_MAPPING_TYPE -> KEYWORD_MAPPING_TYPE.equals(mappedType) || TEXT_MAPPING_TYPE.equals(mappedType);
-        case TEXT_MAPPING_TYPE -> KEYWORD_MAPPING_TYPE.equals(mappedType) || TEXT_MAPPING_TYPE.equals(mappedType);
+        return switch (mappedType) {
+        case LONG_MAPPING_TYPE -> LONG_MAPPING_TYPE.equals(fieldMappingType)
+                                  || (KEYWORD_MAPPING_TYPE.equals(fieldMappingType)
+                                      && value instanceof String s
+                                      && isLongValue(s));
+        case FLOAT_MAPPING_TYPE -> FLOAT_MAPPING_TYPE.equals(fieldMappingType)
+                                   || LONG_MAPPING_TYPE.equals(fieldMappingType)
+                                   || (KEYWORD_MAPPING_TYPE.equals(fieldMappingType)
+                                       && value instanceof String s
+                                       && isDecimalValue(s));
+        case BOOLEAN_MAPPING_TYPE -> BOOLEAN_MAPPING_TYPE.equals(fieldMappingType)
+                                     || (KEYWORD_MAPPING_TYPE.equals(fieldMappingType)
+                                         && value instanceof String s
+                                         && isBooleanValue(s));
+        case KEYWORD_MAPPING_TYPE, TEXT_MAPPING_TYPE -> KEYWORD_MAPPING_TYPE.equals(fieldMappingType)
+                                                        || TEXT_MAPPING_TYPE.equals(fieldMappingType);
         default -> false;
         };
       }
+    }
+  }
+
+  private boolean isBooleanValue(String stringValue) {
+    return StringUtils.equalsAnyIgnoreCase(stringValue, "true", "false");
+  }
+
+  private boolean isLongValue(String value) {
+    try {
+      Long.parseLong(value);
+      return true;
+    } catch (NumberFormatException e) {
+      return false;
+    }
+  }
+
+  private boolean isDecimalValue(String value) {
+    try {
+      new BigDecimal(value);
+      return true;
+    } catch (NumberFormatException e) {
+      return false;
     }
   }
 
@@ -529,7 +616,11 @@ public class ElasticsearchAnalyticsStorage {
     case Float v -> FLOAT_MAPPING_TYPE;
     case Double v -> FLOAT_MAPPING_TYPE;
     case Boolean v -> BOOLEAN_MAPPING_TYPE;
-    case Collection v -> getFieldMappingType(v.toArray()[0]);
+    case Collection v -> ((Collection<?>) v).stream()
+                                            .filter(Objects::nonNull)
+                                            .findFirst()
+                                            .map(this::getFieldMappingType)
+                                            .orElse(KEYWORD_MAPPING_TYPE);
     default -> KEYWORD_MAPPING_TYPE;
     };
   }

@@ -55,8 +55,8 @@ public class SpacesStatisticsCountJob {
     statisticData.setSubModule("space");
     statisticData.setOperation("spacesCount");
     statisticData.setDuration(System.currentTimeMillis() - startTime);
-    statisticData.addParameter("countType", "allSpaces");
-    statisticData.addParameter("count", allSpacesCount);
+    statisticData.addKeyword("countType", "allSpaces");
+    statisticData.addLong("count", allSpacesCount);
     AnalyticsUtils.addStatisticData(statisticData);
   }
 
