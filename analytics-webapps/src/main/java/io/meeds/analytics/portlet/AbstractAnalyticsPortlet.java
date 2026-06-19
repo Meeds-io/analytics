@@ -20,6 +20,7 @@
 package io.meeds.analytics.portlet;
 
 import java.io.IOException;
+import java.time.ZoneOffset;
 import java.util.*;
 
 import javax.portlet.*;
@@ -272,7 +273,11 @@ public abstract class AbstractAnalyticsPortlet<T> extends GenericPortlet {
 
   protected void addTimeZoneFilter(ResourceRequest request, AbstractAnalyticsFilter filter) {
     String timeZone = request.getParameter("timeZone");
-    filter.setTimeZone(timeZone);
+    if (StringUtils.isBlank(timeZone)) {
+      filter.setTimeZone(ZoneOffset.UTC.getId());
+    } else {
+      filter.setTimeZone(timeZone);
+    }
   }
 
   protected void addLanguageFilter(ResourceRequest request, AnalyticsFilter filter) {

@@ -168,7 +168,7 @@ export default {
       if (this.cellValueExtensions) {
         return Object.values(this.cellValueExtensions)
           .sort((ext1, ext2) => (ext1.rank || 0) - (ext2.rank || 0))
-          .find(extension => extension?.match?.(this.columnField?.replace?.('_alt', ''), this.columnAggregationType, this.columnDataType, this.cellItem)) || null;
+          .find(extension => extension?.match?.(this.columnField?.replace?.(/_alt\d*$/, ''), this.columnAggregationType, this.columnDataType, this.cellItem)) || null;
       }
       return null;
     },

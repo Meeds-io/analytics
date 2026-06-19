@@ -92,8 +92,8 @@ public class UsersStatisticsCountJob {
     statisticData.setSubModule("account");
     statisticData.setOperation("usersCount");
     statisticData.setDuration(System.currentTimeMillis() - startTime);
-    statisticData.addParameter("countType", countType);
-    statisticData.addParameter("count", count);
+    statisticData.addKeyword("countType", countType);
+    statisticData.addLong("count", count);
     AnalyticsUtils.addStatisticData(statisticData);
   }
 

@@ -164,15 +164,18 @@ public class AnalyticsPercentageFilter extends AbstractAnalyticsFilter {
   }
 
   public AnalyticsFilter computeThresholdFilter() {
-    AnalyticsAggregation xAxisAggregation = getXAxisAggregation();
+    return computeThresholdFilter(null);
+  }
+
+  public AnalyticsFilter computeThresholdFilter(AnalyticsPeriod period) {
+    AnalyticsAggregation xAxisAggregation = period == null ? getXAxisAggregation() : null;
     return new AnalyticsFilter(getTitle(),
                                getTimeZone(),
                                chartType,
                                colors,
-                               getThresholdFilters(),
+                               getThresholdFilters(period),
                                null,
-                               xAxisAggregation == null ? Collections.emptyList()
-                                                        : Collections.singletonList(xAxisAggregation),
+                               xAxisAggregation == null ? Collections.emptyList() : Collections.singletonList(xAxisAggregation),
                                getThresholdYAggregation(),
                                lang,
                                0l,
@@ -180,15 +183,18 @@ public class AnalyticsPercentageFilter extends AbstractAnalyticsFilter {
   }
 
   public AnalyticsFilter computeLimitFilter() {
-    AnalyticsAggregation xAxisAggregation = getXAxisAggregation();
+    return computeLimitFilter(null);
+  }
+
+  public AnalyticsFilter computeLimitFilter(AnalyticsPeriod period) {
+    AnalyticsAggregation xAxisAggregation = period == null ? getXAxisAggregation() : null;
     return new AnalyticsFilter(getTitle(),
                                getTimeZone(),
                                chartType,
                                colors,
-                               getLimitFilters(),
+                               getLimitFilters(period),
                                null,
-                               xAxisAggregation == null ? Collections.emptyList()
-                                                        : Collections.singletonList(xAxisAggregation),
+                               xAxisAggregation == null ? Collections.emptyList() : Collections.singletonList(xAxisAggregation),
                                getLimitYAggregation(),
                                lang,
                                0l,
@@ -200,10 +206,8 @@ public class AnalyticsPercentageFilter extends AbstractAnalyticsFilter {
     LocalDate clonedPeriodDate = periodDate == null ? null : LocalDate.from(periodDate);
     AnalyticsPeriod clonedAnalyticsPeriod = customPeriod == null ? null : customPeriod.clone();
     AnalyticsPercentageItemFilter cloneAnalyticsPercentageItemFilterValue = value == null ? null : value.clone();
-    AnalyticsPercentageItemFilter cloneAnalyticsPercentageItemFilterThreshold = threshold == null ? null
-                                                                                                  : threshold.clone();
-    AnalyticsPercentageLimit clonedAnalyticsPercentageLimit = percentageLimit == null ? null
-                                                                                      : percentageLimit.clone();
+    AnalyticsPercentageItemFilter cloneAnalyticsPercentageItemFilterThreshold = threshold == null ? null : threshold.clone();
+    AnalyticsPercentageLimit clonedAnalyticsPercentageLimit = percentageLimit == null ? null : percentageLimit.clone();
     return new AnalyticsPercentageFilter(getTitle(),
                                          getTimeZone(),
                                          chartType,
@@ -256,12 +260,11 @@ public class AnalyticsPercentageFilter extends AbstractAnalyticsFilter {
 
   private AnalyticsAggregation getLimitYAggregation() {
     return percentageLimit == null
-        || percentageLimit.getAggregation() == null
-        || percentageLimit.getAggregation().getYAxisAggregation() == null
-                                                                          ? null
-                                                                          : percentageLimit.getAggregation()
-                                                                                           .getYAxisAggregation()
-                                                                                           .clone();
+           || percentageLimit.getAggregation() == null
+           || percentageLimit.getAggregation().getYAxisAggregation() == null ? null :
+                                                                             percentageLimit.getAggregation()
+                                                                                            .getYAxisAggregation()
+                                                                                            .clone();
   }
 
   private AnalyticsAggregation getThresholdYAggregation() {
@@ -281,10 +284,10 @@ public class AnalyticsPercentageFilter extends AbstractAnalyticsFilter {
     return filters;
   }
 
-  private List<AnalyticsFieldFilter> getThresholdFilters() {
+  private List<AnalyticsFieldFilter> getThresholdFilters(AnalyticsPeriod period) {
     List<AnalyticsFieldFilter> filters = new ArrayList<>();
 
-    AnalyticsFieldFilter periodFilter = getPeriodFilter(null);
+    AnalyticsFieldFilter periodFilter = getPeriodFilter(period);
     if (periodFilter != null) {
       filters.add(periodFilter);
     }
@@ -294,10 +297,10 @@ public class AnalyticsPercentageFilter extends AbstractAnalyticsFilter {
     return filters;
   }
 
-  private List<AnalyticsFieldFilter> getLimitFilters() {
+  private List<AnalyticsFieldFilter> getLimitFilters(AnalyticsPeriod period) {
     List<AnalyticsFieldFilter> filters = new ArrayList<>();
 
-    AnalyticsFieldFilter periodFilter = getPeriodFilter(null);
+    AnalyticsFieldFilter periodFilter = getPeriodFilter(period);
     if (periodFilter != null) {
       filters.add(periodFilter);
     }

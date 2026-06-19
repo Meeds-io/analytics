@@ -83,22 +83,22 @@ public class OAuthClientRegisterErrorListener implements ListenerBase<Object, Ru
   }
 
   private void addOAuthClientFields(StatisticData statisticData, OAuthCimdClientMetadata client) {
-    statisticData.addParameter(PARAM_OAUTH_CLIENT_ID, client.clientId());
-    statisticData.addParameter(PARAM_OAUTH_CLIENT_NAME, client.clientName());
-    statisticData.addParameter(PARAM_OAUTH_CLIENT_REDIRECT_URIS, client.redirectUris());
-    statisticData.addParameter(PARAM_OAUTH_CLIENT_AUTH_METHOD, client.tokenEndpointAuthMethod());
-    statisticData.addParameter(PARAM_OAUTH_CLIENT_GRANT_TYPES, client.grantTypes());
-    statisticData.addParameter(PARAM_OAUTH_CLIENT_RESPONSE_TYPES, client.responseTypes());
+    statisticData.addKeyword(PARAM_OAUTH_CLIENT_ID, client.clientId());
+    statisticData.addKeyword(PARAM_OAUTH_CLIENT_NAME, client.clientName());
+    statisticData.addKeyword(PARAM_OAUTH_CLIENT_REDIRECT_URIS, client.redirectUris());
+    statisticData.addKeyword(PARAM_OAUTH_CLIENT_AUTH_METHOD, client.tokenEndpointAuthMethod());
+    statisticData.addKeyword(PARAM_OAUTH_CLIENT_GRANT_TYPES, client.grantTypes());
+    statisticData.addKeyword(PARAM_OAUTH_CLIENT_RESPONSE_TYPES, client.responseTypes());
   }
 
   private void addOAuthClientFields(StatisticData statisticData, OidcClientRegistration client) {
-    statisticData.addParameter(PARAM_OAUTH_CLIENT_ID, client.getClientId());
-    statisticData.addParameter(PARAM_OAUTH_CLIENT_NAME, client.getClientName());
-    statisticData.addParameter(PARAM_OAUTH_CLIENT_REDIRECT_URIS, client.getRedirectUris());
-    statisticData.addParameter(PARAM_OAUTH_CLIENT_SCOPES, client.getScopes());
-    statisticData.addParameter(PARAM_OAUTH_CLIENT_AUTH_METHOD, client.getTokenEndpointAuthenticationMethod());
-    statisticData.addParameter(PARAM_OAUTH_CLIENT_GRANT_TYPES, client.getGrantTypes());
-    statisticData.addParameter(PARAM_OAUTH_CLIENT_RESPONSE_TYPES, client.getResponseTypes());
+    statisticData.addKeyword(PARAM_OAUTH_CLIENT_ID, client.getClientId());
+    statisticData.addKeyword(PARAM_OAUTH_CLIENT_NAME, client.getClientName());
+    statisticData.addKeyword(PARAM_OAUTH_CLIENT_REDIRECT_URIS, client.getRedirectUris());
+    statisticData.addKeyword(PARAM_OAUTH_CLIENT_SCOPES, client.getScopes());
+    statisticData.addKeyword(PARAM_OAUTH_CLIENT_AUTH_METHOD, client.getTokenEndpointAuthenticationMethod());
+    statisticData.addKeyword(PARAM_OAUTH_CLIENT_GRANT_TYPES, client.getGrantTypes());
+    statisticData.addKeyword(PARAM_OAUTH_CLIENT_RESPONSE_TYPES, client.getResponseTypes());
   }
 
 }

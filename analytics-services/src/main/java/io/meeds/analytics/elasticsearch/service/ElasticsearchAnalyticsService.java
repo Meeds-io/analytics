@@ -19,6 +19,15 @@
  */
 package io.meeds.analytics.elasticsearch.service;
 
+import static io.meeds.analytics.utils.AnalyticsUtils.DEFAULT_FIELDS;
+import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_TIMESTAMP;
+import static io.meeds.analytics.utils.AnalyticsUtils.collectionToJSONString;
+import static io.meeds.analytics.utils.AnalyticsUtils.fixJSONStringFormat;
+import static io.meeds.analytics.utils.AnalyticsUtils.fromJsonString;
+import static io.meeds.analytics.utils.AnalyticsUtils.getJsonNode;
+import static io.meeds.analytics.utils.AnalyticsUtils.sortByAnalyticsDate;
+import static io.meeds.analytics.utils.AnalyticsUtils.toJsonString;
+
 import java.math.BigDecimal;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -37,8 +46,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
@@ -47,6 +54,9 @@ import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.exoplatform.commons.api.settings.SettingService;
 import org.exoplatform.commons.api.settings.SettingValue;
@@ -89,8 +99,6 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.Getter;
 import lombok.Synchronized;
-
-import static io.meeds.analytics.utils.AnalyticsUtils.*;
 
 @Service
 public class ElasticsearchAnalyticsService implements AnalyticsService {
@@ -305,12 +313,27 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
                                        false);
     }
 
-    computePercentageValuesPerPeriod(percentageChartResult,
-                                     percentageFilter.computeThresholdFilter(),
-                                     currentPeriod,
-                                     previousPeriod,
-                                     false,
-                                     false);
+    if (percentageFilter.getAnalyticsPeriodType() != null || percentageFilter.getCustomPeriod() == null) {
+      computePercentageValuesPerPeriod(percentageChartResult,
+                                       percentageFilter.computeThresholdFilter(),
+                                       currentPeriod,
+                                       previousPeriod,
+                                       false,
+                                       false);
+    } else {
+      computePercentageValuesPerPeriod(percentageChartResult,
+                                       percentageFilter.computeThresholdFilter(currentPeriod),
+                                       currentPeriod,
+                                       null,
+                                       false,
+                                       false);
+      computePercentageValuesPerPeriod(percentageChartResult,
+                                       percentageFilter.computeThresholdFilter(previousPeriod),
+                                       null,
+                                       previousPeriod,
+                                       false,
+                                       false);
+    }
     return percentageChartResult;
   }
 
@@ -756,6 +779,10 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
   private void appendAggregationNameQuery(StringBuilder esQuery,
                                           String aggregationFieldName,
                                           StatisticFieldMapping aggregationField) {
+    if (StringUtils.isBlank(aggregationFieldName)) {
+      aggregationFieldName = FIELD_TIMESTAMP;
+    }
+
     if (aggregationField == null || !aggregationField.isScriptedField()) {
       esQuery.append("""
                     "field": "$aggFieldName"
@@ -927,15 +954,35 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
                                        AnalyticsPeriod currentPeriod,
                                        AnalyticsPeriod previousPeriod) {
     AnalyticsPercentageLimit percentageLimit = percentageFilter.getPercentageLimit();
-    PercentageChartValue chartValue = computePercentageChartData(percentageFilter.computeLimitFilter(),
-                                                                 currentPeriod,
-                                                                 previousPeriod,
-                                                                 false);
+    PercentageChartValue chartValue;
+
+    if (percentageFilter.getAnalyticsPeriodType() != null || percentageFilter.getCustomPeriod() == null) {
+      chartValue = computePercentageChartData(percentageFilter.computeLimitFilter(),
+                                              currentPeriod,
+                                              previousPeriod,
+                                              false);
+    } else {
+      PercentageChartValue currentChartValue = computePercentageChartData(percentageFilter.computeLimitFilter(currentPeriod),
+                                                                          currentPeriod,
+                                                                          null,
+                                                                          false);
+      PercentageChartValue previousChartValue = computePercentageChartData(percentageFilter.computeLimitFilter(previousPeriod),
+                                                                           null,
+                                                                           previousPeriod,
+                                                                           false);
+      chartValue = new PercentageChartValue();
+      chartValue.setCurrentPeriodValue(currentChartValue.getCurrentPeriodValue());
+      chartValue.setPreviousPeriodValue(previousChartValue.getPreviousPeriodValue());
+      chartValue.setComputingTime(currentChartValue.getComputingTime() + previousChartValue.getComputingTime());
+      chartValue.setDataCount(currentChartValue.getDataCount() + previousChartValue.getDataCount());
+    }
 
     double currentPeriodLimit = chartValue.getCurrentPeriodValue();
     double previousPeriodLimit = chartValue.getPreviousPeriodValue();
     percentageChartResult.setCurrentPeriodLimit(currentPeriodLimit);
     percentageChartResult.setPreviousPeriodLimit(previousPeriodLimit);
+    percentageChartResult.setComputingTime(percentageChartResult.getComputingTime() + chartValue.getComputingTime());
+    percentageChartResult.setDataCount(percentageChartResult.getDataCount() + chartValue.getDataCount());
 
     percentageFilter.setCurrentPeriodLimit(Math.round(currentPeriodLimit * percentageLimit.getPercentage() / 100));
     percentageFilter.setPreviousPeriodLimit(Math.round(previousPeriodLimit * percentageLimit.getPercentage() / 100));
@@ -952,15 +999,19 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
                                                                  previousPeriod,
                                                                  hasLimitAggregation);
     if (isValue) {
-      if (chartValue.getCurrentPeriodValue() > 0) {
+      if (currentPeriod != null) {
         percentageResult.setCurrentPeriodValue(chartValue.getCurrentPeriodValue());
       }
-      if (chartValue.getPreviousPeriodValue() > 0) {
+      if (previousPeriod != null) {
         percentageResult.setPreviousPeriodValue(chartValue.getPreviousPeriodValue());
       }
     } else {
-      percentageResult.setCurrentPeriodThreshold(chartValue.getCurrentPeriodValue());
-      percentageResult.setPreviousPeriodThreshold(chartValue.getPreviousPeriodValue());
+      if (currentPeriod != null) {
+        percentageResult.setCurrentPeriodThreshold(chartValue.getCurrentPeriodValue());
+      }
+      if (previousPeriod != null) {
+        percentageResult.setPreviousPeriodThreshold(chartValue.getPreviousPeriodValue());
+      }
     }
     percentageResult.setComputingTime(percentageResult.getComputingTime() + chartValue.getComputingTime());
     percentageResult.setDataCount(percentageResult.getDataCount() + chartValue.getDataCount());
@@ -1102,6 +1153,14 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
       } else if (previousPeriod != null) {
         percentageChartValue.setPreviousPeriodValue(valueDouble);
       }
+    } else if (aggregations.has(AGGREGATION_RESULT_VALUE_PARAM)) {
+      String value = toString(aggregations.getJSONObject(AGGREGATION_RESULT_VALUE_PARAM).get(VALUE_PARAM));
+      double valueDouble = StringUtils.isBlank(value) || StringUtils.equals("null", value) ? 0d : Double.parseDouble(value);
+      if (currentPeriod != null) {
+        percentageChartValue.setCurrentPeriodValue(valueDouble);
+      } else if (previousPeriod != null) {
+        percentageChartValue.setPreviousPeriodValue(valueDouble);
+      }
     } else if (aggregations.has(AGGREGATION_RESULT_PARAM)) {
       JSONArray buckets = aggregations.getJSONObject(AGGREGATION_RESULT_PARAM).getJSONArray(BUCKETS_RESPONSE_BODY);
       Map<Long, Double> values = new HashMap<>();
@@ -1131,9 +1190,8 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
                                                      && timestamp >= currentPeriod.getFromInMS();
 
                                             })
-                                            .map(Map.Entry::getValue)
-                                            .findFirst()
-                                            .orElse(0d);
+                                            .mapToDouble(Map.Entry::getValue)
+                                            .sum();
           percentageChartValue.setCurrentPeriodValue(currentPeriodValue);
         }
 
@@ -1146,9 +1204,8 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
                                                       && timestamp >= previousPeriod.getFromInMS();
 
                                              })
-                                             .map(Map.Entry::getValue)
-                                             .findFirst()
-                                             .orElse(0d);
+                                             .mapToDouble(Map.Entry::getValue)
+                                             .sum();
           percentageChartValue.setPreviousPeriodValue(previousPeriodValue);
         }
       }

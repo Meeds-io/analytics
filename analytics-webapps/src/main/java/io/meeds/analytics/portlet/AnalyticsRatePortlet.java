@@ -100,7 +100,10 @@ public class AnalyticsRatePortlet extends AbstractAnalyticsPortlet<AnalyticsPerc
       middleOfPeriod = (period.getFromInMS() + period.getToInMS()) / 2;
       filter.setPeriodDateInMS(middleOfPeriod);
       filter.setPeriodType(periodType);
+      filter.setCustomPeriod(null);
     } else {
+      filter.setPeriodType(null);
+      filter.setPeriodDate(null);
       filter.setCustomPeriod(period);
     }
   }

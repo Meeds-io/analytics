@@ -121,8 +121,8 @@ public class AnalyticsRelationshipListener extends RelationshipListenerPlugin {
     statisticData.setSubModule("relationship");
     statisticData.setOperation(operation);
     statisticData.setUserId(getCurrentUserIdentityId());
-    statisticData.addParameter("from", from);
-    statisticData.addParameter("to", to);
+    statisticData.addKeyword("from", from);
+    statisticData.addKeyword("to", to);
     return statisticData;
   }
 

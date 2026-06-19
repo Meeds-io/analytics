@@ -100,7 +100,7 @@ public class OAuthTokenListener implements ListenerBase<OAuth2Authorization, OAu
         if (client != null) {
           addOAuthClientFields(statisticData, client);
         } else {
-          statisticData.addParameter(PARAM_OAUTH_CLIENT_ID, token.getRegisteredClientId());
+          statisticData.addKeyword(PARAM_OAUTH_CLIENT_ID, token.getRegisteredClientId());
         }
         addOAuthTokenFields(statisticData, token);
         addStatisticData(statisticData);

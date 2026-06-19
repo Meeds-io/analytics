@@ -65,7 +65,7 @@ public class LoginFailedAnalyticsListener extends Listener<String, Map<String, S
     statisticData.setUserId(AnalyticsUtils.getUserIdentityId(data.get("user_id")));
     statisticData.setStatus(data.get("status").equals("ko") ? StatisticData.StatisticStatus.KO :
                                                             StatisticData.StatisticStatus.OK);
-    statisticData.addParameter("reason", data.get("reason"));
+    statisticData.addKeyword("reason", data.get("reason"));
     addStatisticData(statisticData);
   }
 }
