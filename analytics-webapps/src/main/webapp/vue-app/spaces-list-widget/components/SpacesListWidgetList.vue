@@ -45,7 +45,7 @@ export default {
   },
   computed: {
     label() {
-      return this.labelKey?.includes?.('_alt') ? this.$t('analytics.field.alternative', {0: this.$t(this.labelKey?.replace?.('_alt', ''))}) : this.$t(this.labelKey);
+      return this.labelKey?.includes?.('_alt') ? this.$t('analytics.field.alternative', {0: this.$t(this.labelKey?.replace?.(/_alt\d*$/, ''))}) : this.$t(this.labelKey);
     },
     hasSpaces() {
       return this.list?.length;

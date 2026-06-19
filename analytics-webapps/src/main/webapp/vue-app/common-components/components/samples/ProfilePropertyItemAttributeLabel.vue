@@ -82,7 +82,7 @@ export default {
       return this.property?.split('.')?.[1];
     },
     propertyNameKey() {
-      return this.propertyName?.replace?.('_alt', '');
+      return this.propertyName?.replace?.(/_alt\d*$/, '');
     },
     hasLabel() {
       return this.$te(`analytics.field.label.${this.propertyNameKey}`);

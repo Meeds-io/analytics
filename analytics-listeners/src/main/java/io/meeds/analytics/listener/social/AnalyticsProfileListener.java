@@ -65,8 +65,8 @@ public class AnalyticsProfileListener extends ProfileListenerPlugin {
       if (avatarAttachment != null) {
         StatisticData statisticData = buildStatisticData(AVATAR, event.getSource());
         if (statisticData != null) {
-          statisticData.addParameter(IMAGE_SIZE, avatarAttachment.getSize());
-          statisticData.addParameter(IMAGE_TYPE, avatarAttachment.getMimeType());
+          statisticData.addLong(IMAGE_SIZE, avatarAttachment.getSize());
+          statisticData.addKeyword(IMAGE_TYPE, avatarAttachment.getMimeType());
           addStatisticData(statisticData);
         }
       }
@@ -132,8 +132,8 @@ public class AnalyticsProfileListener extends ProfileListenerPlugin {
     statisticData.setSubModule("profile");
     statisticData.setOperation(operation);
     statisticData.setUserId(Long.parseLong(identity.getId()));
-    statisticData.addParameter(FIELD_SOCIAL_IDENTITY_ID, identity.getIdentityId());
-    statisticData.addParameter("userCreatedDate", identity.getProfile() != null ? identity.getProfile().getCreatedTime() : 0);
+    statisticData.addKeyword(FIELD_SOCIAL_IDENTITY_ID, identity.getIdentityId());
+    statisticData.addLong("userCreatedDate", identity.getProfile() != null ? identity.getProfile().getCreatedTime() : 0);
     return statisticData;
   }
 

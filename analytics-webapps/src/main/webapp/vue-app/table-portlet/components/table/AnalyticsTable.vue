@@ -206,7 +206,7 @@ export default {
     },
     addHeader(headers, column, index) {
       headers.push({
-        text: column.title && this.$t(column.title?.replace?.('_alt', '')) || '',
+        text: column.title && this.$t(column.title?.replace?.(/_alt\d*$/, '')) || '',
         align: column.align || 'center',
         sortable: column.sortable,
         value: `column${index}`,

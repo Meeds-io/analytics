@@ -100,14 +100,14 @@ public class UserAnalyticsEventListener extends UserEventListener {
       statisticData.setOperation(operation);
       statisticData.setDuration(getDuration());
       statisticData.setUserId(getCurrentUserIdentityId());
-      statisticData.addParameter(FIELD_SOCIAL_IDENTITY_ID, getUserIdentityId(user.getUserName()));
-      statisticData.addParameter("isEnabled", user.isEnabled());
+      statisticData.addKeyword(FIELD_SOCIAL_IDENTITY_ID, getUserIdentityId(user.getUserName()));
+      statisticData.addBoolean("isEnabled", user.isEnabled());
       if (OrganizationService.EXTERNAL_STORE.equals(user.getOriginatingStore())) {
-        statisticData.addParameter("userSource", EXTERNAL_USER_SOURCE);
+        statisticData.addKeyword("userSource", EXTERNAL_USER_SOURCE);
       } else {
-        statisticData.addParameter("userSource", user.getCreationSource());
+        statisticData.addKeyword("userSource", user.getCreationSource());
       }
-      statisticData.addParameter("modificationSource", UserModificationSource.getSourceOrDefault("ui"));
+      statisticData.addKeyword("modificationSource", UserModificationSource.getSourceOrDefault("ui"));
       return statisticData;
     } catch (Exception e) {
       LOG.warn("Error building analytics Queue entry for operation {}", operation, e);

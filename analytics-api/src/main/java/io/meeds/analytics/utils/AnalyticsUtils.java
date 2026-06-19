@@ -106,6 +106,10 @@ public class AnalyticsUtils {
 
   public static final String            FIELD_TIMESTAMP                  = "timestamp";
 
+  public static final String            ALTERNATIVE_FIELD_SUFFIX         = "_alt";
+
+  public static final int               MAX_ALTERNATIVE_FIELD_COUNT      = 3;
+
   public static final String            FIELD_MODIFIER_USER_SOCIAL_ID    = "modifierSocialId";
 
   public static final String            FIELD_SOCIAL_IDENTITY_ID         = "identityId";
@@ -353,7 +357,7 @@ public class AnalyticsUtils {
     }
 
     addUserStatistics(statisticData);
-    
+
     try {
       StatisticDataQueueService analyticsQueueService = CommonsUtils.getService(StatisticDataQueueService.class);
       analyticsQueueService.put(statisticData);
@@ -442,18 +446,18 @@ public class AnalyticsUtils {
       return;
     }
     statisticData.setSpaceId(Long.parseLong(space.getId()));
-    statisticData.addParameter("parentSpaceId", space.getParentSpaceId());
-    statisticData.addParameter("spaceTemplateId", space.getTemplateId());
-    statisticData.addParameter("spaceCategoryIds", space.getCategoryIds());
-    statisticData.addParameter("spaceVisibility", space.getVisibility());
-    statisticData.addParameter("spaceRegistration", space.getRegistration());
-    statisticData.addParameter("spaceCreatedTime", space.getCreatedTime());
-    statisticData.addParameter("spaceMembersCount", getSize(space.getMembers()));
-    statisticData.addParameter("spaceManagersCount", getSize(space.getManagers()));
-    statisticData.addParameter("spaceRedactorsCount", getSize(space.getRedactors()));
-    statisticData.addParameter("spaceInviteesCount", getSize(space.getInvitedUsers()));
-    statisticData.addParameter("spacePendingCount", getSize(space.getPendingUsers()));
-    statisticData.addParameter("spaceSovereign", space.isSovereign());
+    statisticData.addKeyword("parentSpaceId", space.getParentSpaceId());
+    statisticData.addKeyword("spaceTemplateId", space.getTemplateId());
+    statisticData.addKeyword("spaceCategoryIds", space.getCategoryIds());
+    statisticData.addKeyword("spaceVisibility", space.getVisibility());
+    statisticData.addKeyword("spaceRegistration", space.getRegistration());
+    statisticData.addLong("spaceCreatedTime", space.getCreatedTime());
+    statisticData.addLong("spaceMembersCount", getSize(space.getMembers()));
+    statisticData.addLong("spaceManagersCount", getSize(space.getManagers()));
+    statisticData.addLong("spaceRedactorsCount", getSize(space.getRedactors()));
+    statisticData.addLong("spaceInviteesCount", getSize(space.getInvitedUsers()));
+    statisticData.addLong("spacePendingCount", getSize(space.getPendingUsers()));
+    statisticData.addBoolean("spaceSovereign", space.isSovereign());
   }
 
   public static void addActivityStatisticsData(StatisticData statisticData, ExoSocialActivity activity) {
@@ -463,17 +467,17 @@ public class AnalyticsUtils {
     String activityId = activity.getParentId() == null ? activity.getId() : activity.getParentId();
     String commentId = activity.getParentCommentId() == null ? activity.getId() : activity.getParentCommentId();
     String subCommentId = activity.getParentCommentId() == null ? null : activity.getId();
-    statisticData.addParameter("activityType", getActivityType(activity));
+    statisticData.addKeyword("activityType", getActivityType(activity));
     if (StringUtils.isNotBlank(activityId)) {
-      statisticData.addParameter("activityId", activityId);
+      statisticData.addKeyword("activityId", activityId);
     }
     if (StringUtils.isNotBlank(commentId)) {
       commentId = commentId.replace(ACTIVITY_COMMENT, "");
-      statisticData.addParameter(ACTIVITY_COMMENT, commentId);
+      statisticData.addKeyword(ACTIVITY_COMMENT, commentId);
     }
     if (StringUtils.isNotBlank(subCommentId)) {
       subCommentId = subCommentId.replace(ACTIVITY_COMMENT, "");
-      statisticData.addParameter("subCommentId", subCommentId);
+      statisticData.addKeyword("subCommentId", subCommentId);
     }
   }
 
@@ -486,18 +490,18 @@ public class AnalyticsUtils {
     if (category == null) {
       return;
     }
-    statisticData.addParameter("categoryId", category.getId());
-    statisticData.addParameter("categoryIcon", category.getIcon());
-    statisticData.addParameter("categoryLinkPermissions", category.getLinkPermissions());
-    statisticData.addParameter("categoryCreatorId", category.getCreatorId());
-    statisticData.addParameter("categoryOwnerId", category.getOwnerId());
-    statisticData.addParameter("categoryParentId", category.getParentId());
+    statisticData.addKeyword("categoryId", category.getId());
+    statisticData.addKeyword("categoryIcon", category.getIcon());
+    statisticData.addKeyword("categoryLinkPermissions", category.getLinkPermissions());
+    statisticData.addKeyword("categoryCreatorId", category.getCreatorId());
+    statisticData.addKeyword("categoryOwnerId", category.getOwnerId());
+    statisticData.addKeyword("categoryParentId", category.getParentId());
   }
 
   public static void addCategoryLinkStatistics(StatisticData statisticData, CategoryObject categoryObject) {
-    statisticData.addParameter("categoryObjectType", categoryObject.getType());
-    statisticData.addParameter("categoryObjectId", categoryObject.getId());
-    statisticData.addParameter("categoryObjectParentId", categoryObject.getParentId());
+    statisticData.addKeyword("categoryObjectType", categoryObject.getType());
+    statisticData.addKeyword("categoryObjectId", categoryObject.getId());
+    statisticData.addKeyword("categoryObjectParentId", categoryObject.getParentId());
     if (categoryObject.getSpaceId() > 0) {
       SpaceService spaceService = CommonsUtils.getService(SpaceService.class);
       Space space = spaceService.getSpaceById(categoryObject.getSpaceId());
@@ -509,10 +513,26 @@ public class AnalyticsUtils {
 
   public static void convertToAltFieldName(Supplier<String> supplier, Consumer<String> consumer, Set<String> fieldNames) {
     String fieldName = supplier.get();
-    String altFieldName = fieldName + "_alt";
-    if (fieldNames.contains(altFieldName)) {
-      consumer.accept(altFieldName);
+    if (StringUtils.isBlank(fieldName) || fieldNames == null || fieldNames.isEmpty()) {
+      return;
     }
+    for (int i = MAX_ALTERNATIVE_FIELD_COUNT; i >= 1; i--) {
+      String altFieldName = getAlternativeFieldName(fieldName, i);
+      if (fieldNames.contains(altFieldName)) {
+        consumer.accept(altFieldName);
+        return;
+      }
+    }
+  }
+
+  public static String getAlternativeFieldName(String fieldName, int alternativeIndex) {
+    String baseFieldName = getBaseFieldName(fieldName);
+    return alternativeIndex == 1 ? baseFieldName + ALTERNATIVE_FIELD_SUFFIX :
+                                 baseFieldName + ALTERNATIVE_FIELD_SUFFIX + alternativeIndex;
+  }
+
+  public static String getBaseFieldName(String fieldName) {
+    return fieldName == null ? null : fieldName.replaceFirst(ALTERNATIVE_FIELD_SUFFIX + "\\d*$", "");
   }
 
   private static int getSize(String[] array) {
@@ -557,16 +577,16 @@ public class AnalyticsUtils {
                         Object propertyValue = properties.get(propertyName);
                         if (properties.containsKey(propertyName)) {
                           if (propertyValue instanceof String value) {
-                            statisticData.addParameter(String.join(".", PROFILE_PROPERTIES, propertyName), value);
+                            statisticData.addKeyword(String.join(".", PROFILE_PROPERTIES, propertyName), value);
                           } else if (!property.isHasChildProperties()
-                              && propertyValue instanceof List<?> values) {
+                                     && propertyValue instanceof List<?> values) {
                             @SuppressWarnings("unchecked")
                             List<Map<String, String>> multiValues = (List<Map<String, String>>) values;
                             List<String> valuesList = multiValues.stream()
                                                                  .map(prop -> prop.get("value"))
                                                                  .filter(Objects::nonNull)
                                                                  .toList();
-                            statisticData.addParameter(String.join(".", PROFILE_PROPERTIES, propertyName), valuesList);
+                            statisticData.addKeyword(String.join(".", PROFILE_PROPERTIES, propertyName), valuesList);
                           }
                         }
                       });

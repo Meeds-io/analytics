@@ -225,7 +225,7 @@ public class AnalyticsSpaceListener extends SpaceListenerPlugin {
     statisticData.setOperation("joinedByInvitationLink");
     statisticData.setSpaceId(space.getSpaceId());
     statisticData.setUserId(getUserIdentityId(event.getSource()));
-    statisticData.addParameter("inviterId", getUserIdentityId(event.getInviterId()));
+    statisticData.addKeyword("inviterId", getUserIdentityId(event.getInviterId()));
     return statisticData;
   }
 
