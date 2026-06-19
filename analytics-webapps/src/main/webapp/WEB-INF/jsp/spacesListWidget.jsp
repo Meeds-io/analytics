@@ -30,6 +30,7 @@
 <%@ page import="io.meeds.social.space.template.service.SpaceTemplateService"%>
 <%@ page import="org.exoplatform.services.security.ConversationState"%>
 <%@ page import="org.apache.commons.text.StringEscapeUtils" %>
+<%@ page import="java.net.URLEncoder" %>
 
 <portlet:defineObjects />
 <portlet:resourceURL var="resourceURL" />
@@ -59,7 +60,7 @@
 %>
 <div class="VuetifyApp">
   <div id="spacesListWidget">
-    <textarea id="<%=valueDomId%>" style="display:none;"><%=headerTranslations == null ? "{}" : StringEscapeUtils.escapeJava(headerTranslations).replace("\\\"", "\"").replace("\\\\\"", "\\\"").replace("\\n", "") %></textarea>
+    <textarea id="<%=valueDomId%>" style="display:none;"><%=headerTranslations == null ? "{}" : URLEncoder.encode(headerTranslations.replace(" ", "._.")).replace("._.", " ").replace("\\\"", "\"").replace("\\\\\"", "\\\"").replace("\\n", "") %></textarea>
     <script type="text/javascript">
       window.require(['PORTLET/analytics/SpacesListWidget'], app => app.init(
         '<%=resourceURL%>',
@@ -74,7 +75,7 @@
         '<%=pageRef%>',
         <%=canCreateSpace%>,
         <%=isExternal%>,
-        JSON.parse(document.getElementById('<%=valueDomId%>').value),
+        JSON.parse(decodeURIComponent(document.getElementById('<%=valueDomId%>').value)),
         <%=listOnlySubSpaces%>
       ));
     </script>
