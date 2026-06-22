@@ -116,23 +116,27 @@ export default {
       id: `FieldSelection${parseInt(Math.random() * 10000)
         .toString()
         .toString()}`,
+      selectedFieldMapping: null,
     };
   },
   computed: {
     menuProps() {
       return this.attach && 'maxHeight = 100' || '';
     },
+    filteredFieldsMappings() {
+      return this.selectedFieldMapping ? [this.selectedFieldMapping, ...this.fieldsMappings] : this.fieldsMappings;
+    },
     fieldNames() {
-      this.fieldsMappings.forEach(fieldMapping => {
+      this.filteredFieldsMappings.forEach(fieldMapping => {
         if (!fieldMapping.label) {
           const label = fieldMapping.name;
           const labelPart = label.indexOf('.') >= 0 ? label.substring(label.lastIndexOf('.') + 1) : label;
-          const fieldLabelI18NKey = `analytics.field.label.${labelPart?.replace?.('_alt', '')}`;
+          const fieldLabelI18NKey = `analytics.field.label.${labelPart?.replace?.(/_alt\d*$/, '')}`;
           const fieldLabelI18NValue = labelPart?.includes?.('_alt') && this.$te(fieldLabelI18NKey) ? this.$t('analytics.field.alternative', {0: this.$t(fieldLabelI18NKey)}) : this.$t(fieldLabelI18NKey);
           fieldMapping.label = fieldLabelI18NValue === fieldLabelI18NKey ? `${this.$t('analytics.field.label.default')} ${label}` : fieldLabelI18NValue;
         }
       });
-      return this.fieldsMappings;
+      return this.filteredFieldsMappings;
     },
     fields() {
       return this.fieldNames.filter(field => (!this.aggregation || field.aggregation) && (!this.numeric || field.numeric || field.date))
@@ -145,8 +149,25 @@ export default {
       // See https://www.reddit.com/r/vuetifyjs/comments/819h8u/how_to_close_a_multiple_autocomplete_vselect/
       this.$refs.fieldSelectAutoComplete.isFocused = false;
     });
+    this.init();
   },
   methods: {
+    init() {
+      if (this.value && !this.fieldNames.includes(this.value)) {
+        this.selectedFieldMapping = {
+          'name': this.value,
+          'searchFieldName': this.value,
+          'aggregationFieldName': `${this.value}.keyword`,
+          'aggregation': this.aggregation,
+          'hasKeywordSubField': this.aggregation,
+          'type': 'keyword',
+          'keyword': this.aggregation,
+          'text': true,
+        };
+      } else {
+        this.selectedFieldMapping = null;
+      }
+    },
     updateData() {
       this.$emit('input', this.value);
       this.$emit('change', this.value);

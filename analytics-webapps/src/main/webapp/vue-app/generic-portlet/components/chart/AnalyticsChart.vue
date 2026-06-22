@@ -231,15 +231,15 @@ export default {
       const fieldName = label.split('=')[0];
       const fieldValue = label.split('=')[1];
       if (fieldValue) {
-        const extension = this.$root.fieldNameValueExtensions.find(ext => ext?.match?.(fieldName?.replace?.('_alt', ''), fieldValue));
+        const extension = this.$root.fieldNameValueExtensions.find(ext => ext?.match?.(fieldName?.replace?.(/_alt\d*$/, ''), fieldValue));
         if (extension) {
           return extension.getLabel(fieldName, fieldValue);
         } else {
-          let fieldLabelI18NKey = `analytics.${fieldValue?.replace?.('_alt', '')}`;
+          let fieldLabelI18NKey = `analytics.${fieldValue?.replace?.(/_alt\d*$/, '')}`;
           if (this.$te(fieldLabelI18NKey)) {
             return fieldValue?.includes?.('_alt') ? this.$t('analytics.field.alternative', {0: this.$t(fieldLabelI18NKey)}) : this.$t(fieldLabelI18NKey);
           } else {
-            fieldLabelI18NKey = `analytics.field.label.${fieldValue?.replace?.('_alt', '')}`;
+            fieldLabelI18NKey = `analytics.field.label.${fieldValue?.replace?.(/_alt\d*$/, '')}`;
             return this.$te(fieldLabelI18NKey) ?
               (fieldValue?.includes?.('_alt') ? this.$t('analytics.field.alternative', {0: this.$t(fieldLabelI18NKey)}) : this.$t(fieldLabelI18NKey)) // NOSONAR
               : label;

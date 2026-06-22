@@ -101,47 +101,47 @@ public class Utils {
   }
 
   public static void addOAuthClientFields(StatisticData statisticData, RegisteredClient client) {
-    statisticData.addParameter(PARAM_OAUTH_CLIENT_ID, getClientId(client));
-    statisticData.addParameter(PARAM_OAUTH_CLIENT_NAME, client.getClientName());
-    statisticData.addParameter(PARAM_OAUTH_CLIENT_REDIRECT_URIS, client.getRedirectUris());
+    statisticData.addKeyword(PARAM_OAUTH_CLIENT_ID, getClientId(client));
+    statisticData.addKeyword(PARAM_OAUTH_CLIENT_NAME, client.getClientName());
+    statisticData.addKeywords(PARAM_OAUTH_CLIENT_REDIRECT_URIS, client.getRedirectUris());
     if (CollectionUtils.isNotEmpty(client.getAuthorizationGrantTypes())) {
-      statisticData.addParameter(PARAM_OAUTH_CLIENT_AUTH_METHOD,
-                                 client.getClientAuthenticationMethods()
-                                       .stream()
-                                       .map(ClientAuthenticationMethod::getValue)
-                                       .toList());
+      statisticData.addKeywords(PARAM_OAUTH_CLIENT_AUTH_METHOD,
+                                client.getClientAuthenticationMethods()
+                                      .stream()
+                                      .map(ClientAuthenticationMethod::getValue)
+                                      .toList());
     }
     if (CollectionUtils.isNotEmpty(client.getAuthorizationGrantTypes())) {
-      statisticData.addParameter(PARAM_OAUTH_CLIENT_GRANT_TYPES,
-                                 client.getAuthorizationGrantTypes()
-                                       .stream()
-                                       .map(AuthorizationGrantType::getValue)
-                                       .toList());
+      statisticData.addKeywords(PARAM_OAUTH_CLIENT_GRANT_TYPES,
+                                client.getAuthorizationGrantTypes()
+                                      .stream()
+                                      .map(AuthorizationGrantType::getValue)
+                                      .toList());
     }
     if (CollectionUtils.isNotEmpty(client.getAuthorizationGrantTypes())) {
-      statisticData.addParameter(PARAM_OAUTH_CLIENT_SCOPES,
-                                 client.getScopes()
-                                       .stream()
-                                       .map(s -> PARAM_SCOPE_PREFIX + s)
-                                       .toList());
+      statisticData.addKeywords(PARAM_OAUTH_CLIENT_SCOPES,
+                                client.getScopes()
+                                      .stream()
+                                      .map(s -> PARAM_SCOPE_PREFIX + s)
+                                      .toList());
     }
   }
 
   public static void addOAuthConsentFields(StatisticData statisticData, OAuth2AuthorizationConsent consent) {
-    statisticData.addParameter(PARAM_OAUTH_CONSENT_SCOPES,
-                               consent.getScopes()
-                                      .stream()
-                                      .map(s -> PARAM_SCOPE_PREFIX + s)
-                                      .toList());
+    statisticData.addKeywords(PARAM_OAUTH_CONSENT_SCOPES,
+                              consent.getScopes()
+                                     .stream()
+                                     .map(s -> PARAM_SCOPE_PREFIX + s)
+                                     .toList());
   }
 
   public static void addOAuthTokenFields(StatisticData statisticData, OAuth2Authorization token) {
-    statisticData.addParameter(PARAM_OAUTH_TOKEN_ID, DigestUtils.sha256Hex(token.getId()).substring(0, 16));
-    statisticData.addParameter(PARAM_OAUTH_TOKEN_SCOPES,
-                               token.getAuthorizedScopes()
-                                    .stream()
-                                    .map(s -> PARAM_SCOPE_PREFIX + s)
-                                    .toList());
+    statisticData.addKeyword(PARAM_OAUTH_TOKEN_ID, DigestUtils.sha256Hex(token.getId()).substring(0, 16));
+    statisticData.addKeywords(PARAM_OAUTH_TOKEN_SCOPES,
+                              token.getAuthorizedScopes()
+                                   .stream()
+                                   .map(s -> PARAM_SCOPE_PREFIX + s)
+                                   .toList());
   }
 
   public static String getClientId(RegisteredClient client) {

@@ -115,31 +115,31 @@ public class PageAccessListener extends BaseComponentPlugin implements Applicati
       Space space = SpaceUtils.getSpaceByContext();
       addSpaceStatistics(statisticData, space);
 
-      statisticData.addParameter("httpRequestMethod", httpRequest.getMethod());
-      statisticData.addParameter("httpRequestUri", httpRequest.getRequestURI());
-      statisticData.addParameter("httpRequestProtocol", httpRequest.getProtocol());
-      statisticData.addParameter("httpRequestContentType", httpRequest.getContentType());
-      statisticData.addParameter("httpRequestContentLength", httpRequest.getContentLength());
+      statisticData.addKeyword("httpRequestMethod", httpRequest.getMethod());
+      statisticData.addKeyword("httpRequestUri", httpRequest.getRequestURI());
+      statisticData.addKeyword("httpRequestProtocol", httpRequest.getProtocol());
+      statisticData.addKeyword("httpRequestContentType", httpRequest.getContentType());
+      statisticData.addLong("httpRequestContentLength", httpRequest.getContentLength());
 
-      statisticData.addParameter("userLocale", portalRequestContext.getLocale());
-      statisticData.addParameter("portalOwner", portalRequestContext.getPortalOwner());
-      statisticData.addParameter("portalUri", portalRequestContext.getPortalURI());
-      statisticData.addParameter("pageTitle", portalRequestContext.getTitle());
+      statisticData.addKeyword("userLocale", portalRequestContext.getLocale());
+      statisticData.addKeyword("portalOwner", portalRequestContext.getPortalOwner());
+      statisticData.addKeyword("portalUri", portalRequestContext.getPortalURI());
+      statisticData.addKeyword("pageTitle", portalRequestContext.getTitle());
 
       UIPortal uiportal = Util.getUIPortal();
       if (uiportal != null) {
         UserNode node = uiportal.getSelectedUserNode();
         if (node != null) {
-          statisticData.addParameter("pageUri", node.getURI());
-          statisticData.addParameter("pageName", node.getName());
+          statisticData.addKeyword("pageUri", node.getURI());
+          statisticData.addKeyword("pageName", node.getName());
         }
       }
 
       HttpServletResponse httpResponse = portalRequestContext.getResponse();
       if (httpResponse != null) {
-        statisticData.addParameter("httpResponseContentType", httpResponse.getContentType());
-        statisticData.addParameter("httpResponseContentLength", httpResponse.getBufferSize());
-        statisticData.addParameter("httpResponseStatus", httpResponse.getStatus());
+        statisticData.addKeyword("httpResponseContentType", httpResponse.getContentType());
+        statisticData.addLong("httpResponseContentLength", httpResponse.getBufferSize());
+        statisticData.addKeyword("httpResponseStatus", httpResponse.getStatus());
 
         if (httpResponse.getStatus() >= 400) {
           statisticData.setErrorCode(httpResponse.getStatus());

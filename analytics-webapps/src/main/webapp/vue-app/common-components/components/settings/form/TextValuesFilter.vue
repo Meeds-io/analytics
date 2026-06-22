@@ -107,7 +107,7 @@ export default {
       if (this.isProfilePropertyOption) {
         return await this.getProfilePropertyOptionTranslation(value);
       }
-      const key = `analytics.${value?.replace?.('_alt', '')}`;
+      const key = `analytics.${value?.replace?.(/_alt\d*$/, '')}`;
       return this.$te(key) ?
         (value?.includes?.('_alt') ? this.$t('analytics.field.alternative', {0: this.$t(key)}) : this.$t(key)) // NOSONAR
         : value;

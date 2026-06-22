@@ -331,14 +331,14 @@ export default {
       }
 
       this.loading = true;
+      const isPredefinedPeriod = !!this.selectedPeriod.period;
       const params = {
         lang: eXo.env.portal.language && eXo.env.portal.language.replace('_','-'),
         periodType: this.selectedPeriod.period || '',
-        min: this.selectedPeriod.min,
-        max: this.selectedPeriod.max + 60000,
+        min: isPredefinedPeriod ? this.selectedPeriod.min : this.toLocalDayStartInMS(this.selectedPeriod.min),
+        max: isPredefinedPeriod ? this.selectedPeriod.max + 60000 : this.toLocalDayEndExclusiveInMS(this.selectedPeriod.max),
         timeZone: this.$analyticsUtils.USER_TIMEZONE_ID,
       };
-      params.timeZone = this.$analyticsUtils.USER_TIMEZONE_ID;
       if (this.selectedPeriod.period) {
         params.date = Date.now();
       }
@@ -366,6 +366,14 @@ export default {
           this.error = 'Error getting analytics';
         })
         .finally(() => this.loading = false);
+    },
+    toLocalDayStartInMS(timestamp) {
+      const date = new Date(timestamp);
+      return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()).getTime();
+    },
+    toLocalDayEndExclusiveInMS(timestamp) {
+      const date = new Date(timestamp);
+      return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + 1).getTime();
     },
     closeMenu(){
       this.showMenu=false;

@@ -175,7 +175,7 @@ public class AnalyticsActivityListener extends ActivityListenerPlugin {
     String[] likeIdentityIds = event.getActivity().getLikeIdentityIds();
     if (likeIdentityIds != null && likeIdentityIds.length > 0) {
       String likerId = likeIdentityIds[likeIdentityIds.length - 1];
-      statisticData.addParameter("likeIdentityId", likerId);
+      statisticData.addKeyword("likeIdentityId", likerId);
     }
   }
 
@@ -229,7 +229,7 @@ public class AnalyticsActivityListener extends ActivityListenerPlugin {
         Space space = spaceService.getSpaceByPrettyName(streamIdentity.getRemoteId());
         addSpaceStatistics(statisticData, space);
       }
-      statisticData.addParameter("streamIdentityId", streamIdentity.getIdentityId());
+      statisticData.addKeyword("streamIdentityId", streamIdentity.getIdentityId());
     }
 
     statisticData.setModule("social");

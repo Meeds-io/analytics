@@ -100,7 +100,7 @@ public class OAuthConsentListener implements ListenerBase<OAuth2AuthorizationCon
         if (client != null) {
           addOAuthClientFields(statisticData, client);
         } else {
-          statisticData.addParameter(PARAM_OAUTH_CLIENT_ID, consent.getRegisteredClientId());
+          statisticData.addKeyword(PARAM_OAUTH_CLIENT_ID, consent.getRegisteredClientId());
         }
         addOAuthConsentFields(statisticData, consent);
         addStatisticData(statisticData);

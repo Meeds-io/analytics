@@ -152,7 +152,7 @@ export default {
   }),
   computed: {
     i18NValue() {
-      const key = `analytics.${this.value?.replace?.('_alt', '')}`;
+      const key = `analytics.${this.value?.replace?.(/_alt\d*$/, '')}`;
       return this.$te(key) ?
         (this.value?.includes?.('_alt') ? this.$t('analytics.field.alternative', {0: this.$t(key)}) : this.$t(key)) // NOSONAR
         : this.value;

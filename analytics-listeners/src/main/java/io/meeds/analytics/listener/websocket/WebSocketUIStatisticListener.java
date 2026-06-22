@@ -130,9 +130,9 @@ public class WebSocketUIStatisticListener extends Listener<AnalyticsWebSocketSer
       String dataParameterValue = dataParameter.getValue();
       if (StringUtils.contains(dataParameterValue, ",")) {
         List<String> dataParameterValues = Arrays.asList(StringUtils.split(dataParameterValue, ","));
-        statisticData.addParameter(dataParameterName, dataParameterValues);
+        statisticData.addKeywords(dataParameterName, dataParameterValues);
       } else {
-        statisticData.addParameter(dataParameterName, dataParameterValue);
+        statisticData.addKeyword(dataParameterName, dataParameterValue);
       }
     }
     addStatisticData(statisticData);

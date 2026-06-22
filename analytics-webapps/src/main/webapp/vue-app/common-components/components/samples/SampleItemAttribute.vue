@@ -58,13 +58,13 @@ export default {
   },
   computed: {
     keyLabel() {
-      const fieldLabelI18NKey = `analytics.field.label.${this.attrKey?.replace?.('_alt', '')}`;
+      const fieldLabelI18NKey = `analytics.field.label.${this.attrKey?.replace?.(/_alt\d*$/, '')}`;
       return this.$te(fieldLabelI18NKey) ?
         (this.attrKey?.includes?.('_alt') ? this.$t('analytics.field.alternative', {0: this.$t(fieldLabelI18NKey)}) : this.$t(fieldLabelI18NKey)) // NOSONAR
         : this.attrKey;
     },
     valueLabel() {
-      const fieldLabelI18NValue = `analytics.${this.attrValue?.replace?.('_alt', '')}`;
+      const fieldLabelI18NValue = `analytics.${this.attrValue?.replace?.(/_alt\d*$/, '')}`;
       return this.$te(fieldLabelI18NValue) ?
         (this.attrValue?.includes?.('_alt') ? this.$t('analytics.field.alternative', {0: this.$t(fieldLabelI18NValue)}) : this.$t(fieldLabelI18NValue)) // NOSONAR
         : this.attrValue;
@@ -73,7 +73,7 @@ export default {
       if (this.sampleItemExtensions) {
         return Object.values(this.sampleItemExtensions)
           .sort((ext1, ext2) => (ext1.rank || 0) - (ext2.rank || 0))
-          .find(extension => extension?.match?.(this.attrKey?.replace?.('_alt', ''), this.attrValue)) || null;
+          .find(extension => extension?.match?.(this.attrKey?.replace?.(/_alt\d*$/, ''), this.attrValue)) || null;
       }
       return null;
     },
