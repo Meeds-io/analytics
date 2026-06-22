@@ -88,11 +88,11 @@ public class OAuthTokenConsumerListener implements ListenerBase<OAuth2Authorizat
       if (client != null) {
         addOAuthClientFields(statisticData, client);
       } else {
-        statisticData.addParameter(PARAM_OAUTH_CLIENT_ID, clientId);
+        statisticData.addKeyword(PARAM_OAUTH_CLIENT_ID, clientId);
       }
       addOAuthTokenFields(statisticData, token);
       if (tokenType != null) {
-        statisticData.addParameter(PARAM_OAUTH_TOKEN_TYPE, tokenType);
+        statisticData.addKeyword(PARAM_OAUTH_TOKEN_TYPE, tokenType);
       }
       addStatisticData(statisticData);
     }

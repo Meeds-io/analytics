@@ -89,15 +89,15 @@ public class AnalyticsSpaceWebNotificationListener extends Listener<SpaceWebNoti
       return;
     }
     if (StringUtils.isNotBlank(spaceWebNotificationItem.getApplicationName())) {
-      statisticData.addParameter("entityType", spaceWebNotificationItem.getApplicationName());
+      statisticData.addKeyword("entityType", spaceWebNotificationItem.getApplicationName());
     }
     if (StringUtils.isNotBlank(spaceWebNotificationItem.getApplicationItemId())) {
-      statisticData.addParameter("entityId", spaceWebNotificationItem.getApplicationItemId());
+      statisticData.addKeyword("entityId", spaceWebNotificationItem.getApplicationItemId());
     }
     if (spaceWebNotificationItem instanceof SpaceWebNotificationItemUpdate spaceWebNotificationItemUpdate) {
       String userEvent = spaceWebNotificationItemUpdate.getUserEvent();
       if (StringUtils.isNotBlank(userEvent)) {
-        statisticData.addParameter("event-type", userEvent);
+        statisticData.addKeyword("event-type", userEvent);
       }
     }
     addStatisticData(statisticData);

@@ -23,10 +23,10 @@
           "format": "epoch_millis"
         },
         "userId": {
-          "type": "long"
+          "type": "keyword"
         },
         "spaceId": {
-          "type": "long"
+          "type": "keyword"
         },
         "module": {
           "type": "keyword"

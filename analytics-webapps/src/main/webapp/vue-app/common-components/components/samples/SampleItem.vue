@@ -101,7 +101,7 @@ export default {
       return this.chartData.userId || this.chartData.modifierSocialId;
     },
     operationLabel() {
-      const operationLabelI18NValue = `analytics.${this.chartData.operation?.replace?.('_alt', '')}`;
+      const operationLabelI18NValue = `analytics.${this.chartData.operation?.replace?.(/_alt\d*$/, '')}`;
       return this.$te(operationLabelI18NValue) ?
         (this.chartData.operation?.includes?.('_alt') ? this.$t('analytics.field.alternative', {0: this.$t(operationLabelI18NValue)}) : this.$t(operationLabelI18NValue)) // NOSONAR
         : this.chartData.operation;
