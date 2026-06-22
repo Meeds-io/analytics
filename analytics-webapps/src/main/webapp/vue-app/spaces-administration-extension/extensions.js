@@ -41,12 +41,12 @@ extensionRegistry.registerExtension('spaces-administration', 'table-column', {
     const spaces = offset ? currentSpaces?.slice() : [];
     const currentSpacesIds = new Set(spaces.map(s => s.id));
     let poolSize = offset + limit * 3;
-    let validSpacesResult = [];
-    while (validSpacesResult.length < limit) {
+    const validSpacesResult = [];
+    while (validSpacesResult.length < limit) {  /* eslint-disable no-await-in-loop */
       const aggregationResults = await Vue.prototype.$analyticsService.getChart({
         operations: Vue.prototype.$analyticsService.SPACE_ACTIVITY_OPERATIONS,
-        fieldName: templateId ? 'spaceTemplateId' : null,
-        fieldValues: templateId ? [templateId] : null,
+        fieldName: templateId && 'spaceTemplateId' || null,
+        fieldValues: templateId && [templateId] || null,
         xAggregationField: 'spaceId',
         xAggregationType: 'TERMS',
         yAggregationField: 'timestamp',
@@ -56,7 +56,9 @@ extensionRegistry.registerExtension('spaces-administration', 'table-column', {
       });
       const spaceIds = aggregationResults?.map(g => g.label).filter(id => Number(id)) || [];
 
-      if (spaceIds.length <= offset) break;
+      if (spaceIds.length <= offset) {
+        break;
+      }
 
       for (let i = offset; i < spaceIds.length && validSpacesResult.length < limit; i++) {
         const id = spaceIds[i];
@@ -66,10 +68,10 @@ extensionRegistry.registerExtension('spaces-administration', 'table-column', {
           currentSpacesIds.add(space.id);
         }
       }
-
-      if (validSpacesResult.length < limit) {
-        poolSize += limit * 2;
+      if (spaceIds.length < poolSize) {
+        break;
       }
+      poolSize += limit * 2;
     }
     spaces.push(...validSpacesResult);
     return spaces;
