@@ -24,9 +24,10 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
-import javax.portlet.*;
+import javax.portlet.PortletException;
+import javax.portlet.ResourceRequest;
+import javax.portlet.ResourceResponse;
 import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.collections4.CollectionUtils;
@@ -34,7 +35,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
 
 import io.meeds.analytics.model.StatisticFieldMapping;
-import io.meeds.analytics.model.filter.*;
+import io.meeds.analytics.model.filter.AnalyticsPercentageFilter;
+import io.meeds.analytics.model.filter.AnalyticsPercentageItemFilter;
+import io.meeds.analytics.model.filter.AnalyticsPeriod;
+import io.meeds.analytics.model.filter.AnalyticsPeriodType;
 import io.meeds.analytics.model.filter.aggregation.AnalyticsAggregation;
 import io.meeds.analytics.model.filter.aggregation.AnalyticsPercentageLimit;
 import io.meeds.analytics.model.filter.search.AnalyticsFieldFilter;
@@ -111,37 +115,39 @@ public class AnalyticsRatePortlet extends AbstractAnalyticsPortlet<AnalyticsPerc
   private AnalyticsPercentageFilter getFilter(ResourceRequest request) {
     AnalyticsPercentageFilter filter = getFilterFromPreferences(request);
     Set<StatisticFieldMapping> mappings = getAnalyticsService().retrieveMapping(false);
-    Set<String> fieldNames = mappings.stream()
-                                     .map(StatisticFieldMapping::getName)
-                                     .collect(Collectors.toSet());
 
-    convertToAltFieldName(filter.getValue(), fieldNames);
-    convertToAltFieldName(filter.getThreshold(), fieldNames);
+    convertToFieldName(filter.getValue(), mappings);
+    convertToFieldName(filter.getThreshold(), mappings);
 
     AnalyticsPercentageLimit percentageLimit = filter.getPercentageLimit();
     if (percentageLimit != null) {
-      AnalyticsUtils.convertToAltFieldName(percentageLimit::getField,
-                                           percentageLimit::setField,
-                                           fieldNames);
-      convertToAltFieldName(percentageLimit.getAggregation(), fieldNames);
+      AnalyticsUtils.convertFieldName(percentageLimit::getField,
+                                      percentageLimit::setField,
+                                      mappings,
+                                      true);
+      convertToFieldName(percentageLimit.getAggregation(),
+                         mappings);
     }
     return filter;
   }
 
-  private void convertToAltFieldName(AnalyticsPercentageItemFilter valueFilter, Set<String> fieldNames) {
+  private void convertToFieldName(AnalyticsPercentageItemFilter valueFilter,
+                                  Set<StatisticFieldMapping> mappings) {
     if (valueFilter != null) {
       AnalyticsAggregation aggregation = valueFilter.getYAxisAggregation();
       if (aggregation != null) {
-        AnalyticsUtils.convertToAltFieldName(aggregation::getField,
-                                             aggregation::setField,
-                                             fieldNames);
+        AnalyticsUtils.convertFieldName(aggregation::getField,
+                                        aggregation::setField,
+                                        mappings,
+                                        true);
       }
       List<AnalyticsFieldFilter> filters = valueFilter.getFilters();
       if (CollectionUtils.isNotEmpty(filters)) {
         for (AnalyticsFieldFilter analyticsFilter : filters) {
-          AnalyticsUtils.convertToAltFieldName(analyticsFilter::getField,
-                                               analyticsFilter::setField,
-                                               fieldNames);
+          AnalyticsUtils.convertFieldName(analyticsFilter::getField,
+                                          analyticsFilter::setField,
+                                          mappings,
+                                          false);
         }
       }
     }

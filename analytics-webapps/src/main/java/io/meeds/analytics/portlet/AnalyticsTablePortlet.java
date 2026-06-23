@@ -22,7 +22,6 @@ package io.meeds.analytics.portlet;
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import javax.portlet.PortletException;
 import javax.portlet.ResourceRequest;
@@ -168,46 +167,47 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
   private AnalyticsTableFilter getFilter(ResourceRequest request) {
     AnalyticsTableFilter filter = getFilterFromPreferences(request);
     Set<StatisticFieldMapping> mappings = getAnalyticsService().retrieveMapping(false);
-    Set<String> fieldNames = mappings.stream()
-                                     .map(StatisticFieldMapping::getName)
-                                     .collect(Collectors.toSet());
     List<AnalyticsTableColumnFilter> columns = filter.getColumns();
     for (AnalyticsTableColumnFilter analyticsTableColumnFilter : columns) {
-      convertToAltFieldName(analyticsTableColumnFilter, fieldNames);
+      convertFieldName(analyticsTableColumnFilter, mappings);
     }
-    convertToAltFieldName(filter.getMainColumn(), fieldNames);
+    convertFieldName(filter.getMainColumn(), mappings);
     return filter;
   }
 
-  private void convertToAltFieldName(AnalyticsTableColumnFilter columnFilter, Set<String> fieldNames) {
+  private void convertFieldName(AnalyticsTableColumnFilter columnFilter, Set<StatisticFieldMapping> mappings) {
     if (columnFilter != null) {
-      AnalyticsUtils.convertToAltFieldName(columnFilter::getUserField,
-                                           columnFilter::setUserField,
-                                           fieldNames);
-      AnalyticsUtils.convertToAltFieldName(columnFilter::getSpaceField,
-                                           columnFilter::setSpaceField,
-                                           fieldNames);
-      convertToAltFieldName(columnFilter.getThresholdAggregation(),
-                            fieldNames);
-      convertToAltFieldName(columnFilter.getValueAggregation(),
-                            fieldNames);
+      AnalyticsUtils.convertFieldName(columnFilter::getUserField,
+                                      columnFilter::setUserField,
+                                      mappings,
+                                      false);
+      AnalyticsUtils.convertFieldName(columnFilter::getSpaceField,
+                                      columnFilter::setSpaceField,
+                                      mappings,
+                                      false);
+      convertFieldName(columnFilter.getThresholdAggregation(),
+                       mappings);
+      convertFieldName(columnFilter.getValueAggregation(),
+                       mappings);
     }
   }
 
-  private void convertToAltFieldName(AnalyticsTableColumnAggregation columnAggregation, Set<String> fieldNames) {
+  private void convertFieldName(AnalyticsTableColumnAggregation columnAggregation, Set<StatisticFieldMapping> mappings) {
     if (columnAggregation != null) {
       AnalyticsAggregation aggregation = columnAggregation.getAggregation();
       if (aggregation != null) {
-        AnalyticsUtils.convertToAltFieldName(aggregation::getField,
-                                             aggregation::setField,
-                                             fieldNames);
+        AnalyticsUtils.convertFieldName(aggregation::getField,
+                                        aggregation::setField,
+                                        mappings,
+                                        true);
       }
       List<AnalyticsFieldFilter> filters = columnAggregation.getFilters();
       if (CollectionUtils.isNotEmpty(filters)) {
         for (AnalyticsFieldFilter analyticsFilter : filters) {
-          AnalyticsUtils.convertToAltFieldName(analyticsFilter::getField,
-                                               analyticsFilter::setField,
-                                               fieldNames);
+          AnalyticsUtils.convertFieldName(analyticsFilter::getField,
+                                          analyticsFilter::setField,
+                                          mappings,
+                                          false);
         }
       }
     }
