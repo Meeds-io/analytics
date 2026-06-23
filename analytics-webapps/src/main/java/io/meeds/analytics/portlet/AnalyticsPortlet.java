@@ -19,11 +19,12 @@
  */
 package io.meeds.analytics.portlet;
 
+import static io.meeds.analytics.utils.AnalyticsUtils.convertFieldName;
+
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import javax.portlet.PortletException;
 import javax.portlet.ResourceRequest;
@@ -41,8 +42,6 @@ import io.meeds.analytics.model.filter.AnalyticsFilter;
 import io.meeds.analytics.model.filter.aggregation.AnalyticsAggregation;
 import io.meeds.analytics.model.filter.search.AnalyticsFieldFilter;
 import io.meeds.analytics.utils.AnalyticsUtils;
-
-import static io.meeds.analytics.utils.AnalyticsUtils.convertToAltFieldName;
 
 public class AnalyticsPortlet extends AbstractAnalyticsPortlet<AnalyticsFilter> {
 
@@ -116,27 +115,27 @@ public class AnalyticsPortlet extends AbstractAnalyticsPortlet<AnalyticsFilter> 
   private AnalyticsFilter getFilter(ResourceRequest request) {
     AnalyticsFilter filter = getFilterFromPreferences(request);
     Set<StatisticFieldMapping> mappings = getAnalyticsService().retrieveMapping(false);
-    Set<String> fieldNames = mappings.stream()
-                                     .map(StatisticFieldMapping::getName)
-                                     .collect(Collectors.toSet());
 
     if (StringUtils.isNotBlank(filter.getMultipleChartsField())) {
-      convertToAltFieldName(filter::getMultipleChartsField,
-                            filter::setMultipleChartsField,
-                            fieldNames);
+      convertFieldName(filter::getMultipleChartsField,
+                       filter::setMultipleChartsField,
+                       mappings,
+                       true);
     }
     if (CollectionUtils.isNotEmpty(filter.getAggregations())) {
       for (AnalyticsAggregation analyticsAggregation : filter.getAggregations()) {
-        convertToAltFieldName(analyticsAggregation::getField,
-                              analyticsAggregation::setField,
-                              fieldNames);
+        convertFieldName(analyticsAggregation::getField,
+                         analyticsAggregation::setField,
+                         mappings,
+                         true);
       }
     }
     if (CollectionUtils.isNotEmpty(filter.getFilters())) {
       for (AnalyticsFieldFilter analyticsFilter : filter.getFilters()) {
-        convertToAltFieldName(analyticsFilter::getField,
-                              analyticsFilter::setField,
-                              fieldNames);
+        convertFieldName(analyticsFilter::getField,
+                         analyticsFilter::setField,
+                         mappings,
+                         false);
       }
     }
     return filter;

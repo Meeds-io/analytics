@@ -26,26 +26,37 @@ import static java.time.temporal.ChronoField.YEAR;
 
 import java.io.ByteArrayInputStream;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.SignStyle;
 import java.time.temporal.IsoFields;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.TimeZone;
+import java.util.TreeMap;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.time.LocalDate;
+
+import org.apache.commons.lang3.StringUtils;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.apache.commons.lang3.StringUtils;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 import org.exoplatform.commons.api.persistence.ExoTransactional;
 import org.exoplatform.commons.utils.CommonsUtils;
@@ -71,11 +82,13 @@ import org.exoplatform.ws.frameworks.json.impl.ObjectBuilder;
 import io.meeds.analytics.api.service.StatisticDataQueueService;
 import io.meeds.analytics.model.StatisticData;
 import io.meeds.analytics.model.StatisticData.StatisticStatus;
+import io.meeds.analytics.model.StatisticFieldMapping;
 import io.meeds.social.category.model.Category;
 import io.meeds.social.category.model.CategoryObject;
 import io.meeds.social.category.service.CategoryService;
 
 public class AnalyticsUtils {
+
   private static final Log              LOG                              = ExoLogger.getLogger(AnalyticsUtils.class);
 
   private static ProfilePropertyService profilePropertyService;
@@ -185,6 +198,8 @@ public class AnalyticsUtils {
                                                                                                                       2)
                                                                                                          .toFormatter();
 
+  private static final String           KEYWORD_FIELD_NAME_SUFFIX        = ".keyword";
+
   private AnalyticsUtils() {
   }
 
@@ -237,7 +252,7 @@ public class AnalyticsUtils {
   }
 
   public static final String compueLabel(String chartKey, String chartValue) {
-    String defaultLabel = (chartKey == null ? "" : chartKey.replace(".keyword", "") + "=") + chartValue;
+    String defaultLabel = (chartKey == null ? "" : chartKey.replace(KEYWORD_FIELD_NAME_SUFFIX, "") + "=") + chartValue;
     if (StringUtils.isBlank(chartKey) || StringUtils.isBlank(chartValue) || !COMPUTED_CHART_LABEL.contains(chartKey)) {
       return defaultLabel;
     }
@@ -511,15 +526,24 @@ public class AnalyticsUtils {
     }
   }
 
-  public static void convertToAltFieldName(Supplier<String> supplier, Consumer<String> consumer, Set<String> fieldNames) {
+  public static void convertFieldName(Supplier<String> supplier,
+                                      Consumer<String> consumer,
+                                      Set<StatisticFieldMapping> mappings,
+                                      boolean isAggregation) {
     String fieldName = supplier.get();
-    if (StringUtils.isBlank(fieldName) || fieldNames == null || fieldNames.isEmpty()) {
+    if (StringUtils.isBlank(fieldName) || mappings == null || mappings.isEmpty()) {
       return;
     }
+    String fieldNameConverted = convertKeywordFieldName(consumer, fieldName, mappings, isAggregation);
+    String fieldNameNoKeyword = fieldName.replace(KEYWORD_FIELD_NAME_SUFFIX, "");
     for (int i = MAX_ALTERNATIVE_FIELD_COUNT; i >= 1; i--) {
-      String altFieldName = getAlternativeFieldName(fieldName, i);
-      if (fieldNames.contains(altFieldName)) {
-        consumer.accept(altFieldName);
+      String altFieldName = getAlternativeFieldName(fieldNameNoKeyword, i);
+      if (mappings.stream().anyMatch(f -> f.getName().equals(altFieldName))) {
+        if (fieldNameConverted.contains(KEYWORD_FIELD_NAME_SUFFIX)) {
+          consumer.accept(altFieldName + KEYWORD_FIELD_NAME_SUFFIX);
+        } else {
+          consumer.accept(altFieldName);
+        }
         return;
       }
     }
@@ -533,6 +557,33 @@ public class AnalyticsUtils {
 
   public static String getBaseFieldName(String fieldName) {
     return fieldName == null ? null : fieldName.replaceFirst(ALTERNATIVE_FIELD_SUFFIX + "\\d*$", "");
+  }
+
+  private static String convertKeywordFieldName(Consumer<String> consumer,
+                                                String fieldName,
+                                                Set<StatisticFieldMapping> mappings,
+                                                boolean isAggregation) {
+    boolean isAggregationFieldName = fieldName.contains(KEYWORD_FIELD_NAME_SUFFIX);
+    String fieldNameNoKeyword = fieldName.replace(KEYWORD_FIELD_NAME_SUFFIX, "");
+    StatisticFieldMapping mapping = mappings.stream()
+                                            .filter(f -> f.getName().equals(fieldNameNoKeyword))
+                                            .findFirst()
+                                            .orElse(null);
+    if (mapping != null) {
+      if (isAggregationFieldName
+          && (!isAggregation || !mapping.isHasKeywordSubField() || !StringUtils.equals(mapping.getType(), "text"))) {
+        consumer.accept(fieldNameNoKeyword);
+        return fieldNameNoKeyword;
+      } else if (!isAggregationFieldName
+                 && isAggregation
+                 && mapping.isHasKeywordSubField()
+                 && StringUtils.equals(mapping.getType(), "text")) {
+        String fieldNameWithKeyword = fieldName + KEYWORD_FIELD_NAME_SUFFIX;
+        consumer.accept(fieldNameWithKeyword);
+        return fieldNameWithKeyword;
+      }
+    }
+    return fieldName;
   }
 
   private static int getSize(String[] array) {
