@@ -40,45 +40,40 @@ extensionRegistry.registerExtension('spaces-administration', 'table-column', {
   }) => {
     const spaces = offset ? currentSpaces?.slice() : [];
     const currentSpacesIds = new Set(spaces.map(s => s.id));
-    const aggregationResults = await Vue.prototype
-      .$analyticsService
-      .getChart({
+    let poolSize = offset + limit * 3;
+    const validSpacesResult = [];
+    while (validSpacesResult.length < limit) {  /* eslint-disable no-await-in-loop */
+      const aggregationResults = await Vue.prototype.$analyticsService.getChart({
         operations: Vue.prototype.$analyticsService.SPACE_ACTIVITY_OPERATIONS,
         fieldName: templateId && 'spaceTemplateId' || null,
         fieldValues: templateId && [templateId] || null,
         xAggregationField: 'spaceId',
         xAggregationType: 'TERMS',
-        xAggregationSortDirection: null,
         yAggregationField: 'timestamp',
         yAggregationType: 'MAX',
         yAggregationSortDirection: sortDesc ? 'desc' : 'asc',
-        limit: offset + limit * 2
+        limit: poolSize
       });
-    const spaceIds = aggregationResults?.map(g => g.label) || [];
-    const spacesResult = await Promise.all(
-      spaceIds
-        .filter(id => Number(id))
-        .slice(offset, offset + limit * 2)
-        .map(id => Vue.prototype.$spaceService.getSpaceById(id, expand, true).catch(() => {/* Space could be deleted */}))
-    );
-    const validSpacesResult = spacesResult.filter(s => s).slice(0, limit);
-    validSpacesResult.forEach(s => {
-      if (!currentSpacesIds.has(s.id)) {
-        spaces.push(s);
-        currentSpacesIds.add(s.id);
+      const spaceIds = aggregationResults?.map(g => g.label).filter(id => Number(id)) || [];
+
+      if (spaceIds.length <= offset) {
+        break;
       }
-    });
-    if (validSpacesResult.length === 0) {
-      const noActivitySpaces = await Vue.prototype.$spaceService.getSpacesByFilter({
-        offset: 0,
-        limit: offset + limit,
-        templateId,
-        expand,
-        sortBy: 'title',
-        sortDirection: 'asc',
-      });
-      noActivitySpaces.spaces.filter(s => !spaces.find(s2 => s2.id === s.id)).forEach(s => spaces.push(s));
+
+      for (let i = offset; i < spaceIds.length && validSpacesResult.length < limit; i++) {
+        const id = spaceIds[i];
+        const space = await Vue.prototype.$spaceService.getSpaceById(id, expand, true).catch(() => {/* Space could be deleted */});
+        if (space && !currentSpacesIds.has(space.id)) {
+          validSpacesResult.push(space);
+          currentSpacesIds.add(space.id);
+        }
+      }
+      if (spaceIds.length < poolSize) {
+        break;
+      }
+      poolSize += limit * 2;
     }
+    spaces.push(...validSpacesResult);
     return spaces;
   },
 });
