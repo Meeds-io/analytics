@@ -87,6 +87,9 @@ public class ProductOnlyStackTraceException extends RuntimeException {
   @Override
   public synchronized Throwable getCause() {
     Throwable cause = super.getCause();
+    if (cause == null) {
+      return null;
+    }
     StackTraceElement[] stackTrace = getStackTrace();
     List<StackTraceElement> productStackTrace = Arrays.stream(stackTrace)
                                                       .filter(trace -> StringUtils.containsAny(trace.getClassName(),
