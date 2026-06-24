@@ -122,7 +122,7 @@ export default {
   }),
   computed: {
     columnTitle() {
-      return this.column && this.column.title?.replace?.(/_alt\d*$/, '');
+      return this.column && this.column.title?.replace?.(/_alt\d*$/, '')?.replace?.('.keyword', '');
     },
     canEnableIdentityFields() {
       return this.useUserField || this.useSpaceField;

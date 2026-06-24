@@ -131,7 +131,7 @@ export default {
         if (!fieldMapping.label) {
           const label = fieldMapping.name;
           const labelPart = label.indexOf('.') >= 0 ? label.substring(label.lastIndexOf('.') + 1) : label;
-          const fieldLabelI18NKey = `analytics.field.label.${labelPart?.replace?.(/_alt\d*$/, '')}`;
+          const fieldLabelI18NKey = `analytics.field.label.${labelPart?.replace?.(/_alt\d*$/, '')?.replace?.('.keyword', '')}`;
           const fieldLabelI18NValue = labelPart?.includes?.('_alt') && this.$te(fieldLabelI18NKey) ? this.$t('analytics.field.alternative', {0: this.$t(fieldLabelI18NKey)}) : this.$t(fieldLabelI18NKey);
           fieldMapping.label = fieldLabelI18NValue === fieldLabelI18NKey ? `${this.$t('analytics.field.label.default')} ${label}` : fieldLabelI18NValue;
         }
@@ -157,7 +157,7 @@ export default {
         this.selectedFieldMapping = {
           'name': this.value,
           'searchFieldName': this.value,
-          'aggregationFieldName': `${this.value}.keyword`,
+          'aggregationFieldName': this.value,
           'aggregation': this.aggregation,
           'hasKeywordSubField': this.aggregation,
           'type': 'keyword',
