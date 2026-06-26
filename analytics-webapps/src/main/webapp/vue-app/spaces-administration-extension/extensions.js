@@ -41,6 +41,7 @@ extensionRegistry.registerExtension('spaces-administration', 'table-column', {
     const spaces = offset ? currentSpaces?.slice() : [];
     const currentSpacesIds = new Set(spaces.map(s => s.id));
     let poolSize = offset + limit * 3;
+    let processedUpTo = offset;
     const validSpacesResult = [];
     while (validSpacesResult.length < limit) {  /* eslint-disable no-await-in-loop */
       const aggregationResults = await Vue.prototype.$analyticsService.getChart({
@@ -56,18 +57,28 @@ extensionRegistry.registerExtension('spaces-administration', 'table-column', {
       });
       const spaceIds = aggregationResults?.map(g => g.label).filter(id => Number(id)) || [];
 
-      if (spaceIds.length <= offset) {
+      if (spaceIds.length <= processedUpTo) {
         break;
       }
 
-      for (let i = offset; i < spaceIds.length && validSpacesResult.length < limit; i++) {
-        const id = spaceIds[i];
-        const space = await Vue.prototype.$spaceService.getSpaceById(id, expand, true).catch(() => {/* Space could be deleted */});
+      const idsToCheck = spaceIds.slice(processedUpTo);
+      processedUpTo = spaceIds.length;
+
+      // Fetch all unchecked IDs in parallel to avoid sequential delays from deleted spaces (404)
+      const spaceResults = await Promise.all(
+        idsToCheck.map(id => Vue.prototype.$spaceService.getSpaceById(id, expand, true).catch(() => null))
+      );
+
+      for (const space of spaceResults) {
+        if (validSpacesResult.length >= limit) {
+          break;
+        }
         if (space && !currentSpacesIds.has(space.id)) {
           validSpacesResult.push(space);
           currentSpacesIds.add(space.id);
         }
       }
+
       if (spaceIds.length < poolSize) {
         break;
       }
