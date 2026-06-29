@@ -23,7 +23,7 @@
   <parent>
     <groupId>io.meeds.analytics</groupId>
     <artifactId>analytics-parent</artifactId>
-    <version>7.3.x-SNAPSHOT</version>
+    <version>7.3.x-whitepaper-SNAPSHOT</version>
   </parent>
   <artifactId>analytics-services</artifactId>
   <name>Meeds:: Analytics - Services</name>
