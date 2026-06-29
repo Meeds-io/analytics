@@ -60,10 +60,10 @@ extensionRegistry.registerExtension('spaces-administration', 'table-column', {
         break;
       }
 
-      for (let i = offset; i < spaceIds.length && validSpacesResult.length < limit; i++) {
-        const id = spaceIds[i];
-        const space = await Vue.prototype.$spaceService.getSpaceById(id, expand, true).catch(() => {/* Space could be deleted */});
-        if (space && !currentSpacesIds.has(space.id)) {
+      const candidateIds = spaceIds.slice(offset, offset + (limit - validSpacesResult.length) * 3);
+      const fetchedSpaces = await Vue.prototype.$spaceService.getSpacesByIds(candidateIds, expand).catch(() => []);
+      for (const space of fetchedSpaces) {
+        if (space && !currentSpacesIds.has(space.id) && validSpacesResult.length < limit) {
           validSpacesResult.push(space);
           currentSpacesIds.add(space.id);
         }
