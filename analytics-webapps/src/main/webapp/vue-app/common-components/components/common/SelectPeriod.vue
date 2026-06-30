@@ -245,7 +245,7 @@ export default {
 
         switch (this.selectedPeriodName) {
         case 'today': {
-          const todayDate = today.toISOString().slice(0, 10);
+          const todayDate = today.toLocaleDateString('sv-SV');
           this.dates = [
             todayDate,
             todayDate
@@ -261,8 +261,8 @@ export default {
             endOfWeek = this.maxDateTime;
           }
           this.dates = [
-            startOfWeek.toISOString().slice(0, 10),
-            endOfWeek.toISOString().slice(0, 10)
+            startOfWeek.toLocaleDateString('sv-SV'),
+            endOfWeek.toLocaleDateString('sv-SV')
           ];
           break;
         }
@@ -273,8 +273,8 @@ export default {
             endOfMonth = this.maxDateTime;
           }
           this.dates = [
-            startOfMonth.toISOString().slice(0, 10),
-            endOfMonth.toISOString().slice(0, 10)
+            startOfMonth.toLocaleDateString('sv-SV'),
+            endOfMonth.toLocaleDateString('sv-SV')
           ];
           break;
         }
@@ -286,8 +286,8 @@ export default {
             endOfQuarter = this.maxDateTime;
           }
           this.dates = [
-            startOfQuarter.toISOString().slice(0, 10),
-            endOfQuarter.toISOString().slice(0, 10)
+            startOfQuarter.toLocaleDateString('sv-SV'),
+            endOfQuarter.toLocaleDateString('sv-SV')
           ];
           break;
         }
@@ -299,8 +299,8 @@ export default {
             endOfSemester = this.maxDateTime;
           }
           this.dates = [
-            startOfSemester.toISOString().slice(0, 10),
-            endOfSemester.toISOString().slice(0, 10)
+            startOfSemester.toLocaleDateString('sv-SV'),
+            endOfSemester.toLocaleDateString('sv-SV')
           ];
           break;
         }
@@ -322,8 +322,8 @@ export default {
         }
         const startDate = this.dates[0].split('-');
         const endDate = this.dates[1].split('-');
-        selectedPeriod.min = Date.UTC(startDate[0], startDate[1] - 1, startDate[2], 0, 0, 0);
-        selectedPeriod.max = Date.UTC(endDate[0], endDate[1] - 1 , endDate[2], 23, 59, 59);
+        selectedPeriod.min = new Date(parseInt(startDate[0]), parseInt(startDate[1]) - 1, parseInt(startDate[2]), 0, 0, 0).getTime();
+        selectedPeriod.max = new Date(parseInt(endDate[0]), parseInt(endDate[1]) - 1, parseInt(endDate[2]), 23, 59, 59, 999).getTime();
         this.$emit('input', selectedPeriod);
         return true;
       }
