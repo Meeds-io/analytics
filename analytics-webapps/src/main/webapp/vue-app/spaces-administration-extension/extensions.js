@@ -1,8 +1,8 @@
 /*
  * This file is part of the Meeds project (https://meeds.io/).
- * 
+ *
  * Copyright (C) 2020 - 2024 Meeds Association contact@meeds.io
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -11,7 +11,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
@@ -40,7 +40,8 @@ extensionRegistry.registerExtension('spaces-administration', 'table-column', {
   }) => {
     const spaces = offset ? currentSpaces?.slice() : [];
     const currentSpacesIds = new Set(spaces.map(s => s.id));
-    let poolSize = offset + limit * 3;
+    let poolSize = offset + limit;
+    let processedUpTo = offset;
     const validSpacesResult = [];
     while (validSpacesResult.length < limit) {  /* eslint-disable no-await-in-loop */
       const aggregationResults = await Vue.prototype.$analyticsService.getChart({
@@ -56,22 +57,29 @@ extensionRegistry.registerExtension('spaces-administration', 'table-column', {
       });
       const spaceIds = aggregationResults?.map(g => g.label).filter(id => Number(id)) || [];
 
-      if (spaceIds.length <= offset) {
+      if (spaceIds.length <= processedUpTo) {
         break;
       }
 
-      for (let i = offset; i < spaceIds.length && validSpacesResult.length < limit; i++) {
-        const id = spaceIds[i];
-        const space = await Vue.prototype.$spaceService.getSpaceById(id, expand, true).catch(() => {/* Space could be deleted */});
+      const idsToFetch = spaceIds.slice(processedUpTo);
+      processedUpTo = spaceIds.length;
+
+      const data = await Vue.prototype.$spaceService.getSpacesByIds(idsToFetch, expand) || [];
+      const spaceResults = data.spaces || [];
+      for (const space of spaceResults) {
+        if (validSpacesResult.length >= limit) {
+          break;
+        }
         if (space && !currentSpacesIds.has(space.id)) {
           validSpacesResult.push(space);
           currentSpacesIds.add(space.id);
         }
       }
+
       if (spaceIds.length < poolSize) {
         break;
       }
-      poolSize += limit * 2;
+      poolSize = limit * 2;
     }
     spaces.push(...validSpacesResult);
     return spaces;
