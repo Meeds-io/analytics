@@ -784,9 +784,10 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
     }
 
     if (aggregationField == null || !aggregationField.isScriptedField()) {
+      String esFieldName = aggregationField != null ? aggregationField.getAggregationFieldName() : aggregationFieldName;
       esQuery.append("""
                     "field": "$aggFieldName"
-          """.replace(AGG_FIELD_NAME_REQUEST_BODY_PARAM, aggregationFieldName));
+          """.replace(AGG_FIELD_NAME_REQUEST_BODY_PARAM, esFieldName));
     } else {
       esQuery.append("""
                    "script": {
