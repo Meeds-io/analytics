@@ -140,6 +140,10 @@ export default {
         return null;
       },
     },
+    rowItem: {
+      type: Object,
+      default: () => null,
+    },
   },
   data: () => ({
     fullDateFormat: {
@@ -188,6 +192,7 @@ export default {
         column: this.column,
         item: this.item,
         value: this.value,
+        rowItem: this.rowItem,
         labels: this.labels,
       } || null;
     },
