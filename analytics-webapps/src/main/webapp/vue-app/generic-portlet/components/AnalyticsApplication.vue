@@ -70,7 +70,18 @@
           </div>
         </v-toolbar-title>
         <v-spacer />
-        <analytics-select-period v-model="selectedPeriod" />
+        <select-period
+          v-model="selectedPeriod"
+          :labels="{
+            from: $t('analytics.from'),
+            to: $t('analytics.toDate'),
+            today: $t('analytics.periodOptions.today'),
+            thisWeek: $t('analytics.periodOptions.thisWeek'),
+            thisMonth: $t('analytics.periodOptions.thisMonth'),
+            thisQuarter: $t('analytics.periodOptions.thisQuarter'),
+            thisSemester: $t('analytics.periodOptions.thisSemester'),
+            thisYear: $t('analytics.periodOptions.thisYear'),
+          }" />
         <v-menu
           v-if="canEdit"
           v-model="showMenu"
