@@ -56,8 +56,6 @@ import ProfilePropertyItemAttributeLabel from './components/samples/ProfilePrope
 import ProfileDropdownPropertyItemValue from './components/samples/ProfileDropdownPropertyItemValue.vue';
 import ProfilePropertyFieldFilter from './components/settings/form/ProfilePropertyFieldFilter.vue';
 
-import SelectPeriod from './components/common/SelectPeriod.vue';
-
 const components = {
   'analytics-profile-chip': ProfileChip,
   'analytics-sample-item': SampleItem,
@@ -86,7 +84,6 @@ const components = {
   'analytics-x-axis-form': XAxisForm,
   'analytics-y-axis-form': YAxisForm,
   'analytics-multiple-charts': MultipleCharts,
-  'analytics-select-period': SelectPeriod,
   'analytics-chart-setting-drawer': AnalyticsChartSettingDrawer,
   'analytics-json-panel-drawer': JsonPanelDrawer,
   'analytics-view-samples-drawer': ViewSamplesDrawer,
