@@ -35,6 +35,7 @@
         <analytics-table-cell-value
           :value="cellItemSingleValue.value"
           :item="cellItem"
+          :row-item="item"
           :original-value="$analyticsUtils.toFixed(cellItem.value)"
           :cell-value-extension="cellValueExtension"
           :threshold="$analyticsUtils.toFixed(cellItem.threshold)"
@@ -55,6 +56,7 @@
           v-for="previousValue in cellItemPreviousValues"
           :key="previousValue.value"
           :item="cellItem"
+          :row-item="item"
           :value="previousValue.percentage"
           :previous-value="percentage && `${previousValue.value}%` || previousValue.value"
           :cell-value-extension="cellValueExtension"
@@ -96,7 +98,7 @@ export default {
     },
     cellValueExtensions: {
       type: Object,
-      default: function() {
+      default: function () {
         return null;
       },
     },
