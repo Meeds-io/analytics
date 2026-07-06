@@ -135,6 +135,7 @@ public class AnalyticsTableFilter extends AbstractAnalyticsFilter {
     }
 
     return new AnalyticsFilter(null,
+                               getTimeZone(),
                                null,
                                null,
                                filters,
