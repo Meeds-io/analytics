@@ -534,10 +534,13 @@ public class AnalyticsUtils {
     if (StringUtils.isBlank(fieldName) || mappings == null || mappings.isEmpty()) {
       return;
     }
+    // start update
     convertKeywordFieldName(consumer, fieldName, mappings, isAggregation);
+    // end update
     String fieldNameNoKeyword = fieldName.replace(KEYWORD_FIELD_NAME_SUFFIX, "");
     for (int i = MAX_ALTERNATIVE_FIELD_COUNT; i >= 1; i--) {
       String altFieldName = getAlternativeFieldName(fieldNameNoKeyword, i);
+      // start update
       StatisticFieldMapping altMapping = mappings.stream()
                                                  .filter(f -> f.getName().equals(altFieldName))
                                                  .findFirst()
@@ -555,6 +558,7 @@ public class AnalyticsUtils {
         }
         return;
       }
+      // end update
     }
   }
 
