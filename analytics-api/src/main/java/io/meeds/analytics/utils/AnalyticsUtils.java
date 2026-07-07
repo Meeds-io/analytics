@@ -534,12 +534,21 @@ public class AnalyticsUtils {
     if (StringUtils.isBlank(fieldName) || mappings == null || mappings.isEmpty()) {
       return;
     }
-    String fieldNameConverted = convertKeywordFieldName(consumer, fieldName, mappings, isAggregation);
+    convertKeywordFieldName(consumer, fieldName, mappings, isAggregation);
     String fieldNameNoKeyword = fieldName.replace(KEYWORD_FIELD_NAME_SUFFIX, "");
     for (int i = MAX_ALTERNATIVE_FIELD_COUNT; i >= 1; i--) {
       String altFieldName = getAlternativeFieldName(fieldNameNoKeyword, i);
-      if (mappings.stream().anyMatch(f -> f.getName().equals(altFieldName))) {
-        if (fieldNameConverted.contains(KEYWORD_FIELD_NAME_SUFFIX)) {
+      StatisticFieldMapping altMapping = mappings.stream()
+                                                 .filter(f -> f.getName().equals(altFieldName))
+                                                 .findFirst()
+                                                 .orElse(null);
+      if (altMapping != null) {
+        // Decide the keyword aggregation suffix from the alternative field's own
+        // mapping instead of the base field: an alternative may have a different
+        // type (e.g. a base 'text' field remapped to a 'long' alternative), and
+        // appending '.keyword' to a non-text alternative points to a subfield
+        // that does not exist, which breaks numeric/date aggregations.
+        if (isAggregation && altMapping.isHasKeywordSubField() && StringUtils.equals(altMapping.getType(), "text")) {
           consumer.accept(altFieldName + KEYWORD_FIELD_NAME_SUFFIX);
         } else {
           consumer.accept(altFieldName);
