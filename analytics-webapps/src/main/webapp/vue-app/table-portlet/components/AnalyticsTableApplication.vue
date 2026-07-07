@@ -23,8 +23,18 @@
     class="analytics-application application-body"
     flat>
     <div class="d-flex px-3 pb-2 pt-1 analytics-table-header" flat>
-      <analytics-select-period
+      <select-period
         v-model="selectedPeriod"
+        :labels="{
+          from: $t('analytics.from'),
+          to: $t('analytics.toDate'),
+          today: $t('analytics.periodOptions.today'),
+          thisWeek: $t('analytics.periodOptions.thisWeek'),
+          thisMonth: $t('analytics.periodOptions.thisMonth'),
+          thisQuarter: $t('analytics.periodOptions.thisQuarter'),
+          thisSemester: $t('analytics.periodOptions.thisSemester'),
+          thisYear: $t('analytics.periodOptions.thisYear'),
+        }"
         hide-time
         right />
       <v-spacer />
