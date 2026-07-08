@@ -535,31 +535,18 @@ public class AnalyticsUtils {
       return;
     }
     // start update
-    convertKeywordFieldName(consumer, fieldName, mappings, isAggregation);
-    // end update
     String fieldNameNoKeyword = fieldName.replace(KEYWORD_FIELD_NAME_SUFFIX, "");
+    // Prefer the latest existing alternative field (*_alt3, *_alt2, *_alt), where
+    // a field's data ends up after an incompatible ES mapping change.
     for (int i = MAX_ALTERNATIVE_FIELD_COUNT; i >= 1; i--) {
       String altFieldName = getAlternativeFieldName(fieldNameNoKeyword, i);
-      // start update
-      StatisticFieldMapping altMapping = mappings.stream()
-                                                 .filter(f -> f.getName().equals(altFieldName))
-                                                 .findFirst()
-                                                 .orElse(null);
-      if (altMapping != null) {
-        // Decide the keyword aggregation suffix from the alternative field's own
-        // mapping instead of the base field: an alternative may have a different
-        // type (e.g. a base 'text' field remapped to a 'long' alternative), and
-        // appending '.keyword' to a non-text alternative points to a subfield
-        // that does not exist, which breaks numeric/date aggregations.
-        if (isAggregation && altMapping.isHasKeywordSubField() && StringUtils.equals(altMapping.getType(), "text")) {
-          consumer.accept(altFieldName + KEYWORD_FIELD_NAME_SUFFIX);
-        } else {
-          consumer.accept(altFieldName);
-        }
+      if (convertKeywordFieldName(consumer, altFieldName, mappings, isAggregation)) {
         return;
       }
-      // end update
     }
+    // No alternative field: resolve against the principal field mapping.
+    convertKeywordFieldName(consumer, fieldName, mappings, isAggregation);
+    // end update
   }
 
   public static String getAlternativeFieldName(String fieldName, int alternativeIndex) {
@@ -572,31 +559,30 @@ public class AnalyticsUtils {
     return fieldName == null ? null : fieldName.replaceFirst(ALTERNATIVE_FIELD_SUFFIX + "\\d*$", "");
   }
 
-  private static String convertKeywordFieldName(Consumer<String> consumer,
-                                                String fieldName,
-                                                Set<StatisticFieldMapping> mappings,
-                                                boolean isAggregation) {
-    boolean isAggregationFieldName = fieldName.contains(KEYWORD_FIELD_NAME_SUFFIX);
+  private static boolean convertKeywordFieldName(Consumer<String> consumer,
+                                                 String fieldName,
+                                                 Set<StatisticFieldMapping> mappings,
+                                                 boolean isAggregation) {
     String fieldNameNoKeyword = fieldName.replace(KEYWORD_FIELD_NAME_SUFFIX, "");
     StatisticFieldMapping mapping = mappings.stream()
                                             .filter(f -> f.getName().equals(fieldNameNoKeyword))
                                             .findFirst()
                                             .orElse(null);
-    if (mapping != null) {
-      if (isAggregationFieldName
-          && (!isAggregation || !mapping.isHasKeywordSubField() || !StringUtils.equals(mapping.getType(), "text"))) {
-        consumer.accept(fieldNameNoKeyword);
-        return fieldNameNoKeyword;
-      } else if (!isAggregationFieldName
-                 && isAggregation
-                 && mapping.isHasKeywordSubField()
-                 && StringUtils.equals(mapping.getType(), "text")) {
-        String fieldNameWithKeyword = fieldName + KEYWORD_FIELD_NAME_SUFFIX;
-        consumer.accept(fieldNameWithKeyword);
-        return fieldNameWithKeyword;
-      }
+    if (mapping == null) {
+      // Field does not exist in the mappings, let the caller try the next one.
+      return false;
     }
-    return fieldName;
+    // Decide the '.keyword' aggregation suffix from the resolved field's own
+    // mapping: append it only for a 'text' field that has a keyword subfield and
+    // is used in an aggregation. A numeric/date/keyword field is queried by its
+    // bare name, otherwise the '.keyword' subfield does not exist and MAX/MIN or
+    // date aggregations return no value.
+    if (isAggregation && mapping.isHasKeywordSubField() && StringUtils.equals(mapping.getType(), "text")) {
+      consumer.accept(fieldNameNoKeyword + KEYWORD_FIELD_NAME_SUFFIX);
+    } else {
+      consumer.accept(fieldNameNoKeyword);
+    }
+    return true;
   }
 
   private static int getSize(String[] array) {
