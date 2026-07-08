@@ -534,23 +534,17 @@ public class AnalyticsUtils {
     if (StringUtils.isBlank(fieldName) || mappings == null || mappings.isEmpty()) {
       return;
     }
-    convertKeywordFieldName(consumer, fieldName, mappings, isAggregation);
     String fieldNameNoKeyword = fieldName.replace(KEYWORD_FIELD_NAME_SUFFIX, "");
     for (int i = MAX_ALTERNATIVE_FIELD_COUNT; i >= 1; i--) {
       String altFieldName = getAlternativeFieldName(fieldNameNoKeyword, i);
-      StatisticFieldMapping altMapping = mappings.stream()
-                                                 .filter(f -> f.getName().equals(altFieldName))
-                                                 .findFirst()
-                                                 .orElse(null);
-      if (altMapping != null) {
-        if (isAggregation && altMapping.isHasKeywordSubField() && StringUtils.equals(altMapping.getType(), "text")) {
-          consumer.accept(altFieldName + KEYWORD_FIELD_NAME_SUFFIX);
-        } else {
-          consumer.accept(altFieldName);
-        }
+      // Check if there is an alternative field mapping
+      if (convertKeywordFieldName(consumer, altFieldName, mappings, isAggregation)) {
         return;
       }
     }
+    // Finally, if no alternative mapping, apply the modification on the
+    // principal field Mapping instead of alternative
+    convertKeywordFieldName(consumer, fieldName, mappings, isAggregation);
   }
 
   public static String getAlternativeFieldName(String fieldName, int alternativeIndex) {
@@ -563,31 +557,24 @@ public class AnalyticsUtils {
     return fieldName == null ? null : fieldName.replaceFirst(ALTERNATIVE_FIELD_SUFFIX + "\\d*$", "");
   }
 
-  private static String convertKeywordFieldName(Consumer<String> consumer,
-                                                String fieldName,
-                                                Set<StatisticFieldMapping> mappings,
-                                                boolean isAggregation) {
-    boolean isAggregationFieldName = fieldName.contains(KEYWORD_FIELD_NAME_SUFFIX);
+  private static boolean convertKeywordFieldName(Consumer<String> consumer,
+                                                 String fieldName,
+                                                 Set<StatisticFieldMapping> mappings,
+                                                 boolean isAggregation) {
     String fieldNameNoKeyword = fieldName.replace(KEYWORD_FIELD_NAME_SUFFIX, "");
     StatisticFieldMapping mapping = mappings.stream()
                                             .filter(f -> f.getName().equals(fieldNameNoKeyword))
                                             .findFirst()
                                             .orElse(null);
-    if (mapping != null) {
-      if (isAggregationFieldName
-          && (!isAggregation || !mapping.isHasKeywordSubField() || !StringUtils.equals(mapping.getType(), "text"))) {
-        consumer.accept(fieldNameNoKeyword);
-        return fieldNameNoKeyword;
-      } else if (!isAggregationFieldName
-                 && isAggregation
-                 && mapping.isHasKeywordSubField()
-                 && StringUtils.equals(mapping.getType(), "text")) {
-        String fieldNameWithKeyword = fieldName + KEYWORD_FIELD_NAME_SUFFIX;
-        consumer.accept(fieldNameWithKeyword);
-        return fieldNameWithKeyword;
-      }
+    if (mapping == null) {
+      return false;
     }
-    return fieldName;
+    if (isAggregation && mapping.isHasKeywordSubField() && StringUtils.equals(mapping.getType(), "text")) {
+      consumer.accept(fieldNameNoKeyword + KEYWORD_FIELD_NAME_SUFFIX);
+    } else {
+      consumer.accept(fieldNameNoKeyword);
+    }
+    return true;
   }
 
   private static int getSize(String[] array) {
