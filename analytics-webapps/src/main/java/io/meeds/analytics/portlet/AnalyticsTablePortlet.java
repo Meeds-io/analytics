@@ -199,7 +199,7 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
         AnalyticsUtils.convertFieldName(aggregation::getField,
                                         aggregation::setField,
                                         mappings,
-                                        true);
+                                        aggregation.getType());
       }
       List<AnalyticsFieldFilter> filters = columnAggregation.getFilters();
       if (CollectionUtils.isNotEmpty(filters)) {

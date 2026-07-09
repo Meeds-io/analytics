@@ -83,6 +83,7 @@ import io.meeds.analytics.api.service.StatisticDataQueueService;
 import io.meeds.analytics.model.StatisticData;
 import io.meeds.analytics.model.StatisticData.StatisticStatus;
 import io.meeds.analytics.model.StatisticFieldMapping;
+import io.meeds.analytics.model.filter.aggregation.AnalyticsAggregationType;
 import io.meeds.social.category.model.Category;
 import io.meeds.social.category.model.CategoryObject;
 import io.meeds.social.category.service.CategoryService;
@@ -530,23 +531,69 @@ public class AnalyticsUtils {
                                       Consumer<String> consumer,
                                       Set<StatisticFieldMapping> mappings,
                                       boolean isAggregation) {
+    convertFieldName(supplier, consumer, mappings, isAggregation, null);
+  }
+
+  public static void convertFieldName(Supplier<String> supplier,
+                                      Consumer<String> consumer,
+                                      Set<StatisticFieldMapping> mappings,
+                                      AnalyticsAggregationType aggregationType) {
+    convertFieldName(supplier, consumer, mappings, true, aggregationType);
+  }
+
+  private static void convertFieldName(Supplier<String> supplier, // NOSONAR
+                                       Consumer<String> consumer,
+                                       Set<StatisticFieldMapping> mappings,
+                                       boolean isAggregation,
+                                       AnalyticsAggregationType aggregationType) {
     String fieldName = supplier.get();
     if (StringUtils.isBlank(fieldName) || mappings == null || mappings.isEmpty()) {
       return;
     }
-    // start update
-    String fieldNameNoKeyword = fieldName.replace(KEYWORD_FIELD_NAME_SUFFIX, "");
-    // Prefer the latest existing alternative field (*_alt3, *_alt2, *_alt), where
-    // a field's data ends up after an incompatible ES mapping change.
-    for (int i = MAX_ALTERNATIVE_FIELD_COUNT; i >= 1; i--) {
-      String altFieldName = getAlternativeFieldName(fieldNameNoKeyword, i);
-      if (convertKeywordFieldName(consumer, altFieldName, mappings, isAggregation)) {
-        return;
+    String baseFieldName = getBaseFieldName(fieldName.replace(KEYWORD_FIELD_NAME_SUFFIX, ""));
+    // Candidate physical fields holding this statistic: latest alternative field
+    // first (*_alt3, *_alt2, *_alt), then the principal field. A field family can
+    // mix types (e.g. a 'long' principal field with a 'text' alternative), so
+    // only candidates whose type can serve the requested aggregation are
+    // eligible: a MAX/MIN on a 'text' alternative would target a field that
+    // cannot hold the aggregated values while the principal 'long' field does.
+    for (int i = MAX_ALTERNATIVE_FIELD_COUNT; i >= 0; i--) {
+      String candidateFieldName = i == 0 ? baseFieldName : getAlternativeFieldName(baseFieldName, i);
+      StatisticFieldMapping mapping = getFieldMapping(candidateFieldName, mappings);
+      if (mapping == null || !isCompatibleWithAggregation(mapping, aggregationType)) {
+        continue;
       }
+      // Decide the '.keyword' aggregation suffix from the resolved field's own
+      // mapping: append it only for a 'text' field that has a keyword subfield
+      // and is used in an aggregation. A numeric/date/keyword field is queried
+      // by its bare name, otherwise the '.keyword' subfield does not exist and
+      // MAX/MIN or date aggregations return no value.
+      if (isAggregation && mapping.isHasKeywordSubField() && StringUtils.equals(mapping.getType(), "text")) {
+        consumer.accept(candidateFieldName + KEYWORD_FIELD_NAME_SUFFIX);
+      } else {
+        consumer.accept(candidateFieldName);
+      }
+      return;
     }
-    // No alternative field: resolve against the principal field mapping.
-    convertKeywordFieldName(consumer, fieldName, mappings, isAggregation);
-    // end update
+  }
+
+  private static StatisticFieldMapping getFieldMapping(String fieldName, Set<StatisticFieldMapping> mappings) {
+    return mappings.stream()
+                   .filter(f -> f.getName().equals(fieldName))
+                   .findFirst()
+                   .orElse(null);
+  }
+
+  private static boolean isCompatibleWithAggregation(StatisticFieldMapping mapping, AnalyticsAggregationType aggregationType) {
+    if (aggregationType == null) {
+      // No aggregation type in context (search filters, plain field references):
+      // any existing field is eligible.
+      return true;
+    }
+    return switch (aggregationType) {
+    case SUM, AVG, MAX, MIN, DATE, HISTOGRAM -> mapping.isNumeric() || mapping.isDate();
+    default -> true; // COUNT, CARDINALITY and TERMS run on keyword fields too
+    };
   }
 
   public static String getAlternativeFieldName(String fieldName, int alternativeIndex) {
@@ -557,32 +604,6 @@ public class AnalyticsUtils {
 
   public static String getBaseFieldName(String fieldName) {
     return fieldName == null ? null : fieldName.replaceFirst(ALTERNATIVE_FIELD_SUFFIX + "\\d*$", "");
-  }
-
-  private static boolean convertKeywordFieldName(Consumer<String> consumer,
-                                                 String fieldName,
-                                                 Set<StatisticFieldMapping> mappings,
-                                                 boolean isAggregation) {
-    String fieldNameNoKeyword = fieldName.replace(KEYWORD_FIELD_NAME_SUFFIX, "");
-    StatisticFieldMapping mapping = mappings.stream()
-                                            .filter(f -> f.getName().equals(fieldNameNoKeyword))
-                                            .findFirst()
-                                            .orElse(null);
-    if (mapping == null) {
-      // Field does not exist in the mappings, let the caller try the next one.
-      return false;
-    }
-    // Decide the '.keyword' aggregation suffix from the resolved field's own
-    // mapping: append it only for a 'text' field that has a keyword subfield and
-    // is used in an aggregation. A numeric/date/keyword field is queried by its
-    // bare name, otherwise the '.keyword' subfield does not exist and MAX/MIN or
-    // date aggregations return no value.
-    if (isAggregation && mapping.isHasKeywordSubField() && StringUtils.equals(mapping.getType(), "text")) {
-      consumer.accept(fieldNameNoKeyword + KEYWORD_FIELD_NAME_SUFFIX);
-    } else {
-      consumer.accept(fieldNameNoKeyword);
-    }
-    return true;
   }
 
   private static int getSize(String[] array) {

@@ -127,7 +127,7 @@ public class AnalyticsPortlet extends AbstractAnalyticsPortlet<AnalyticsFilter> 
         convertFieldName(analyticsAggregation::getField,
                          analyticsAggregation::setField,
                          mappings,
-                         true);
+                         analyticsAggregation.getType());
       }
     }
     if (CollectionUtils.isNotEmpty(filter.getFilters())) {

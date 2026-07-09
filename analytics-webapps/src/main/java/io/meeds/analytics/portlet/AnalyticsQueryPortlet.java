@@ -140,7 +140,7 @@ public class AnalyticsQueryPortlet extends GenericDispatchedViewPortlet {
         convertFieldName(analyticsAggregation::getField,
                          analyticsAggregation::setField,
                          mappings,
-                         true);
+                         analyticsAggregation.getType());
       }
     }
     if (CollectionUtils.isNotEmpty(filter.getFilters())) {

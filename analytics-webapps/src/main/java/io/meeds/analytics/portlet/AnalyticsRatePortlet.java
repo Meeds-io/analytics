@@ -139,7 +139,7 @@ public class AnalyticsRatePortlet extends AbstractAnalyticsPortlet<AnalyticsPerc
         AnalyticsUtils.convertFieldName(aggregation::getField,
                                         aggregation::setField,
                                         mappings,
-                                        true);
+                                        aggregation.getType());
       }
       List<AnalyticsFieldFilter> filters = valueFilter.getFilters();
       if (CollectionUtils.isNotEmpty(filters)) {
