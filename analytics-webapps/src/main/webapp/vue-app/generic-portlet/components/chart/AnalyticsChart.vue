@@ -62,11 +62,20 @@ export default {
         .toString()}`,
       chartInstance: null,
       chartOptions: {},
+      resizeObserver: null,
     };
   },
   watch: {
     data() {
       this.init();
+    }
+  },
+  beforeDestroy() {
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+    }
+    if (this.chartInstance) {
+      this.chartInstance.dispose();
     }
   },
   methods: {
@@ -85,7 +94,11 @@ export default {
         color: this.colors,
         series: series,
       };
-      if (this.chartType === 'line' || this.chartType === 'bar') {
+      const echartsSeriesType = this.chartType === 'stackedBar' ? 'bar'
+        : (this.chartType === 'pie' || this.chartType === 'doughnut' || this.chartType === 'nightingale') ? 'pie'
+          : this.chartType;
+      if (echartsSeriesType === 'line' || echartsSeriesType === 'bar') {
+        const isStacked = this.chartType === 'stackedBar';
         const yAxisOptions = {
           type: 'value',
           splitLine: {show: false},
@@ -109,7 +122,7 @@ export default {
           yAxis: [yAxisOptions],
         });
 
-        if (this.chartType === 'line') {
+        if (echartsSeriesType === 'line') {
           chartOptions.xAxis[0].boundaryGap = false;
         } else {
           chartOptions.xAxis[0].axisTick = {alignWithLabel: true};
@@ -120,14 +133,20 @@ export default {
         const isMultipleCharts = charts.length > 1;
         charts.forEach(chartData => {
           const serie = {
-            type: this.chartType,
+            type: echartsSeriesType,
             data: chartData.values,
             smooth: 0.2,
             showSymbol: false,
           };
 
+          if (isStacked) {
+            serie.stack = 'total';
+          }
+
           if (!isMultipleCharts) {
-            serie.areaStyle = {opacity: 0.8};
+            if (!serie.areaStyle) {
+              serie.areaStyle = {opacity: 0.8};
+            }
             serie.lineStyle = {width: 1};
           }
 
@@ -137,7 +156,7 @@ export default {
 
           series.push(serie);
 
-          if (chartData.values && chartData.values.length) {
+          if (!isStacked && chartData.values && chartData.values.length) {
             const chartDataMin = Math.min(...chartData.values);
             if (!yAxisOptions.min || chartDataMin < yAxisOptions.min) {
               yAxisOptions.min = chartDataMin || 0;
@@ -149,20 +168,35 @@ export default {
           }
         });
 
-        if (!yAxisOptions.min) {yAxisOptions.min = 0;}
-        if (!yAxisOptions.max) {yAxisOptions.max = 0;}
+        if (!isStacked) {
+          // For stacked bars, the rendered top of each category is the sum of
+          // all series, not any single series' max, so min/max padding is
+          // skipped and ECharts auto-scales the axis instead.
+          if (!yAxisOptions.min) {yAxisOptions.min = 0;}
+          if (!yAxisOptions.max) {yAxisOptions.max = 0;}
 
-        yAxisOptions.max += parseInt((yAxisOptions.max - yAxisOptions.min) / 10) + 1;
-        yAxisOptions.min -= parseInt((yAxisOptions.max - yAxisOptions.min) / 10);
-        if (yAxisOptions.min > 1) {yAxisOptions.min -= 1;}
+          yAxisOptions.max += parseInt((yAxisOptions.max - yAxisOptions.min) / 10) + 1;
+          yAxisOptions.min -= parseInt((yAxisOptions.max - yAxisOptions.min) / 10);
+          if (yAxisOptions.min > 1) {yAxisOptions.min -= 1;}
+        }
 
-      } else if (this.chartType === 'pie') {
+      } else if (echartsSeriesType === 'pie') {
+        const isDoughnut = this.chartType === 'doughnut';
+        const isNightingale = this.chartType === 'nightingale';
+
         chartOptions.tooltip = {trigger: 'item', formatter: '{b} : {c} ({d}%)'};
-        chartOptions.legend = {orient: 'vertical', left: '2%'};
+        chartOptions.legend = {
+          orient: 'vertical',
+          left: '2%',
+          // Canvas-rendered text can't take a CSS class directly: matches
+          // the platform's subtitle-2 typography (font-size/weight) instead.
+          textStyle: {fontSize: 14, fontWeight: 500},
+        };
 
         const chartsLength = charts.length;
         const chartsDividerLength = parseInt((chartsLength + 1) / 2) + 1;
         const chartsPercentagePart = parseInt(100 / chartsDividerLength);
+        const outerRadius = chartsPercentagePart + 5;
 
         charts.forEach((chartData, index) => {
           const chartDataValues = chartData.aggregationResults.map(result => {
@@ -177,8 +211,8 @@ export default {
           const yPos = parseInt((parseInt(index % (chartsDividerLength - 1)) + 1) * chartsPercentagePart);
 
           const serie = {
-            type: this.chartType,
-            radius: `${chartsPercentagePart + 5}%`,
+            type: 'pie',
+            radius: isDoughnut ? [`${Math.max(outerRadius - 20, 10)}%`, `${outerRadius}%`] : `${outerRadius}%`,
             center: [`${xPos}%`, `${yPos}%`],
             label: {show: false, position: 'center'},
             data: chartDataValues,
@@ -192,14 +226,21 @@ export default {
             },
           };
 
+          if (isNightingale) {
+            serie.roseType = 'radius';
+          }
+
           let yPiePos;
           if (chartDataValues.length <= 10) {yPiePos = '50%';}
           else if (chartDataValues.length > 10 && chartDataValues.length <= 20) {yPiePos = '65%';}
           else {yPiePos = '80%';}
 
           if (chartsLength === 1) {
-            serie.radius = ['40%', '70%'];
-            serie.center = [yPiePos, '45%'];
+            // Centered (50%, not 45%) and sized close to the container's
+            // limiting dimension so the chart fills the available height
+            // instead of leaving a wide margin below it.
+            serie.radius = isDoughnut ? ['45%', '85%'] : '85%';
+            serie.center = [yPiePos, '50%'];
           }
 
           serie.name = chartData.chartLabel;
@@ -215,6 +256,17 @@ export default {
       }
       this.chartInstance = echarts.init($container[0]);
       this.chartInstance.setOption(this.chartOptions, true);
+      this.observeResize($container[0]);
+    },
+    observeResize(container) {
+      if (this.resizeObserver) {
+        this.resizeObserver.disconnect();
+      }
+      // Redraws the chart at its new width whenever the portlet is resized
+      // (wider settings panel, responsive grid change, window resize...),
+      // since echarts otherwise keeps the canvas size from init() time.
+      this.resizeObserver = new ResizeObserver(() => this.chartInstance?.resize());
+      this.resizeObserver.observe(container);
     },
     retrieveI18N(data, label) {
       const result = this.getI18N(label);

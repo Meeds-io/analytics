@@ -24,6 +24,10 @@
       <v-list-item-title v-else class="font-italic subtitle-1 text-sub-title">{{ $t('analytics.columnTitlePlaceholder') }}</v-list-item-title>
     </template>
     <div class="border-radius border-color pa-2">
+      <v-switch
+        v-model="column.sortable"
+        :label="$t('analytics.columnSortable')"
+        class="my-auto text-no-wrap" />
       <template v-if="canEnableIdentityFields">
         <v-switch
           v-model="useIdentityField"

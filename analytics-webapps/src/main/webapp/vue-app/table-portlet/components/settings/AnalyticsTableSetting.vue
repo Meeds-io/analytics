@@ -40,6 +40,23 @@
           type="number"
           outlined
           required />
+        <v-select
+          v-model="tableSettings.defaultPeriod"
+          :items="defaultPeriodOptions"
+          :value-comparator="selectedValueComparator"
+          item-text="text"
+          item-value="value"
+          :label="$t('analytics.defaultPeriod')"
+          class="operatorInput"
+          persistent-hint
+          chips />
+        <v-subheader class="px-0">
+          <h4 class="mt-0">{{ $t('analytics.dataFilters') }}</h4>
+        </v-subheader>
+        <v-switch
+          v-model="tableSettings.spaceOnly"
+          :label="$t('analytics.spaceOnly')"
+          class="my-auto text-no-wrap" />
         <v-subheader class="px-0">
           <h4 class="mt-0">{{ $t('analytics.mainColumn') }}</h4>
         </v-subheader>
@@ -141,6 +158,16 @@ export default {
     mainColumn() {
       return this.tableSettings && this.tableSettings.mainColumn;
     },
+    defaultPeriodOptions() {
+      return [
+        {value: 'today', text: this.$t('analytics.periodOptions.today')},
+        {value: 'thisWeek', text: this.$t('analytics.periodOptions.thisWeek')},
+        {value: 'thisMonth', text: this.$t('analytics.periodOptions.thisMonth')},
+        {value: 'thisQuarter', text: this.$t('analytics.periodOptions.thisQuarter')},
+        {value: 'thisSemester', text: this.$t('analytics.periodOptions.thisSemester')},
+        {value: 'thisYear', text: this.$t('analytics.periodOptions.thisYear')},
+      ];
+    },
   },
   mounted() {
     this.init();
@@ -202,6 +229,8 @@ export default {
       const tableSettings = {
         pageSize: settings.pageSize || 20,
         title: settings.title || '',
+        defaultPeriod: settings.defaultPeriod || 'thisMonth',
+        spaceOnly: settings.spaceOnly || false,
         mainColumn: {
           title: '',
           valueAggregation: {
@@ -290,6 +319,11 @@ export default {
     save() {
       this.$emit('save', this.tableSettings);
       this.$refs.tableSettingDrawer.close();
+    },
+    selectedValueComparator(item1, item2){
+      const item1Value = (item1 && item1.value) || item1;
+      const item2Value = (item2 && item2.value) || item2;
+      return item1Value === item2Value;
     },
   },
 };

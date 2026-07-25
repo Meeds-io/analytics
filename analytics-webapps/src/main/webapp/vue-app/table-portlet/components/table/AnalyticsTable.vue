@@ -190,6 +190,46 @@ export default {
     this.refreshCellValueExtensions();
   },
   methods: {
+    // Loads every remaining page (the table only ever paginates via
+    // "Load More", so all previously loaded rows stay in `items`/the DOM —
+    // this just keeps clicking that button programmatically) so an export
+    // triggered from here captures every row, not only the current page.
+    async loadAll() {
+      // Each page must be fully loaded before requesting the next one
+      // (limit/hasMore are only known after the previous page resolves),
+      // so this loop is inherently sequential.
+      /* eslint-disable no-await-in-loop */
+      while (this.hasMore) {
+        this.limit += this.pageSize;
+        await this.$nextTick();
+        await this.waitUntilLoaded();
+      }
+      /* eslint-enable no-await-in-loop */
+    },
+    waitUntilLoaded() {
+      return new Promise(resolve => {
+        const check = () => {
+          if (!this.loading) {
+            resolve();
+          } else {
+            setTimeout(check, 100);
+          }
+        };
+        check();
+      });
+    },
+    // Reads the actually rendered table (headers + cell text) rather than
+    // the raw `items`/`headers` data, so the export always matches exactly
+    // what is displayed (identity names, formatted dates, i18n labels...)
+    // without duplicating each cell renderer's formatting logic here.
+    getDisplayedGrid() {
+      const table = this.$refs.dataTable.$el.querySelector('table');
+      const headerCells = table ? Array.from(table.querySelectorAll('thead th')) : [];
+      const headers = headerCells.map(th => th.textContent.trim());
+      const bodyRows = table ? Array.from(table.querySelectorAll('tbody tr')) : [];
+      const rows = bodyRows.map(tr => Array.from(tr.querySelectorAll('td')).map(td => td.textContent.trim()));
+      return {headers, rows};
+    },
     refreshCellValueExtensions() {
       const extensions = extensionRegistry.loadExtensions(this.extensionApp, this.cellValueExtensionType);
       let changed = false;

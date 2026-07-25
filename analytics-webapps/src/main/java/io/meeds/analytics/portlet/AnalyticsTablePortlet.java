@@ -20,6 +20,7 @@
 package io.meeds.analytics.portlet;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.List;
 import java.util.Set;
 
@@ -30,6 +31,10 @@ import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import io.meeds.analytics.model.StatisticFieldMapping;
@@ -63,6 +68,7 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
     JSONObject jsonResponse = new JSONObject();
     addJSONParam(jsonResponse, "title", filter.getTitle());
     addJSONParam(jsonResponse, "pageSize", filter.getPageSize());
+    addJSONParam(jsonResponse, "defaultPeriod", filter.getDefaultPeriod());
     addJSONParam(jsonResponse, "canEdit", canModifySettings(request));
     addJSONParam(jsonResponse, "scope", getSearchScope(request).name());
     response.setContentType("application/json");
@@ -209,6 +215,53 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
                                           mappings,
                                           false);
         }
+      }
+    }
+  }
+
+  /**
+   * Unlike the Charts export, the table's rows are assembled client-side
+   * (one HTTP call per column, aligned and paginated in the browser — see
+   * AnalyticsTable.vue), so there is no single server-side filter to
+   * recompute from. This simply formats whatever grid the client already
+   * displayed (all rows loaded, exactly the configured columns) into an
+   * Excel sheet.
+   */
+  @Override
+  protected void exportExcel(ResourceRequest request, ResourceResponse response) throws PortletException, IOException {
+    String title = request.getParameter("title");
+    String data = request.getParameter("data");
+    if (StringUtils.isBlank(data)) {
+      throw new PortletException("Missing table data to export");
+    }
+    JSONObject grid = new JSONObject(data);
+    JSONArray headers = grid.optJSONArray("headers");
+    JSONArray rows = grid.optJSONArray("rows");
+
+    try (XSSFWorkbook workbook = new XSSFWorkbook()) {
+      Sheet sheet = workbook.createSheet(StringUtils.isBlank(title) ? "Table" : title);
+
+      Row headerRow = sheet.createRow(0);
+      int columnsCount = headers == null ? 0 : headers.length();
+      for (int col = 0; col < columnsCount; col++) {
+        headerRow.createCell(col).setCellValue(headers.optString(col, ""));
+      }
+
+      int rowsCount = rows == null ? 0 : rows.length();
+      for (int rowIndex = 0; rowIndex < rowsCount; rowIndex++) {
+        JSONArray rowValues = rows.optJSONArray(rowIndex);
+        Row row = sheet.createRow(rowIndex + 1);
+        for (int col = 0; col < columnsCount && rowValues != null; col++) {
+          row.createCell(col).setCellValue(rowValues.optString(col, ""));
+        }
+      }
+      for (int col = 0; col < columnsCount; col++) {
+        sheet.autoSizeColumn(col);
+      }
+
+      response.setContentType("application/vnd.ms-excel");
+      try (OutputStream outputStream = response.getPortletOutputStream()) {
+        workbook.write(outputStream);
       }
     }
   }
