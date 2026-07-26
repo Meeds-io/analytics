@@ -27,6 +27,7 @@
         <h4 v-else>{{ $t('analytics.dataFilters') }}</h4>
       </span>
       <button
+        type="button"
         class="btn btn-primary ignore-vuetify-classes"
         @click="addFilter">
         <i class="fa fa-plus" aria-hidden="true"></i>
