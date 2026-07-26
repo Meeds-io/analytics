@@ -18,6 +18,7 @@
   Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 -->
 <template>
+  <div>
   <exo-drawer
     ref="chartSettingDrawer"
     :drawer-width="drawerWidth"
@@ -27,13 +28,13 @@
       {{ $t('analytics.settings.drawer.title') }}
     </template>
     <template slot="content">
-      <v-card-text>
+      <v-form class="pa-4 analyticsChartSettingDrawer" @submit="$event.preventDefault(); $event.stopPropagation();">
         <v-tabs
           v-model="tab"
           background-color="transparent"
-          color="primary">
+          color="primary"
+          class="mb-4">
           <v-tab>{{ $t('analytics.general') }}</v-tab>
-          <v-tab>{{ $t('analytics.colors') }}</v-tab>
           <template v-if="isPercentageBar">
             <v-tab>{{ $t('analytics.percentageValue') }}</v-tab>
             <v-tab>{{ $t('analytics.percentageThreshold') }}</v-tab>
@@ -41,24 +42,69 @@
           <template v-else>
             <v-tab>{{ $t('analytics.xAxis') }}</v-tab>
             <v-tab>{{ $t('analytics.yAxis') }}</v-tab>
-            <v-tab>{{ $t('analytics.multipleCharts') }}</v-tab>
             <v-tab>{{ $t('analytics.dataFilters') }}</v-tab>
           </template>
         </v-tabs>
         <v-tabs-items v-model="tab">
           <v-tab-item eager>
-            <analytics-general-setting-form
-              ref="settingForm"
-              :settings="chartSettings" />
-          </v-tab-item>
-          <v-tab-item eager>
-            <analytics-colors-setting-form
-              ref="colorsForm"
-              :settings="chartSettings" />
+            <label class="text-header me-1 my-4">{{ $t('analytics.chartHeader') }}</label>
+            <div class="width-auto flex-grow-1 mt-1 mb-4">
+              <v-text-field
+                v-model="chartSettings.title"
+                outlined
+                dense
+                hide-details
+                required />
+            </div>
+            <label class="text-header me-1 my-4">{{ $t('analytics.defaultPeriod') }}</label>
+            <div class="width-auto flex-grow-1 mt-1 mb-4">
+              <v-select
+                v-model="chartSettings.defaultPeriod"
+                :items="defaultPeriodOptions"
+                :value-comparator="selectedValueComparator"
+                item-text="text"
+                item-value="value"
+                outlined
+                dense
+                hide-details
+                chips />
+            </div>
+            <label class="text-header me-1 my-4">{{ $t('analytics.chartType') }}</label>
+            <div class="width-auto flex-grow-1 mt-1 mb-4">
+              <v-select
+                v-model="chartSettings.chartType"
+                :items="chartTypes"
+                :value-comparator="selectedValueComparator"
+                item-text="text"
+                item-value="value"
+                outlined
+                dense
+                hide-details
+                chips />
+            </div>
+            <v-list-item class="px-0 mb-1 d-flex align-center">
+              <v-list-item-content>
+                <v-list-item-title class="text-left">{{ $t('analytics.colors') }}</v-list-item-title>
+              </v-list-item-content>
+              <analytics-colors-setting-form
+                v-if="!isMultipleColors"
+                ref="colorsForm"
+                :settings="chartSettings"
+                :show-titles="false"
+                class="ms-auto" />
+              <v-btn
+                v-else
+                icon
+                class="ms-auto"
+                :aria-label="$t('analytics.colors')"
+                @click="$refs.colorsDrawer.open()">
+                <v-icon class="icon-default-color" size="16">fa-caret-right</v-icon>
+              </v-btn>
+            </v-list-item>
           </v-tab-item>
           <template v-if="isPercentageBar">
             <v-tab-item eager>
-              <h3>{{ $t('analytics.computingRule') }}</h3>
+              <div class="text-header mb-4">{{ $t('analytics.computingRule') }}</div>
               <analytics-y-axis-form
                 ref="yAxis"
                 :fields-mappings="fieldsMappings"
@@ -69,12 +115,12 @@
                 :fields-mappings="fieldsMappings"
                 :filters="chartSettings.value.filters" />
               <analytics-limit-filter-form
-                ref="searchFilter"
+                ref="limitFilter"
                 :fields-mappings="fieldsMappings"
                 :settings="chartSettings" />
             </v-tab-item>
             <v-tab-item eager>
-              <h3>{{ $t('analytics.computingRule') }}</h3>
+              <div class="text-header mb-4">{{ $t('analytics.computingRule') }}</div>
               <analytics-y-axis-form
                 ref="yAxis"
                 :fields-mappings="fieldsMappings"
@@ -92,6 +138,11 @@
                 ref="xAxis"
                 :fields-mappings="fieldsMappings"
                 :settings="chartSettings" />
+              <v-divider class="my-4" />
+              <analytics-multiple-charts
+                ref="multipleCharts"
+                :fields-mappings="fieldsMappings"
+                :settings="chartSettings" />
             </v-tab-item>
             <v-tab-item eager>
               <analytics-y-axis-form
@@ -100,16 +151,11 @@
                 :y-axis-aggregation="chartSettings.yAxisAggregation" />
             </v-tab-item>
             <v-tab-item eager>
-              <analytics-multiple-charts
-                ref="multipleCharts"
-                :fields-mappings="fieldsMappings"
-                :settings="chartSettings" />
-            </v-tab-item>
-            <v-tab-item eager>
               <v-switch
                 v-model="chartSettings.spaceOnly"
                 :label="$t('analytics.spaceOnly')"
                 class="my-auto text-no-wrap" />
+              <v-divider class="my-4" />
               <analytics-search-filter-form
                 ref="searchFilter"
                 :fields-mappings="fieldsMappings"
@@ -118,7 +164,7 @@
             </v-tab-item>
           </template>
         </v-tabs-items>
-      </v-card-text>
+      </v-form>
     </template>
     <template slot="footer">
       <div class="d-flex">
@@ -132,6 +178,23 @@
       </div>
     </template>
   </exo-drawer>
+  <exo-drawer
+    v-if="isMultipleColors"
+    ref="colorsDrawer"
+    drawer-width="420px"
+    right>
+    <template slot="title">
+      {{ $t('analytics.colors') }}
+    </template>
+    <template slot="content">
+      <v-form class="pa-4">
+        <analytics-colors-setting-form
+          ref="colorsFormMulti"
+          :settings="chartSettings" />
+      </v-form>
+    </template>
+  </exo-drawer>
+  </div>
 </template>
 
 <script>
@@ -157,7 +220,7 @@ export default {
       fieldsMappings: [],
       dialog: false,
       tab: 0,
-      drawerWidth: '650px'
+      drawerWidth: '420px'
     };
   },
   computed: {
@@ -169,6 +232,64 @@ export default {
     },
     isPercentageBar() {
       return this.chartType === 'percentageBar' || this.chartType=== 'percentage';
+    },
+    isMultipleColors() {
+      return this.chartSettings && (this.chartSettings.multipleChartsField
+        || this.chartSettings.chartType === 'pie'
+        || this.chartSettings.chartType === 'doughnut'
+        || this.chartSettings.chartType === 'nightingale'
+        || this.chartSettings.chartType === 'stackedBar');
+    },
+    chartTypes(){
+      if (this.isPercentageBar){
+        return [
+          {
+            text: 'Percentage Bar',
+            value: 'percentageBar',
+          },
+          {
+            text: 'Percentage',
+            value: 'percentage',
+          }
+        ];
+      } else {
+        return [
+          {
+            text: this.$t('analytics.bar'),
+            value: 'bar',
+          },
+          {
+            text: this.$t('analytics.line'),
+            value: 'line',
+          },
+          {
+            text: this.$t('analytics.pie'),
+            value: 'pie',
+          },
+          {
+            text: this.$t('analytics.stackedBar'),
+            value: 'stackedBar',
+          },
+          {
+            text: this.$t('analytics.doughnut'),
+            value: 'doughnut',
+          },
+          {
+            text: this.$t('analytics.nightingale'),
+            value: 'nightingale',
+          },
+        ];
+      }
+    },
+    defaultPeriodOptions() {
+      return [
+        {value: 'today', text: this.$t('analytics.periodOptions.today')},
+        {value: 'thisWeek', text: this.$t('analytics.periodOptions.thisWeek')},
+        {value: 'thisMonth', text: this.$t('analytics.periodOptions.thisMonth')},
+        {value: 'thisQuarter', text: this.$t('analytics.periodOptions.thisQuarter')},
+        {value: 'thisSemester', text: this.$t('analytics.periodOptions.thisSemester')},
+        {value: 'thisYear', text: this.$t('analytics.periodOptions.thisYear')},
+      ];
     },
   },
   watch: {
@@ -225,6 +346,10 @@ export default {
     },
     open() {
       this.chartSettings = JSON.parse(JSON.stringify(this.settings));
+      if (!this.chartSettings.defaultPeriod) {
+        this.chartSettings.defaultPeriod = 'thisMonth';
+      }
+      this.tab = 0;
       this.dialog = true;
       this.$refs.chartSettingDrawer.open();
     },
@@ -236,7 +361,12 @@ export default {
     close() {
       this.dialog = false;
       this.$refs.chartSettingDrawer.close();
-    }
+    },
+    selectedValueComparator(item1, item2){
+      const item1Value = (item1 && item1.value) || item1;
+      const item2Value = (item2 && item2.value) || item2;
+      return item1Value === item2Value;
+    },
   },
 };
 </script>
