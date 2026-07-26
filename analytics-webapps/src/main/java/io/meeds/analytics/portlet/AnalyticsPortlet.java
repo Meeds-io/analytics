@@ -162,8 +162,9 @@ public class AnalyticsPortlet extends AbstractAnalyticsPortlet<AnalyticsFilter> 
     List<String> labels = chartDataList.getLabels();
     List<ChartData> charts = new ArrayList<>(chartDataList.getCharts());
 
+    String xAxisHeader = StringUtils.isBlank(xAxisFieldName) ? categoryLabel(english) : xAxisFieldName;
     Row headerRow = sheet.createRow(0);
-    headerRow.createCell(0).setCellValue(StringUtils.isBlank(xAxisFieldName) ? (english ? "Category" : "Catégorie") : xAxisFieldName);
+    headerRow.createCell(0).setCellValue(xAxisHeader);
     for (int col = 0; col < charts.size(); col++) {
       headerRow.createCell(col + 1).setCellValue(seriesLabel(charts.get(col).getChartLabel(), english));
     }
@@ -195,7 +196,7 @@ public class AnalyticsPortlet extends AbstractAnalyticsPortlet<AnalyticsFilter> 
     if (multipleCharts) {
       headerRow.createCell(col++).setCellValue(english ? "Chart" : "Graphique");
     }
-    headerRow.createCell(col++).setCellValue(english ? "Segment" : "Segment");
+    headerRow.createCell(col++).setCellValue("Segment");
     headerRow.createCell(col).setCellValue(english ? "Value" : "Valeur");
 
     int rowIndex = 1;
@@ -228,7 +229,14 @@ public class AnalyticsPortlet extends AbstractAnalyticsPortlet<AnalyticsFilter> 
    * than returning an actual null.
    */
   private String seriesLabel(String chartLabel, boolean english) {
-    return StringUtils.isBlank(chartLabel) || StringUtils.equals(chartLabel, "null") ? (english ? "Data" : "Données") : chartLabel;
+    if (StringUtils.isBlank(chartLabel) || StringUtils.equals(chartLabel, "null")) {
+      return english ? "Data" : "Données";
+    }
+    return chartLabel;
+  }
+
+  private String categoryLabel(boolean english) {
+    return english ? "Category" : "Catégorie";
   }
 
   private String getXAxisFieldName(AnalyticsFilter filter) {

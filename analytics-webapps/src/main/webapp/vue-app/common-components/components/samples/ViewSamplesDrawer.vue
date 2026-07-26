@@ -112,6 +112,7 @@
 </template>
 <script>
 export default {
+  emits: ['cancel'],
   props: {
     selectedPeriod: {
       type: Object,

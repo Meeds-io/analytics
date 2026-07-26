@@ -94,9 +94,14 @@ export default {
         color: this.colors,
         series: series,
       };
-      const echartsSeriesType = this.chartType === 'stackedBar' ? 'bar'
-        : (this.chartType === 'pie' || this.chartType === 'doughnut' || this.chartType === 'nightingale') ? 'pie'
-          : this.chartType;
+      let echartsSeriesType;
+      if (this.chartType === 'stackedBar') {
+        echartsSeriesType = 'bar';
+      } else if (this.chartType === 'pie' || this.chartType === 'doughnut' || this.chartType === 'nightingale') {
+        echartsSeriesType = 'pie';
+      } else {
+        echartsSeriesType = this.chartType;
+      }
       if (echartsSeriesType === 'line' || echartsSeriesType === 'bar') {
         const isStacked = this.chartType === 'stackedBar';
         const yAxisOptions = {

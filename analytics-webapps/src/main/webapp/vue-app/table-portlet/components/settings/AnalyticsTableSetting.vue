@@ -94,7 +94,8 @@
               :user-fields="userFields"
               :space-fields="spaceFields"
               class="mb-0"
-              @delete="deleteColumn(index)" />
+              @delete="deleteColumn(index)"
+              @update:sortable="column.sortable = $event" />
           </v-list-item-group>
         </v-list>
       </v-card-text>
