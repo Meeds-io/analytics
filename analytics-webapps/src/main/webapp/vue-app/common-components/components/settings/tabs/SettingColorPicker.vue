@@ -28,10 +28,14 @@
       <div class="d-flex align-center ms-auto" style="width: 115px;">
         <v-card
           link
+          role="button"
+          :aria-label="$t('analytics.label.clickToChange')"
           :style="{ height: '30px', width: '30px', backgroundColor: value, borderColor: value, flexShrink: 0 }"
           class="me-2"
           :title="$t('analytics.label.clickToChange')"
-          v-on="on" />
+          v-on="on"
+          @keydown.enter.prevent="$event.target.click()"
+          @keydown.space.prevent="$event.target.click()" />
         <span class="v-list-item__title">{{ value }}</span>
       </div>
     </template>
