@@ -50,12 +50,12 @@
           <v-tab-item eager>
             <label class="text-header me-1 my-4" :for="`analyticsChartTitleInput${uid}`">{{ $t('analytics.chartHeader') }}</label>
             <div class="width-auto flex-grow-1 mt-1 mb-4">
-              <v-text-field
+              <translation-text-field
                 :id="`analyticsChartTitleInput${uid}`"
-                v-model="chartSettings.title"
-                outlined
-                dense
-                hide-details
+                v-model="titleTranslations"
+                drawer-title="analytics.chartHeaderTranslation"
+                no-expand-icon
+                back-icon
                 required />
             </div>
             <label class="text-header me-1 my-4" :for="`analyticsChartDefaultPeriodInput${uid}`">{{ $t('analytics.defaultPeriod') }}</label>
@@ -222,6 +222,7 @@ export default {
   data() {
     return {
       chartSettings: {},
+      titleTranslations: {},
       fieldsMappings: [],
       dialog: false,
       tab: 0,
@@ -358,12 +359,30 @@ export default {
       if (!this.chartSettings.defaultPeriod) {
         this.chartSettings.defaultPeriod = 'thisMonth';
       }
+      this.titleTranslations = this.parseTitleTranslations(this.chartSettings.title);
       this.tab = 0;
       this.drawerExpanded = false;
       this.dialog = true;
       this.$refs.chartSettingDrawer.open();
     },
+    parseTitleTranslations(title) {
+      if (title) {
+        try {
+          const parsed = JSON.parse(title);
+          if (parsed && typeof parsed === 'object') {
+            return parsed;
+          }
+        } catch (e) {
+          // Legacy plain-text title (not yet translated): fall through
+        }
+      }
+      const defaultLanguage = eXo?.env?.portal?.defaultLanguage || 'en';
+      return {
+        [defaultLanguage]: title || '',
+      };
+    },
     save() {
+      this.chartSettings.title = JSON.stringify(this.titleTranslations);
       this.$emit('save', this.chartSettings);
       this.dialog = false;
       this.$refs.chartSettingDrawer.close();
