@@ -137,6 +137,10 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
 
   private static final String                NAME_REQUEST_BODY_PARAM                  = "$name";
 
+  private static final String                GROUP_BY_NAME_REQUEST_BODY_PARAM         = "$groupByName";
+
+  private static final String                RESULT_NAME_REQUEST_BODY_PARAM           = "$resultName";
+
   private static final String                BUCKETS_RESPONSE_BODY                    = "buckets";
 
   private static final String                AGGREGATIONS_RESPONSE_BODY               = "aggregations";
@@ -158,6 +162,10 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
   private static final String                AGGREGATION_RESULT_VALUE_PARAM           = "aggregation_result_value";
 
   private static final String                AGGREGATION_BUCKETS_VALUE_PARAM          = "aggregation_buckets_value";
+
+  private static final String                AGGREGATION_GROUP_BY_PARAM               = "aggregation_group_by";
+
+  private static final String                MIN_DOC_COUNT_REQUEST_BODY_PARAM         = "$minDocCount";
 
   private static final Context               CONTEXT                                  = Context.GLOBAL.id("ANALYTICS");
 
@@ -749,26 +757,75 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
         String aggregationFieldName = aggregation.getField();
         StatisticFieldMapping aggregationField = getFieldMapping(aggregationFieldName);
 
-        appendStartAggregationFieldQuery(esQuery, hourOfDayBucketing ? "terms" : aggregationType.getAggName(), fieldName);
-        { // NOSONAR
-          if (hourOfDayBucketing) {
-            // Buckets by local hour of day (0-23), cumulated over the whole
-            // queried period, instead of a continuous hourly timeline
-            appendHourOfDayAggregationQuery(esQuery, timeZone, aggregationFieldName);
-          } else {
-            appendAggregationNameQuery(esQuery, aggregationFieldName, aggregationField);
-            appendIntervalQuery(esQuery, timeZone, aggregation, aggregationType, aggregationFieldName);
-            appendLimitQuery(esQuery, aggregationType, limit);
-            appendSortQuery(esQuery, aggregations, aggregationsSize, i, aggregation, aggregationType);
+        boolean groupByBucketing = aggregationType == AnalyticsAggregationType.GROUP_BY;
+        if (groupByBucketing) {
+          // Self-contained block (terms sub-aggregation counting distinct
+          // values of the field + sibling bucket_script counting the
+          // resulting buckets), fully opened and closed here. It must
+          // always be the last (leaf) aggregation of the list.
+          appendGroupByAggregationQuery(esQuery, aggregationFieldName, aggregationField, aggregation.getMinDocCount());
+        } else {
+          appendStartAggregationFieldQuery(esQuery, hourOfDayBucketing ? "terms" : aggregationType.getAggName(), fieldName);
+          { // NOSONAR
+            if (hourOfDayBucketing) {
+              // Buckets by local hour of day (0-23), cumulated over the
+              // whole queried period, instead of a continuous hourly
+              // timeline
+              appendHourOfDayAggregationQuery(esQuery, timeZone, aggregationFieldName);
+            } else {
+              appendAggregationNameQuery(esQuery, aggregationFieldName, aggregationField);
+              appendIntervalQuery(esQuery, timeZone, aggregation, aggregationType, aggregationFieldName);
+              appendLimitQuery(esQuery, aggregationType, limit);
+              appendSortQuery(esQuery, aggregations, aggregationsSize, i, aggregation, aggregationType);
+            }
           }
+          appendEndAggregationFieldQuery(esQuery);
         }
-        appendEndAggregationFieldQuery(esQuery);
 
-        // Appended at the end
-        appendEndOfAggregations(endOfQuery, percentageAggregationType, hasLimitAggregation, aggregationsSize, i);
+        // Appended at the end. The GROUP_BY block above already closes
+        // itself entirely, so nothing else has to be closed for it.
+        if (!groupByBucketing) {
+          appendEndOfAggregations(endOfQuery, percentageAggregationType, hasLimitAggregation, aggregationsSize, i);
+        }
       }
       esQuery.append(endOfQuery);
     }
+  }
+
+  private void appendGroupByAggregationQuery(StringBuilder esQuery,
+                                             String aggregationFieldName,
+                                             StatisticFieldMapping aggregationField,
+                                             long minDocCount) {
+    // min_doc_count is never omitted: ES would otherwise return every
+    // distinct value with zero occurrence, which is both meaningless (same
+    // result every period: the total number of distinct values) and costly
+    // on a large dataset.
+    long effectiveMinDocCount = Math.max(minDocCount, 1);
+    esQuery.append("""
+        ,
+         "aggs": {
+           "$groupByName": {
+             "terms": {
+
+        """.replace(GROUP_BY_NAME_REQUEST_BODY_PARAM, AGGREGATION_GROUP_BY_PARAM));
+    appendAggregationNameQuery(esQuery, aggregationFieldName, aggregationField);
+    esQuery.append("""
+                  ,
+                  "min_doc_count": $minDocCount
+               }
+             },
+             "$resultName": {
+               "bucket_script": {
+                 "buckets_path": {
+                   "count": "$groupByName._bucket_count"
+                 },
+                 "script": "params.count"
+               }
+             }
+           }
+        """.replace(MIN_DOC_COUNT_REQUEST_BODY_PARAM, String.valueOf(effectiveMinDocCount))
+           .replace(GROUP_BY_NAME_REQUEST_BODY_PARAM, AGGREGATION_GROUP_BY_PARAM)
+           .replace(RESULT_NAME_REQUEST_BODY_PARAM, AGGREGATION_RESULT_VALUE_PARAM));
   }
 
   private void appendStartAggregationFieldQuery(StringBuilder esQuery,

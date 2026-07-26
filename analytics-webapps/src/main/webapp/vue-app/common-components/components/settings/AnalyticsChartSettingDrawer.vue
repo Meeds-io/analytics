@@ -152,7 +152,8 @@
               <analytics-y-axis-form
                 ref="yAxis"
                 :fields-mappings="fieldsMappings"
-                :y-axis-aggregation="chartSettings.yAxisAggregation" />
+                :y-axis-aggregation="chartSettings.yAxisAggregation"
+                show-group-by />
             </v-tab-item>
             <v-tab-item eager>
               <v-switch

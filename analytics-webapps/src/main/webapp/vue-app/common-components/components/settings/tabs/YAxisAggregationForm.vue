@@ -38,9 +38,21 @@
       <analytics-field-selection
         v-model="yAxisAggregation.field"
         :fields-mappings="fieldsMappings"
-        :placeholder="yAxisAggregationCardinality ? $t('analytics.distinctAggregationField') : $t('analytics.numericAggregationField')"
-        :numeric="!yAxisAggregationCardinality"
+        :placeholder="yAxisAggregationCardinality || yAxisAggregationGroupBy ? $t('analytics.distinctAggregationField') : $t('analytics.numericAggregationField')"
+        :numeric="!yAxisAggregationCardinality && !yAxisAggregationGroupBy"
         aggregation />
+    </div>
+    <div
+      v-if="yAxisAggregationGroupBy"
+      class="width-auto flex-grow-1 mt-1 mb-4">
+      <v-text-field
+        v-model.number="yAxisAggregation.minDocCount"
+        :label="$t('analytics.groupByThreshold')"
+        type="number"
+        min="0"
+        outlined
+        dense
+        hide-details />
     </div>
   </div>
 </template>
@@ -66,6 +78,10 @@ export default {
         return null;
       }
     },
+    showGroupBy: {
+      type: Boolean,
+      default: false,
+    },
   },
   data: () => ({
     aggregationType: 'MAX',
@@ -75,7 +91,7 @@ export default {
       return this._uid;
     },
     aggregationTypes() {
-      return [
+      const types = [
         {
           text: this.$t('analytics.count'),
           value: 'COUNT',
@@ -101,12 +117,22 @@ export default {
           value: 'MIN',
         },
       ];
+      if (this.showGroupBy) {
+        types.push({
+          text: this.$t('analytics.groupByThreshold'),
+          value: 'GROUP_BY',
+        });
+      }
+      return types;
     },
     yAxisAggregationCount() {
       return this.aggregationType === 'COUNT';
     },
     yAxisAggregationCardinality() {
       return this.aggregationType === 'CARDINALITY';
+    },
+    yAxisAggregationGroupBy() {
+      return this.aggregationType === 'GROUP_BY';
     },
   },
   watch: {
@@ -122,6 +148,9 @@ export default {
       this.aggregationType = this.yAxisAggregation.type;
     } else {
       this.aggregationType = 'COUNT';
+    }
+    if (!this.yAxisAggregation.minDocCount) {
+      this.yAxisAggregation.minDocCount = 0;
     }
   },
 };
