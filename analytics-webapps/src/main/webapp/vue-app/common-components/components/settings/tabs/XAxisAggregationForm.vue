@@ -18,46 +18,32 @@
   Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 -->
 <template>
-  <v-form
-    ref="form"
-    class="aggregationForm"
-    @submit="
-      $event.preventDefault();
-      $event.stopPropagation();
-    ">
-    <v-card-text>
-      <v-layout wrap>
-        <template>
-          <v-flex
-            class="my-auto px-2"
-            xs4>
-            <v-radio-group v-model="dateInterval">
-              <v-radio
-                v-for="dateField in dateFields"
-                :key="dateField.value"
-                :label="dateField.text"
-                :value="dateField.value" />
-              <v-radio :label="$t('analytics.perCustomField')" value="custom" />
-            </v-radio-group>
-          </v-flex>
-          <v-flex
-            v-if="!dateAggregationType"
-            class="my-auto px-2"
-            xs8>
-            <analytics-x-axis-aggregation-field
-              v-for="(aggregation, index) in xAxisAggregations"
-              :key="index"
-              :aggregation="aggregation"
-              :fields-mappings="fieldsMappings"
-              :display-add="(index +1) === xAxisAggregations.length"
-              :display-delete="xAxisAggregations.length > 1"
-              @delete="deleteAggregation(index)"
-              @add="addAggregation" />
-          </v-flex>
-        </template>
-      </v-layout>
-    </v-card-text>
-  </v-form>
+  <div>
+    <v-radio-group
+      v-model="dateInterval"
+      class="width-auto flex-grow-1 mt-1 mb-4"
+      hide-details>
+      <v-radio
+        v-for="dateField in dateFields"
+        :key="dateField.value"
+        :label="dateField.text"
+        :value="dateField.value" />
+      <v-radio :label="$t('analytics.perCustomField')" value="custom" />
+    </v-radio-group>
+    <div
+      v-if="!dateAggregationType"
+      class="width-auto flex-grow-1 mt-1 mb-4">
+      <analytics-x-axis-aggregation-field
+        v-for="(aggregation, index) in xAxisAggregations"
+        :key="index"
+        :aggregation="aggregation"
+        :fields-mappings="fieldsMappings"
+        :display-add="(index +1) === xAxisAggregations.length"
+        :display-delete="xAxisAggregations.length > 1"
+        @delete="deleteAggregation(index)"
+        @add="addAggregation" />
+    </div>
+  </div>
 </template>
 
 <script>

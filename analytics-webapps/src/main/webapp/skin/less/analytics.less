@@ -379,6 +379,14 @@
     }
   }
 }
+.v-application .analyticsChartSettingDrawer {
+  // Platform-wide rule reserves 22px above outlined fields for a floating
+  // label; these fields use an external <label> instead, so that space is
+  // unused but still added to the field height without this override.
+  .v-text-field, .v-select {
+    padding-top: 0;
+  }
+}
 .analyticsDrawerContent {
   box-sizing: border-box;
   max-width: 100%;
