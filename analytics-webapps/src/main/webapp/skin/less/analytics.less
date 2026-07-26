@@ -387,6 +387,35 @@
     padding-top: 0;
   }
 }
+.analytics-field-filter {
+  &.flex-row {
+    > .filterFieldName {
+      flex: 0 0 25%;
+      max-width: 25%;
+    }
+    > .filterFieldOperator {
+      flex: 0 0 33%;
+      max-width: 33%;
+    }
+    > .filterFieldValue {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+  }
+  &.filterFieldGroup {
+    border: 1px solid rgba(0, 0, 0, .12);
+    border-radius: 4px;
+
+    > div {
+      width: 100%;
+      margin-bottom: 2px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+}
 .analyticsDrawerContent {
   box-sizing: border-box;
   max-width: 100%;

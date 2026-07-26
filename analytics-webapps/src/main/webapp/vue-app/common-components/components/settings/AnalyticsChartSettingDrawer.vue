@@ -23,7 +23,8 @@
     ref="chartSettingDrawer"
     :drawer-width="drawerWidth"
     allow-expand
-    right>
+    right
+    @expand-updated="drawerExpanded = $event">
     <template slot="title">
       {{ $t('analytics.settings.drawer.title') }}
     </template>
@@ -160,6 +161,7 @@
                 ref="searchFilter"
                 :fields-mappings="fieldsMappings"
                 :filters="chartSettings.filters"
+                :expand="drawerExpanded"
                 no-title />
             </v-tab-item>
           </template>
@@ -220,7 +222,8 @@ export default {
       fieldsMappings: [],
       dialog: false,
       tab: 0,
-      drawerWidth: '420px'
+      drawerWidth: '420px',
+      drawerExpanded: false
     };
   },
   computed: {
@@ -350,6 +353,7 @@ export default {
         this.chartSettings.defaultPeriod = 'thisMonth';
       }
       this.tab = 0;
+      this.drawerExpanded = false;
       this.dialog = true;
       this.$refs.chartSettingDrawer.open();
     },

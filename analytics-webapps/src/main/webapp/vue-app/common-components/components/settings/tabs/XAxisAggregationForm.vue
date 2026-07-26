@@ -19,17 +19,18 @@
 -->
 <template>
   <div>
-    <v-radio-group
-      v-model="dateInterval"
-      class="width-auto flex-grow-1 mt-1 mb-4"
-      hide-details>
-      <v-radio
-        v-for="dateField in dateFields"
-        :key="dateField.value"
-        :label="dateField.text"
-        :value="dateField.value" />
-      <v-radio :label="$t('analytics.perCustomField')" value="custom" />
-    </v-radio-group>
+    <label class="text-header me-1 my-4">{{ $t('analytics.interval') }}</label>
+    <div class="width-auto flex-grow-1 mt-1 mb-4">
+      <v-select
+        v-model="dateInterval"
+        :items="dateIntervalOptions"
+        item-text="text"
+        item-value="value"
+        outlined
+        dense
+        hide-details
+        chips />
+    </div>
     <div
       v-if="!dateAggregationType"
       class="width-auto flex-grow-1 mt-1 mb-4">
@@ -107,6 +108,12 @@ export default {
         },
       ];
     } ,
+    dateIntervalOptions() {
+      return [...this.dateFields, {
+        text: this.$t('analytics.perCustomField'),
+        value: 'custom',
+      }];
+    },
     xAxisAggregations() {
       return this.settings && this.settings.xAxisAggregations;
     },
