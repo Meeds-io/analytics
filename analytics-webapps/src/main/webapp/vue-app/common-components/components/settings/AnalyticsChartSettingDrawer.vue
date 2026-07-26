@@ -48,18 +48,20 @@
         </v-tabs>
         <v-tabs-items v-model="tab">
           <v-tab-item eager>
-            <label class="text-header me-1 my-4">{{ $t('analytics.chartHeader') }}</label>
+            <label class="text-header me-1 my-4" :for="`analyticsChartTitleInput${uid}`">{{ $t('analytics.chartHeader') }}</label>
             <div class="width-auto flex-grow-1 mt-1 mb-4">
               <v-text-field
+                :id="`analyticsChartTitleInput${uid}`"
                 v-model="chartSettings.title"
                 outlined
                 dense
                 hide-details
                 required />
             </div>
-            <label class="text-header me-1 my-4">{{ $t('analytics.defaultPeriod') }}</label>
+            <label class="text-header me-1 my-4" :for="`analyticsChartDefaultPeriodInput${uid}`">{{ $t('analytics.defaultPeriod') }}</label>
             <div class="width-auto flex-grow-1 mt-1 mb-4">
               <v-select
+                :id="`analyticsChartDefaultPeriodInput${uid}`"
                 v-model="chartSettings.defaultPeriod"
                 :items="defaultPeriodOptions"
                 :value-comparator="selectedValueComparator"
@@ -70,9 +72,10 @@
                 hide-details
                 chips />
             </div>
-            <label class="text-header me-1 my-4">{{ $t('analytics.chartType') }}</label>
+            <label class="text-header me-1 my-4" :for="`analyticsChartTypeInput${uid}`">{{ $t('analytics.chartType') }}</label>
             <div class="width-auto flex-grow-1 mt-1 mb-4">
               <v-select
+                :id="`analyticsChartTypeInput${uid}`"
                 v-model="chartSettings.chartType"
                 :items="chartTypes"
                 :value-comparator="selectedValueComparator"
@@ -227,6 +230,9 @@ export default {
     };
   },
   computed: {
+    uid() {
+      return this._uid;
+    },
     settingJsonContent() {
       return this.settings && JSON.stringify(this.settings, null, 2);
     },

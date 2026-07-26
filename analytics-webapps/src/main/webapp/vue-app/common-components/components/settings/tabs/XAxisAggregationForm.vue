@@ -19,9 +19,10 @@
 -->
 <template>
   <div>
-    <label class="text-header me-1 my-4">{{ $t('analytics.interval') }}</label>
+    <label class="text-header me-1 my-4" :for="`analyticsXAxisIntervalInput${uid}`">{{ $t('analytics.interval') }}</label>
     <div class="width-auto flex-grow-1 mt-1 mb-4">
       <v-select
+        :id="`analyticsXAxisIntervalInput${uid}`"
         v-model="dateInterval"
         :items="dateIntervalOptions"
         item-text="text"
@@ -80,6 +81,9 @@ export default {
     },
   }),
   computed: {
+    uid() {
+      return this._uid;
+    },
     dateFields() {
       return [
         {

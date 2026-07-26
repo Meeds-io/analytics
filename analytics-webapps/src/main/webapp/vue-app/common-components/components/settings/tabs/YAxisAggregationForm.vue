@@ -19,9 +19,10 @@
 -->
 <template>
   <div>
-    <label class="text-header me-1 my-4">{{ $t('analytics.data') }}</label>
+    <label class="text-header me-1 my-4" :for="`analyticsYAxisDataInput${uid}`">{{ $t('analytics.data') }}</label>
     <div class="width-auto flex-grow-1 mt-1 mb-4">
       <v-select
+        :id="`analyticsYAxisDataInput${uid}`"
         v-model="aggregationType"
         :items="aggregationTypes"
         item-text="text"
@@ -70,6 +71,9 @@ export default {
     aggregationType: 'MAX',
   }),
   computed: {
+    uid() {
+      return this._uid;
+    },
     aggregationTypes() {
       return [
         {

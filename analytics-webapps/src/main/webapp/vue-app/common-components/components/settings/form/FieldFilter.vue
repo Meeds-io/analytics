@@ -120,6 +120,7 @@
 
 <script>
 export default {
+  emits: ['delete'],
   props: {
     filter: {
       type: Object,
