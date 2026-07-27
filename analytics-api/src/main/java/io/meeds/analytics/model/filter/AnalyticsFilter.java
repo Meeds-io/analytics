@@ -70,9 +70,13 @@ public class AnalyticsFilter extends AbstractAnalyticsFilter {
 
   private boolean                    hideLabel           = false;
 
+  private boolean                    spaceOnly           = false;
+
   private long                       offset              = 0;
 
   private long                       limit               = 0;
+
+  private String                     defaultPeriod;
 
   public AnalyticsFilter(String title, // NOSONAR
                          String timeZone,
@@ -83,6 +87,7 @@ public class AnalyticsFilter extends AbstractAnalyticsFilter {
                          List<AnalyticsAggregation> cloneXAggs,
                          AnalyticsAggregation cloneyAggregation,
                          String lang,
+                         boolean spaceOnly,
                          long offset,
                          long limit) {
     this(chartType,
@@ -92,6 +97,7 @@ public class AnalyticsFilter extends AbstractAnalyticsFilter {
          cloneXAggs,
          cloneyAggregation,
          lang,
+         spaceOnly,
          offset,
          limit);
     setTitle(title);
@@ -106,6 +112,7 @@ public class AnalyticsFilter extends AbstractAnalyticsFilter {
                          List<AnalyticsAggregation> cloneXAggs,
                          AnalyticsAggregation cloneyAggregation,
                          String lang,
+                         boolean spaceOnly,
                          long offset,
                          long limit) {
     this(chartType,
@@ -115,6 +122,7 @@ public class AnalyticsFilter extends AbstractAnalyticsFilter {
          cloneXAggs,
          cloneyAggregation,
          lang,
+         spaceOnly,
          offset,
          limit);
     setTitle(title);
@@ -127,6 +135,7 @@ public class AnalyticsFilter extends AbstractAnalyticsFilter {
                          List<AnalyticsAggregation> xAxisAggregations,
                          AnalyticsAggregation yAxisAggregation,
                          String lang,
+                         boolean spaceOnly,
                          long offset,
                          long limit) {
     this.chartType = chartType;
@@ -136,6 +145,7 @@ public class AnalyticsFilter extends AbstractAnalyticsFilter {
     this.xAxisAggregations = xAxisAggregations;
     this.yAxisAggregation = yAxisAggregation;
     this.lang = lang;
+    this.spaceOnly = spaceOnly;
     this.offset = offset;
     this.limit = limit;
   }
@@ -262,17 +272,20 @@ public class AnalyticsFilter extends AbstractAnalyticsFilter {
                                                                              .map(AnalyticsAggregation::clone)
                                                                              .toList());
     AnalyticsAggregation cloneyAggregation = yAxisAggregation == null ? null : yAxisAggregation.clone();
-    return new AnalyticsFilter(getTitle(),
-                               getTimeZone(),
-                               chartType,
-                               new ArrayList<>(colors),
-                               cloneFilters,
-                               multipleChartsField,
-                               cloneXAggs,
-                               cloneyAggregation,
-                               lang,
-                               offset,
-                               limit);
+    AnalyticsFilter clone = new AnalyticsFilter(getTitle(),
+                                                getTimeZone(),
+                                                chartType,
+                                                new ArrayList<>(colors),
+                                                cloneFilters,
+                                                multipleChartsField,
+                                                cloneXAggs,
+                                                cloneyAggregation,
+                                                lang,
+                                                spaceOnly,
+                                                offset,
+                                                limit);
+    clone.setDefaultPeriod(defaultPeriod);
+    return clone;
   }
 
 }

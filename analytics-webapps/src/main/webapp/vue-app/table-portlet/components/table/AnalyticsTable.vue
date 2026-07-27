@@ -46,7 +46,7 @@
           :loading="loading"
           :disabled="loading"
           class="btn mx-auto"
-          @click="limit += pageSize">
+          @click="currentLimit += pageSize">
           {{ $t('analytics.loadMore') }}
         </v-btn>
       </v-flex>
@@ -112,10 +112,13 @@ export default {
     extensionApp: 'AnalyticsTable',
     cellValueExtensionType: 'CellValue',
     cellValueExtensions: {},
+    // Own copy of the limit prop: it grows as "Load More" is clicked and
+    // must never mutate the parent-provided limit prop directly.
+    currentLimit: null,
   }),
   computed: {
     hasMore() {
-      return (this.loading && this.limit > this.pageSize) || (this.items.length && this.limit === this.items.length);
+      return (this.loading && this.currentLimit > this.pageSize) || (this.items.length && this.currentLimit === this.items.length);
     },
     mainFieldName() {
       return this.settings && this.settings.mainColumn && this.settings.mainColumn.valueAggregation
@@ -165,7 +168,10 @@ export default {
       this.items = [];
       this.$nextTick().then(() => this.refresh());
     },
-    limit() {
+    limit(value) {
+      this.currentLimit = value;
+    },
+    currentLimit() {
       this.refresh();
     },
     options: {
@@ -186,6 +192,7 @@ export default {
     },
   },
   created() {
+    this.currentLimit = this.limit;
     document.addEventListener(`extension-${this.extensionApp}-${this.cellValueExtensionType}-updated`, this.refreshCellValueExtensions);
     this.refreshCellValueExtensions();
   },
@@ -233,7 +240,7 @@ export default {
 
       if (this.settings.mainColumn) {
         this.loading = true;
-        this.refreshColumn(this.sortBy, this.limit, this.sortDirection)
+        this.refreshColumn(this.sortBy, this.currentLimit, this.sortDirection)
           .then(() => {
             if (this.settings.columns) {
               const columnsLength = this.settings.columns.length + 1;

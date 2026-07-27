@@ -67,6 +67,8 @@ public abstract class AbstractAnalyticsPortlet<T> extends GenericPortlet {
 
   private static final String READ_FIELD_VALUES_OPERATION = "GET_FIELD_VALUES";
 
+  private static final String EXPORT_EXCEL_OPERATION      = "EXPORT_EXCEL";
+
   private SpaceService        spaceService;
 
   private AnalyticsService    analyticsService;
@@ -98,6 +100,8 @@ public abstract class AbstractAnalyticsPortlet<T> extends GenericPortlet {
       readSamples(request, response);
     } else if (StringUtils.equals(operation, READ_DATA_OPERATION)) {
       readData(request, response);
+    } else if (StringUtils.equals(operation, EXPORT_EXCEL_OPERATION)) {
+      exportExcel(request, response);
     } else if (StringUtils.equals(operation, READ_FIELD_VALUES_OPERATION)) {
       String field = request.getParameter("field");
       String limitString = request.getParameter("limit");
@@ -150,6 +154,11 @@ public abstract class AbstractAnalyticsPortlet<T> extends GenericPortlet {
                                    ResourceResponse response) throws PortletException, IOException;
 
   protected void readSamples(ResourceRequest request,
+                             ResourceResponse response) throws PortletException, IOException {
+    throw new UnsupportedOperationException();
+  }
+
+  protected void exportExcel(ResourceRequest request,
                              ResourceResponse response) throws PortletException, IOException {
     throw new UnsupportedOperationException();
   }
@@ -312,6 +321,7 @@ public abstract class AbstractAnalyticsPortlet<T> extends GenericPortlet {
     SearchScope scope = getSearchScope(request);
     switch (scope) {
       case GLOBAL:
+        addSpaceOnlyFilter(filter);
         break;
       case NONE:
         throw new PortletException("Not allowed to access information");
@@ -323,6 +333,21 @@ public abstract class AbstractAnalyticsPortlet<T> extends GenericPortlet {
         String viewerIdentityId = Utils.getViewerIdentity().getId();
         filter.addEqualFilter("userId", viewerIdentityId);
         break;
+    }
+  }
+
+  /**
+   * Forces the restriction of the results to the current space data, no
+   * matter the viewer's permissions, when the chart settings explicitly
+   * enable it (used to keep space administrators from being able to widen a
+   * chart deployed on a space page beyond that space's own data).
+   */
+  private void addSpaceOnlyFilter(AnalyticsFilter filter) {
+    if (filter.isSpaceOnly()) {
+      Space space = SpaceUtils.getSpaceByContext();
+      if (space != null) {
+        filter.addEqualFilter("spaceId", space.getId());
+      }
     }
   }
 
