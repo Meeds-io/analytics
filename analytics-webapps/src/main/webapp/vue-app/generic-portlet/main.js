@@ -41,6 +41,7 @@ export function init(dataId) {
       const retrieveChartDataURL = element.attr('data-chart-data-url');
       const retrieveChartSamplesURL = element.attr('data-chart-samples-url');
       const retrieveFieldValuesUrl = element.attr('data-field-values-url');
+      const exportExcelURL = element.attr('data-export-excel-url');
       const saveSettingsURL = element.attr('data-save-settings-url');
 
       new Vue({
@@ -51,6 +52,7 @@ export function init(dataId) {
           retrieveChartDataURL: retrieveChartDataURL,
           retrieveChartSamplesURL: retrieveChartSamplesURL,
           retrieveFieldValuesUrl: retrieveFieldValuesUrl,
+          exportExcelURL: exportExcelURL,
           saveSettingsURL: saveSettingsURL,
           fieldNameValueExtensions: null,
         }),
@@ -79,6 +81,7 @@ export function init(dataId) {
            :retrieve-chart-data-url="retrieveChartDataURL"
            :retrieve-chart-samples-url="retrieveChartSamplesURL"
            :retrieve-field-values-url="retrieveFieldValuesUrl"
+           :export-excel-url="exportExcelURL"
            :save-settings-url="saveSettingsURL"
            data-id="${dataId}"
            data-settings-url="${retrieveSettingsURL}"
@@ -87,6 +90,7 @@ export function init(dataId) {
            data-chart-data-url="${retrieveChartDataURL}"
            data-chart-samples-url="${retrieveChartSamplesURL}"
            data-field-values-url="${retrieveFieldValuesUrl}"
+           data-export-excel-url="${exportExcelURL}"
            data-save-settings-url="${saveSettingsURL}" />`,
         vuetify,
         i18n
