@@ -737,6 +737,8 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
           throw new IllegalStateException("Analytics aggregation type '" + aggregationType +
               "' is using intervals while it has empty interval");
         }
+        boolean hourOfDayBucketing = aggregationType == AnalyticsAggregationType.DATE
+            && AnalyticsAggregation.HOUR_INTERVAL.equals(aggregation.getInterval());
 
         String fieldName = getAggregationFieldName(aggregationType);
         long limit = aggregation.getLimit();
@@ -747,12 +749,18 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
         String aggregationFieldName = aggregation.getField();
         StatisticFieldMapping aggregationField = getFieldMapping(aggregationFieldName);
 
-        appendStartAggregationFieldQuery(esQuery, aggregationType, fieldName);
+        appendStartAggregationFieldQuery(esQuery, hourOfDayBucketing ? "terms" : aggregationType.getAggName(), fieldName);
         { // NOSONAR
-          appendAggregationNameQuery(esQuery, aggregationFieldName, aggregationField);
-          appendIntervalQuery(esQuery, timeZone, aggregation, aggregationType, aggregationFieldName);
-          appendLimitQuery(esQuery, aggregationType, limit);
-          appendSortQuery(esQuery, aggregations, aggregationsSize, i, aggregation, aggregationType);
+          if (hourOfDayBucketing) {
+            // Buckets by local hour of day (0-23), cumulated over the whole
+            // queried period, instead of a continuous hourly timeline
+            appendHourOfDayAggregationQuery(esQuery, timeZone, aggregationFieldName);
+          } else {
+            appendAggregationNameQuery(esQuery, aggregationFieldName, aggregationField);
+            appendIntervalQuery(esQuery, timeZone, aggregation, aggregationType, aggregationFieldName);
+            appendLimitQuery(esQuery, aggregationType, limit);
+            appendSortQuery(esQuery, aggregations, aggregationsSize, i, aggregation, aggregationType);
+          }
         }
         appendEndAggregationFieldQuery(esQuery);
 
@@ -764,7 +772,7 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
   }
 
   private void appendStartAggregationFieldQuery(StringBuilder esQuery,
-                                                AnalyticsAggregationType aggregationType,
+                                                String aggName,
                                                 String fieldName) {
     esQuery.append("""
         ,
@@ -773,7 +781,24 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
              "$aggName": {
 
         """.replace(NAME_REQUEST_BODY_PARAM, fieldName)
-           .replace(AGG_NAME_REQUEST_BODY_PARAM, aggregationType.getAggName()));
+           .replace(AGG_NAME_REQUEST_BODY_PARAM, aggName));
+  }
+
+  private void appendHourOfDayAggregationQuery(StringBuilder esQuery, ZoneId timeZone, String aggregationFieldName) {
+    esQuery.append("""
+                  "script": {
+                    "lang": "painless",
+                    "source": "return doc['$aggFieldName'].value.withZoneSameInstant(ZoneId.of(params.zone)).getHour();",
+                    "params": {
+                      "zone": "$timeZoneId"
+                    }
+                  },
+                  "size": 24,
+                  "order": {
+                    "_key": "asc"
+                  }
+        """.replace(AGG_FIELD_NAME_REQUEST_BODY_PARAM, aggregationFieldName)
+           .replace(TIME_ZONE_ID_REQUEST_BODY_PARAM, timeZone == null ? "UTC" : timeZone.getId()));
   }
 
   private void appendAggregationNameQuery(StringBuilder esQuery,

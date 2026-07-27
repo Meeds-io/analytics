@@ -53,6 +53,22 @@
           chips
           @change="$emit('type-changed')" />
       </v-flex>
+      <v-flex
+        class="my-auto px-2"
+        md6
+        xs12
+        pb-4>
+        <v-select
+          v-model="settings.defaultPeriod"
+          :items="defaultPeriodOptions"
+          :value-comparator="selectedValueComparator"
+          item-text="text"
+          item-value="value"
+          :label="$t('analytics.defaultPeriod')"
+          class="operatorInput"
+          persistent-hint
+          chips />
+      </v-flex>
     </v-layout>
   </v-form>
 </template>
@@ -98,9 +114,36 @@ export default {
             text: this.$t('analytics.pie'),
             value: 'pie',
           },
+          {
+            text: this.$t('analytics.stackedBar'),
+            value: 'stackedBar',
+          },
+          {
+            text: this.$t('analytics.doughnut'),
+            value: 'doughnut',
+          },
+          {
+            text: this.$t('analytics.nightingale'),
+            value: 'nightingale',
+          },
         ];
       }
 
+    },
+    defaultPeriodOptions() {
+      return [
+        {value: 'today', text: this.$t('analytics.periodOptions.today')},
+        {value: 'thisWeek', text: this.$t('analytics.periodOptions.thisWeek')},
+        {value: 'thisMonth', text: this.$t('analytics.periodOptions.thisMonth')},
+        {value: 'thisQuarter', text: this.$t('analytics.periodOptions.thisQuarter')},
+        {value: 'thisSemester', text: this.$t('analytics.periodOptions.thisSemester')},
+        {value: 'thisYear', text: this.$t('analytics.periodOptions.thisYear')},
+      ];
+    },
+  },
+  created() {
+    if (this.settings && !this.settings.defaultPeriod) {
+      this.settings.defaultPeriod = 'thisMonth';
     }
   },
   methods: {

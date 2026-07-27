@@ -159,6 +159,7 @@ public class AnalyticsPercentageFilter extends AbstractAnalyticsFilter {
                                xAxisAggregations,
                                getValueYAggregation(),
                                lang,
+                               false,
                                0l,
                                0l);
   }
@@ -178,6 +179,7 @@ public class AnalyticsPercentageFilter extends AbstractAnalyticsFilter {
                                xAxisAggregation == null ? Collections.emptyList() : Collections.singletonList(xAxisAggregation),
                                getThresholdYAggregation(),
                                lang,
+                               false,
                                0l,
                                0l);
   }
@@ -197,6 +199,7 @@ public class AnalyticsPercentageFilter extends AbstractAnalyticsFilter {
                                xAxisAggregation == null ? Collections.emptyList() : Collections.singletonList(xAxisAggregation),
                                getLimitYAggregation(),
                                lang,
+                               false,
                                0l,
                                0l);
   }

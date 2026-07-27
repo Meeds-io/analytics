@@ -106,6 +106,10 @@
                 :settings="chartSettings" />
             </v-tab-item>
             <v-tab-item eager>
+              <v-switch
+                v-model="chartSettings.spaceOnly"
+                :label="$t('analytics.spaceOnly')"
+                class="my-auto text-no-wrap" />
               <analytics-search-filter-form
                 ref="searchFilter"
                 :fields-mappings="fieldsMappings"

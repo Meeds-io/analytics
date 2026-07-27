@@ -51,6 +51,18 @@
       <classifier>sources</classifier>
       <scope>provided</scope>
     </dependency>
+
+    <!-- Used by AnalyticsPortlet and AnalyticsTablePortlet for Excel export -->
+    <dependency>
+      <groupId>org.apache.poi</groupId>
+      <artifactId>poi</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.poi</groupId>
+      <artifactId>poi-ooxml</artifactId>
+      <scope>provided</scope>
+    </dependency>
   </dependencies>
   <build>
     <finalName>analytics</finalName>
