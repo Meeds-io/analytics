@@ -77,8 +77,6 @@ public class AnalyticsAggregation implements Serializable, Cloneable {
 
   public static final DateTimeFormatter WEEK_DATE_FORMATTER    = DateTimeFormatter.ISO_WEEK_DATE;
 
-  public static final DateTimeFormatter HOUR_DATE_FORMATTER    = DateTimeFormatter.ofPattern("hh a, d MMM uuuu");
-
   private AnalyticsAggregationType      type;
 
   private String                        field;
@@ -156,6 +154,11 @@ public class AnalyticsAggregation implements Serializable, Cloneable {
   }
 
   public String getLabel(String fieldValue, ZoneId zoneId, String lang) {
+    if (HOUR_INTERVAL.equals(interval)) {
+      // Bucket key is the hour of day (0-23), cumulated across the whole
+      // queried period, not an epoch timestamp
+      return String.format("%02d:00", Integer.parseInt(fieldValue));
+    }
     long timestamp = Long.parseLong(fieldValue);
     return formatTime(timestamp, zoneId, lang);
   }
@@ -183,9 +186,6 @@ public class AnalyticsAggregation implements Serializable, Cloneable {
       break;
     case DAY_INTERVAL:
       dateFormatter = DAY_DATE_FORMATTER;
-      break;
-    case HOUR_INTERVAL:
-      dateFormatter = HOUR_DATE_FORMATTER;
       break;
     default:
       dateFormatter = DAY_DATE_FORMATTER;

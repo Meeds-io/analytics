@@ -38,6 +38,9 @@
 <portlet:resourceURL var="retrieveFieldValuesURL">
     <portlet:param name="operation" value="GET_FIELD_VALUES"/>
 </portlet:resourceURL>
+<portlet:resourceURL var="exportExcelURL">
+    <portlet:param name="operation" value="EXPORT_EXCEL"/>
+</portlet:resourceURL>
 <portlet:actionURL var="saveSettingsURL" />
 
 <div class="VuetifyApp">
@@ -50,6 +53,7 @@
          data-filters-url="<%=retrieveFiltersURL%>"
          data-table-data-url="<%=retrieveTableDataURL%>"
          data-field-values-url="<%=retrieveFieldValuesURL%>"
+         data-export-excel-url="<%=exportExcelURL%>"
          data-save-settings-url="<%=saveSettingsURL%>">
     </div>
     <script type="text/javascript">

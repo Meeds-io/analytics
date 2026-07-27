@@ -68,7 +68,11 @@ export default {
   }),
   computed: {
     multipleCharts() {
-      return this.settings && (this.settings.multipleChartsField || this.settings.chartType === 'pie');
+      return this.settings && (this.settings.multipleChartsField
+        || this.settings.chartType === 'pie'
+        || this.settings.chartType === 'doughnut'
+        || this.settings.chartType === 'nightingale'
+        || this.settings.chartType === 'stackedBar');
     },
     chartColors() {
       if (this.multipleCharts) {
