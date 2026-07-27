@@ -376,6 +376,7 @@ export default {
         } catch (e) {
           // Legacy plain-text title (not yet translated): JSON.parse failed,
           // wrap it as-is instead of falling through silently
+          console.debug('Chart title is not a translations JSON object, using it as plain text', e);
           return {
             [defaultLanguage]: title,
           };
