@@ -54,10 +54,12 @@
           :id="`analyticsYAxisThresholdInput${uid}`"
           v-model.number="yAxisAggregation.minDocCount"
           type="number"
-          min="0"
+          min="1"
+          step="1"
           outlined
           dense
-          hide-details />
+          hide-details
+          @change="ensureValidThreshold" />
       </div>
     </template>
   </div>
@@ -147,6 +149,9 @@ export default {
     },
     aggregationType() {
       this.yAxisAggregation.type = this.aggregationType;
+      if (this.yAxisAggregationGroupBy) {
+        this.ensureValidThreshold();
+      }
     },
   },
   created() {
@@ -155,9 +160,14 @@ export default {
     } else {
       this.aggregationType = 'COUNT';
     }
-    if (!this.yAxisAggregation.minDocCount) {
-      this.yAxisAggregation.minDocCount = 0;
-    }
+    this.ensureValidThreshold();
+  },
+  methods: {
+    ensureValidThreshold() {
+      if (!this.yAxisAggregation.minDocCount || this.yAxisAggregation.minDocCount < 1) {
+        this.yAxisAggregation.minDocCount = 1;
+      }
+    },
   },
 };
 </script>
