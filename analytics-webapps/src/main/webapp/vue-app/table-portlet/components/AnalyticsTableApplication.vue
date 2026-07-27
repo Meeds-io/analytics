@@ -382,6 +382,23 @@ export default {
     document.removeEventListener('click', this.handlePeriodSelectorOutsideClick, true);
   },
   methods: {
+    resolveTitleTranslation(title) {
+      if (!title) {
+        return '';
+      }
+      try {
+        const translations = JSON.parse(title);
+        if (translations && typeof translations === 'object') {
+          const lang = eXo?.env?.portal?.language || 'en';
+          const defaultLanguage = eXo?.env?.portal?.defaultLanguage || 'en';
+          return translations[lang] || translations[defaultLanguage] || Object.values(translations)[0] || '';
+        }
+        return title;
+      } catch (e) {
+        // Legacy plain-text title (not yet translated): JSON.parse failed, use as-is
+        return title;
+      }
+    },
     init() {
       this.loading = true;
       return this.getSettings()
@@ -408,7 +425,7 @@ export default {
         .then((settings) => {
           this.scope = settings && settings.scope;
           this.canEdit = settings && settings.canEdit;
-          this.title = settings && settings.title || '';
+          this.title = settings && this.resolveTitleTranslation(settings.title) || '';
           const configuredDefault = settings && settings.defaultPeriod;
           if (configuredDefault && configuredDefault !== (this.selectedPeriod && this.selectedPeriod.period)) {
             this.initSelectedPeriod(configuredDefault);
