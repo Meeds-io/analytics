@@ -52,14 +52,14 @@
       <div class="width-auto flex-grow-1 mt-1 mb-4">
         <v-text-field
           :id="`analyticsYAxisThresholdInput${uid}`"
-          v-model.number="yAxisAggregation.minDocCount"
+          :value="yAxisAggregation.minDocCount"
           type="number"
           min="1"
           step="1"
           outlined
           dense
           hide-details
-          @change="ensureValidThreshold" />
+          @change="updateMinDocCount" />
       </div>
     </template>
   </div>
@@ -165,8 +165,12 @@ export default {
   methods: {
     ensureValidThreshold() {
       if (!this.yAxisAggregation.minDocCount || this.yAxisAggregation.minDocCount < 1) {
-        this.yAxisAggregation.minDocCount = 1;
+        this.yAxisAggregation.minDocCount = 1; // NOSONAR mutating the shared settings object passed by the parent is this form's established pattern (see yAxisAggregation.field above)
       }
+    },
+    updateMinDocCount(value) {
+      this.yAxisAggregation.minDocCount = Number(value) || 0; // NOSONAR same established pattern as above
+      this.ensureValidThreshold();
     },
   },
 };

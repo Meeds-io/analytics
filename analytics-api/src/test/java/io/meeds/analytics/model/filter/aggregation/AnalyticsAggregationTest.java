@@ -24,10 +24,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
-public class AnalyticsAggregationTest {
+class AnalyticsAggregationTest {
 
   @Test
-  public void testGroupByTypeProperties() {
+  void testGroupByTypeProperties() {
     assertEquals("terms", AnalyticsAggregationType.GROUP_BY.getAggName());
     assertTrue(AnalyticsAggregationType.GROUP_BY.isNumericResult());
     assertTrue(!AnalyticsAggregationType.GROUP_BY.isUseInterval());
@@ -36,7 +36,7 @@ public class AnalyticsAggregationTest {
   }
 
   @Test
-  public void testMinDocCountIsPreservedOnClone() {
+  void testMinDocCountIsPreservedOnClone() {
     AnalyticsAggregation aggregation = new AnalyticsAggregation();
     aggregation.setType(AnalyticsAggregationType.GROUP_BY);
     aggregation.setField("userId");

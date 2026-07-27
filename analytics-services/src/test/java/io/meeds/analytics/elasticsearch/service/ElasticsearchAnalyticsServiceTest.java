@@ -22,6 +22,7 @@ package io.meeds.analytics.elasticsearch.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -48,7 +49,7 @@ import io.meeds.analytics.model.filter.aggregation.AnalyticsAggregationType;
  * and the parsing of its response.
  */
 @ExtendWith(MockitoExtension.class)
-public class ElasticsearchAnalyticsServiceTest {
+class ElasticsearchAnalyticsServiceTest {
 
   @Mock
   private ElasticsearchAnalyticsStorage elasticsearchStorage;
@@ -56,7 +57,7 @@ public class ElasticsearchAnalyticsServiceTest {
   private ElasticsearchAnalyticsService elasticsearchAnalyticsService;
 
   @BeforeEach
-  public void setUp() {
+  void setUp() {
     elasticsearchAnalyticsService = new ElasticsearchAnalyticsService();
     ReflectionTestUtils.setField(elasticsearchAnalyticsService, "elasticsearchStorage", elasticsearchStorage);
     ReflectionTestUtils.setField(elasticsearchAnalyticsService, "aggregationReturnedDocumentsSize", 200);
@@ -97,14 +98,14 @@ public class ElasticsearchAnalyticsServiceTest {
   }
 
   @Test
-  public void testGroupByAggregationGeneratesExpectedQuery() {
+  void testGroupByAggregationGeneratesExpectedQuery() {
     when(elasticsearchStorage.search(anyString())).thenReturn(cannedResponse(2));
 
     AnalyticsFilter filter = newGroupByFilter(5);
     ChartDataList chartDataList = elasticsearchAnalyticsService.computeChartData(filter);
 
     ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
-    org.mockito.Mockito.verify(elasticsearchStorage).search(queryCaptor.capture());
+    verify(elasticsearchStorage).search(queryCaptor.capture());
     String generatedQuery = queryCaptor.getValue();
 
     assertTrue(generatedQuery.contains("\"aggregation_group_by\""),
@@ -122,7 +123,7 @@ public class ElasticsearchAnalyticsServiceTest {
   }
 
   @Test
-  public void testGroupByThresholdZeroIsFlooredToOne() {
+  void testGroupByThresholdZeroIsFlooredToOne() {
     when(elasticsearchStorage.search(anyString())).thenReturn(cannedResponse(4));
 
     // A threshold of 0 (or unset/negative) must never be sent as-is to ES:
@@ -132,7 +133,7 @@ public class ElasticsearchAnalyticsServiceTest {
     elasticsearchAnalyticsService.computeChartData(filter);
 
     ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
-    org.mockito.Mockito.verify(elasticsearchStorage).search(queryCaptor.capture());
+    verify(elasticsearchStorage).search(queryCaptor.capture());
     String generatedQuery = queryCaptor.getValue();
 
     assertTrue(generatedQuery.contains("\"min_doc_count\": 1"),
@@ -142,7 +143,7 @@ public class ElasticsearchAnalyticsServiceTest {
   }
 
   @Test
-  public void testGroupByIsNotUsedToSortAPrecedingTermsAggregation() {
+  void testGroupByIsNotUsedToSortAPrecedingTermsAggregation() {
     when(elasticsearchStorage.search(anyString())).thenReturn(cannedResponse(3));
 
     // X axis is a TERMS aggregation (e.g. grouping by module), Y axis is
@@ -163,7 +164,7 @@ public class ElasticsearchAnalyticsServiceTest {
     elasticsearchAnalyticsService.computeChartData(filter);
 
     ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
-    org.mockito.Mockito.verify(elasticsearchStorage).search(queryCaptor.capture());
+    verify(elasticsearchStorage).search(queryCaptor.capture());
     String generatedQuery = queryCaptor.getValue();
 
     assertTrue(!generatedQuery.contains("\"order\": {\"aggregation_result_value"),

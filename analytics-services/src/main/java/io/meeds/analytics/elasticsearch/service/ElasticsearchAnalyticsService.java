@@ -739,23 +739,11 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
       int aggregationsSize = aggregations.size();
       for (int i = 0; i < aggregationsSize; i++) {
         AnalyticsAggregation aggregation = aggregations.get(i);
-
         AnalyticsAggregationType aggregationType = aggregation.getType();
         if (aggregationType.isUseInterval() && StringUtils.isBlank(aggregation.getInterval())) {
           throw new IllegalStateException("Analytics aggregation type '" + aggregationType +
               "' is using intervals while it has empty interval");
         }
-        boolean hourOfDayBucketing = aggregationType == AnalyticsAggregationType.DATE
-            && AnalyticsAggregation.HOUR_INTERVAL.equals(aggregation.getInterval());
-
-        String fieldName = getAggregationFieldName(aggregationType);
-        long limit = aggregation.getLimit();
-        if (aggregationType.isUseLimit() && limit <= 0) {
-          limit = aggregationReturnedDocumentsSize;
-        }
-
-        String aggregationFieldName = aggregation.getField();
-        StatisticFieldMapping aggregationField = getFieldMapping(aggregationFieldName);
 
         boolean groupByBucketing = aggregationType == AnalyticsAggregationType.GROUP_BY;
         if (groupByBucketing) {
@@ -763,23 +751,12 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
           // values of the field + sibling bucket_script counting the
           // resulting buckets), fully opened and closed here. It must
           // always be the last (leaf) aggregation of the list.
-          appendGroupByAggregationQuery(esQuery, aggregationFieldName, aggregationField, aggregation.getMinDocCount());
+          appendGroupByAggregationQuery(esQuery,
+                                        aggregation.getField(),
+                                        getFieldMapping(aggregation.getField()),
+                                        aggregation.getMinDocCount());
         } else {
-          appendStartAggregationFieldQuery(esQuery, hourOfDayBucketing ? "terms" : aggregationType.getAggName(), fieldName);
-          { // NOSONAR
-            if (hourOfDayBucketing) {
-              // Buckets by local hour of day (0-23), cumulated over the
-              // whole queried period, instead of a continuous hourly
-              // timeline
-              appendHourOfDayAggregationQuery(esQuery, timeZone, aggregationFieldName);
-            } else {
-              appendAggregationNameQuery(esQuery, aggregationFieldName, aggregationField);
-              appendIntervalQuery(esQuery, timeZone, aggregation, aggregationType, aggregationFieldName);
-              appendLimitQuery(esQuery, aggregationType, limit);
-              appendSortQuery(esQuery, aggregations, aggregationsSize, i, aggregation, aggregationType);
-            }
-          }
-          appendEndAggregationFieldQuery(esQuery);
+          appendRegularAggregationQuery(esQuery, aggregations, aggregationType, timeZone, aggregation, aggregationsSize, i);
         }
 
         // Appended at the end. The GROUP_BY block above already closes
@@ -790,6 +767,39 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
       }
       esQuery.append(endOfQuery);
     }
+  }
+
+  private void appendRegularAggregationQuery(StringBuilder esQuery,
+                                             List<AnalyticsAggregation> aggregations,
+                                             AnalyticsAggregationType aggregationType,
+                                             ZoneId timeZone,
+                                             AnalyticsAggregation aggregation,
+                                             int aggregationsSize,
+                                             int i) {
+    boolean hourOfDayBucketing = aggregationType == AnalyticsAggregationType.DATE
+        && AnalyticsAggregation.HOUR_INTERVAL.equals(aggregation.getInterval());
+
+    String fieldName = getAggregationFieldName(aggregationType);
+    long limit = aggregation.getLimit();
+    if (aggregationType.isUseLimit() && limit <= 0) {
+      limit = aggregationReturnedDocumentsSize;
+    }
+
+    String aggregationFieldName = aggregation.getField();
+    StatisticFieldMapping aggregationField = getFieldMapping(aggregationFieldName);
+
+    appendStartAggregationFieldQuery(esQuery, hourOfDayBucketing ? "terms" : aggregationType.getAggName(), fieldName);
+    if (hourOfDayBucketing) {
+      // Buckets by local hour of day (0-23), cumulated over the whole
+      // queried period, instead of a continuous hourly timeline
+      appendHourOfDayAggregationQuery(esQuery, timeZone, aggregationFieldName);
+    } else {
+      appendAggregationNameQuery(esQuery, aggregationFieldName, aggregationField);
+      appendIntervalQuery(esQuery, timeZone, aggregation, aggregationType, aggregationFieldName);
+      appendLimitQuery(esQuery, aggregationType, limit);
+      appendSortQuery(esQuery, aggregations, aggregationsSize, i, aggregation, aggregationType);
+    }
+    appendEndAggregationFieldQuery(esQuery);
   }
 
   private void appendGroupByAggregationQuery(StringBuilder esQuery,
