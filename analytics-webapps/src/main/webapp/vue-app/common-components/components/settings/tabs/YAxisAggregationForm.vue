@@ -32,16 +32,36 @@
         hide-details
         chips />
     </div>
+    <label
+      v-show="!yAxisAggregationCount"
+      class="text mb-1 my-4"
+      :for="`analyticsYAxisFieldInput${uid}`">{{ yAxisAggregationCardinality || yAxisAggregationGroupBy ? $t('analytics.distinctAggregationField') : $t('analytics.numericAggregationField') }}</label>
     <div
       v-show="!yAxisAggregationCount"
       class="width-auto flex-grow-1 mt-1 mb-4">
       <analytics-field-selection
+        :id="`analyticsYAxisFieldInput${uid}`"
         v-model="yAxisAggregation.field"
         :fields-mappings="fieldsMappings"
-        :placeholder="yAxisAggregationCardinality ? $t('analytics.distinctAggregationField') : $t('analytics.numericAggregationField')"
-        :numeric="!yAxisAggregationCardinality"
+        :placeholder="yAxisAggregationCardinality || yAxisAggregationGroupBy ? $t('analytics.distinctAggregationField') : $t('analytics.numericAggregationField')"
+        :numeric="!yAxisAggregationCardinality && !yAxisAggregationGroupBy"
         aggregation />
     </div>
+    <template v-if="yAxisAggregationGroupBy">
+      <label class="text mb-1 my-4" :for="`analyticsYAxisThresholdInput${uid}`">{{ $t('analytics.threshold') }}</label>
+      <div class="width-auto flex-grow-1 mt-1 mb-4">
+        <v-text-field
+          :id="`analyticsYAxisThresholdInput${uid}`"
+          :value="yAxisAggregation.minDocCount"
+          type="number"
+          min="1"
+          step="1"
+          outlined
+          dense
+          hide-details
+          @change="updateMinDocCount" />
+      </div>
+    </template>
   </div>
 </template>
 
@@ -66,6 +86,10 @@ export default {
         return null;
       }
     },
+    showGroupBy: {
+      type: Boolean,
+      default: false,
+    },
   },
   data: () => ({
     aggregationType: 'MAX',
@@ -75,7 +99,7 @@ export default {
       return this._uid;
     },
     aggregationTypes() {
-      return [
+      const types = [
         {
           text: this.$t('analytics.count'),
           value: 'COUNT',
@@ -101,12 +125,22 @@ export default {
           value: 'MIN',
         },
       ];
+      if (this.showGroupBy) {
+        types.push({
+          text: this.$t('analytics.groupByThreshold'),
+          value: 'GROUP_BY',
+        });
+      }
+      return types;
     },
     yAxisAggregationCount() {
       return this.aggregationType === 'COUNT';
     },
     yAxisAggregationCardinality() {
       return this.aggregationType === 'CARDINALITY';
+    },
+    yAxisAggregationGroupBy() {
+      return this.aggregationType === 'GROUP_BY';
     },
   },
   watch: {
@@ -115,6 +149,9 @@ export default {
     },
     aggregationType() {
       this.yAxisAggregation.type = this.aggregationType;
+      if (this.yAxisAggregationGroupBy) {
+        this.ensureValidThreshold();
+      }
     },
   },
   created() {
@@ -123,6 +160,18 @@ export default {
     } else {
       this.aggregationType = 'COUNT';
     }
+    this.ensureValidThreshold();
+  },
+  methods: {
+    ensureValidThreshold() {
+      if (!this.yAxisAggregation.minDocCount || this.yAxisAggregation.minDocCount < 1) {
+        this.yAxisAggregation.minDocCount = 1; // NOSONAR mutating the shared settings object passed by the parent is this form's established pattern (see yAxisAggregation.field above)
+      }
+    },
+    updateMinDocCount(value) {
+      this.yAxisAggregation.minDocCount = Number(value) || 0; // NOSONAR same established pattern as above
+      this.ensureValidThreshold();
+    },
   },
 };
 </script>

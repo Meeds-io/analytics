@@ -109,6 +109,15 @@ public class AnalyticsAggregation implements Serializable, Cloneable {
   @Exclude
   private boolean                       ignoreTimeZone;
 
+  /**
+   * Minimum number of matching documents (ES min_doc_count) a distinct
+   * value of {@link #field} must have to be counted, when {@link #type} is
+   * {@link AnalyticsAggregationType#GROUP_BY}. A value lower than or equal to
+   * 0 still results in min_doc_count=1 being sent to ES (never omitted), to
+   * avoid scanning empty buckets.
+   */
+  private long                          minDocCount;
+
   public AnalyticsAggregation(AnalyticsAggregationType type, String field, String sortDirection, String interval, long limit) {
     super();
     this.type = type;
@@ -201,15 +210,16 @@ public class AnalyticsAggregation implements Serializable, Cloneable {
   @Override
   public AnalyticsAggregation clone() { // NOSONAR
     return new AnalyticsAggregation(type,
-                                   field,
-                                   sortDirection,
-                                   interval,
-                                   offset,
-                                   limit,
-                                   useBounds,
-                                   minBound,
-                                   maxBound,
-                                   ignoreTimeZone);
+                                    field,
+                                    sortDirection,
+                                    interval,
+                                    offset,
+                                    limit,
+                                    useBounds,
+                                    minBound,
+                                    maxBound,
+                                    ignoreTimeZone,
+                                    minDocCount);
   }
 
 }
