@@ -18,34 +18,22 @@
   Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 -->
 <template>
-  <v-form
-    ref="form"
-    class="aggregationForm"
-    @submit="
-      $event.preventDefault();
-      $event.stopPropagation();
-    ">
-    <v-card-text>
-      <v-layout wrap>
-        <v-flex class="my-auto px-2" xs6>
-          <v-switch
-            v-model="multipleCharts"
-            :label="$t('analytics.multipleCharts')"
-            required />
-        </v-flex>
-        <v-flex
-          v-if="multipleCharts"
-          class="my-auto px-2"
-          xs6>
-          <analytics-field-selection
-            v-model="settings.multipleChartsField"
-            :fields-mappings="fieldsMappings"
-            :label="$t('analytics.fieldComparator')"
-            aggregation />
-        </v-flex>
-      </v-layout>
-    </v-card-text>
-  </v-form>
+  <div>
+    <v-switch
+      v-model="multipleCharts"
+      :label="$t('analytics.multipleCharts')"
+      class="width-auto flex-grow-1 mt-1 mb-4"
+      required />
+    <div
+      v-if="multipleCharts"
+      class="width-auto flex-grow-1 mt-1 mb-4">
+      <analytics-field-selection
+        v-model="settings.multipleChartsField"
+        :fields-mappings="fieldsMappings"
+        :label="$t('analytics.fieldComparator')"
+        aggregation />
+    </div>
+  </div>
 </template>
 
 <script>

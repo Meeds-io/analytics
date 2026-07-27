@@ -25,19 +25,18 @@
     width="290px"
     content-class="overflow-hidden">
     <template #activator="{ on }">
-      <div class="themeColor">
-        <div
-          :style="{ backgroundColor: value}"
-          class="colorSelected"
-          v-on="on">
-        </div>
-        <div class="themeDetails">
-          <label
-            :title="$t('analytics.label.clickToChange')"
-            :style="`background-color: ${value};`"
-            class="pa-3 box-border-sizing border-radius white--text"
-            v-on="on">{{ value }}</label>
-        </div>
+      <div class="d-flex align-center ms-auto" style="width: 115px;">
+        <v-card
+          link
+          role="button"
+          :aria-label="$t('analytics.label.clickToChange')"
+          :style="{ height: '30px', width: '30px', backgroundColor: value, borderColor: value, flexShrink: 0 }"
+          class="me-2"
+          :title="$t('analytics.label.clickToChange')"
+          v-on="on"
+          @keydown.enter.prevent="$event.target.click()"
+          @keydown.space.prevent="$event.target.click()" />
+        <span class="v-list-item__title">{{ value }}</span>
       </div>
     </template>
     <v-color-picker

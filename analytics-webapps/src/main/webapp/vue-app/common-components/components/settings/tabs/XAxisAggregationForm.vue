@@ -18,46 +18,28 @@
   Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 -->
 <template>
-  <v-form
-    ref="form"
-    class="aggregationForm"
-    @submit="
-      $event.preventDefault();
-      $event.stopPropagation();
-    ">
-    <v-card-text>
-      <v-layout wrap>
-        <template>
-          <v-flex
-            class="my-auto px-2"
-            xs4>
-            <v-radio-group v-model="dateInterval">
-              <v-radio
-                v-for="dateField in dateFields"
-                :key="dateField.value"
-                :label="dateField.text"
-                :value="dateField.value" />
-              <v-radio :label="$t('analytics.perCustomField')" value="custom" />
-            </v-radio-group>
-          </v-flex>
-          <v-flex
-            v-if="!dateAggregationType"
-            class="my-auto px-2"
-            xs8>
-            <analytics-x-axis-aggregation-field
-              v-for="(aggregation, index) in xAxisAggregations"
-              :key="index"
-              :aggregation="aggregation"
-              :fields-mappings="fieldsMappings"
-              :display-add="(index +1) === xAxisAggregations.length"
-              :display-delete="xAxisAggregations.length > 1"
-              @delete="deleteAggregation(index)"
-              @add="addAggregation" />
-          </v-flex>
-        </template>
-      </v-layout>
-    </v-card-text>
-  </v-form>
+  <div>
+    <label class="text-header me-1 my-4" :for="`analyticsXAxisIntervalInput${uid}`">{{ $t('analytics.interval') }}</label>
+    <div class="width-auto flex-grow-1 mt-1 mb-4">
+      <v-select
+        :id="`analyticsXAxisIntervalInput${uid}`"
+        v-model="dateInterval"
+        :items="dateIntervalOptions"
+        item-text="text"
+        item-value="value"
+        outlined
+        dense
+        hide-details
+        chips />
+    </div>
+    <div
+      v-if="!dateAggregationType && xAxisAggregation"
+      class="width-auto flex-grow-1 mt-1 mb-4">
+      <analytics-x-axis-aggregation-field
+        :aggregation="xAxisAggregation"
+        :fields-mappings="fieldsMappings" />
+    </div>
+  </div>
 </template>
 
 <script>
@@ -93,6 +75,9 @@ export default {
     },
   }),
   computed: {
+    uid() {
+      return this._uid;
+    },
     dateFields() {
       return [
         {
@@ -121,6 +106,12 @@ export default {
         },
       ];
     } ,
+    dateIntervalOptions() {
+      return [...this.dateFields, {
+        text: this.$t('analytics.perCustomField'),
+        value: 'custom',
+      }];
+    },
     xAxisAggregations() {
       return this.settings && this.settings.xAxisAggregations;
     },
@@ -158,17 +149,6 @@ export default {
       } else {
         this.settings.xAxisAggregations.splice(0, this.settings.xAxisAggregations.length, Object.assign({}, this.fieldAggregation));
       }
-      this.$forceUpdate();
-    },
-    deleteAggregation(aggregationIndex) {
-      this.xAxisAggregations.splice(aggregationIndex, 1);
-    },
-    addAggregation() {
-      this.xAxisAggregations.push({
-        type: 'TERMS',
-        sortDirection: 'desc',
-        limit: 0,
-      });
       this.$forceUpdate();
     },
   },
