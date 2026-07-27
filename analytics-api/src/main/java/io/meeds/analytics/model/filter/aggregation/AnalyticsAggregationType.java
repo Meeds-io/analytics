@@ -33,7 +33,8 @@ public enum AnalyticsAggregationType {
   CARDINALITY("cardinality", true, false, false, false),
   TERMS("terms", false, false, true, true),
   DATE("date_histogram", false, true, false, false),
-  HISTOGRAM("histogram", false, true, false, false);
+  HISTOGRAM("histogram", false, true, false, false),
+  GROUP_BY("terms", true, false, false, false);
 
   @Getter
   private String  aggName;

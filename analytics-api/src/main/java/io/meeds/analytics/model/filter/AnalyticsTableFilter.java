@@ -239,7 +239,8 @@ public class AnalyticsTableFilter extends AbstractAnalyticsFilter {
                                     true,
                                     previousPeriod.getFromInMS(),
                                     currentPeriod.getToInMS(),
-                                    false);
+                                    false,
+                                    0);
   }
 
 }
