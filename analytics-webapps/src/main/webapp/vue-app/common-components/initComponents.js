@@ -33,7 +33,6 @@ import XAxisAggregationField from './components/settings/form/XAxisAggregationFi
 import LimitFilterForm from './components/settings/form/LimitFilterForm.vue';
 
 import SettingColorPicker from './components/settings/tabs/SettingColorPicker.vue';
-import GeneralSettingForm from './components/settings/tabs/GeneralSettingForm.vue';
 import ColorsSettingForm from './components/settings/tabs/ColorsSettingForm.vue';
 import SearchFilterForm from './components/settings/tabs/SearchFilterForm.vue';
 import XAxisForm from './components/settings/tabs/XAxisAggregationForm.vue';
@@ -78,7 +77,6 @@ const components = {
   'analytics-field-filter': FieldFilter,
   'analytics-x-axis-aggregation-field': XAxisAggregationField,
   'analytics-limit-filter-form': LimitFilterForm,
-  'analytics-general-setting-form': GeneralSettingForm,
   'analytics-colors-setting-form': ColorsSettingForm,
   'analytics-search-filter-form': SearchFilterForm,
   'analytics-x-axis-form': XAxisForm,

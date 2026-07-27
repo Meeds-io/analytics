@@ -18,20 +18,23 @@
   Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 -->
 <template>
-  <v-layout class="analytics-field-filter">
-    <v-flex xs3 class="mb-auto">
+  <div
+    class="analytics-field-filter d-flex"
+    :class="expand ? 'flex-row' : 'flex-column filterFieldGroup pa-2 mb-2'">
+    <div class="filterFieldName" :class="expand ? 'mb-auto' : ''">
       <analytics-field-selection
         v-model="filter.field"
         :fields-mappings="fieldsMappings"
         :placeholder="$t('analytics.fieldNamePlaceholder')"
         :attach="attach" />
-    </v-flex>
-    <v-flex xs4 class="d-flex mb-auto content-box-sizing">
+    </div>
+    <div class="filterFieldOperator d-flex content-box-sizing" :class="expand ? 'mb-auto' : 'mb-2'">
       <select
         v-model="filter.type"
         :placeholder="$t('analytics.operatorPlaceholder')"
         :title="searchFilterTypeLabel"
-        class="operatorInput border-color my-auto mx-1 text-truncate ignore-vuetify-classes"
+        class="operatorInput border-color my-auto text-truncate ignore-vuetify-classes"
+        :class="expand ? 'mx-1' : 'mx-0'"
         @change="filterTypeChanged">
         <option
           v-for="searchFilterType in searchFilterTypes"
@@ -42,8 +45,8 @@
           {{ searchFilterType.text }}
         </option>
       </select>
-    </v-flex>
-    <v-flex xs4 class="mb-auto">
+    </div>
+    <div class="filterFieldValue" :class="expand ? 'mb-auto' : ''">
       <template v-if="isMultipleValuesSelection">
         <analytics-multiple-values-selection
           :filter="filter"
@@ -102,17 +105,22 @@
           class="ignore-vuetify-classes pa-0 width-auto my-auto"
           required>
       </template>
-    </v-flex>
-    <div xs1 class="mx-auto">
-      <v-btn icon @click="$emit('delete')">
-        <v-icon>fa-minus-circle</v-icon>
+    </div>
+    <div :class="expand ? 'ms-auto mb-auto' : 'd-flex justify-end'">
+      <v-btn
+        icon
+        class="error-color"
+        :aria-label="$t('analytics.delete')"
+        @click="$emit('delete')">
+        <v-icon size="20">fas fa-trash</v-icon>
       </v-btn>
     </div>
-  </v-layout>
+  </div>
 </template>
 
 <script>
 export default {
+  emits: ['delete'],
   props: {
     filter: {
       type: Object,
@@ -127,6 +135,10 @@ export default {
       },
     },
     attach: {
+      type: Boolean,
+      default: false,
+    },
+    expand: {
       type: Boolean,
       default: false,
     },
