@@ -96,6 +96,10 @@ export default {
     dateFields() {
       return [
         {
+          text: this.$t('analytics.perHour'),
+          value: 'hour',
+        },
+        {
           text: this.$t('analytics.perDay'),
           value: 'day',
         },

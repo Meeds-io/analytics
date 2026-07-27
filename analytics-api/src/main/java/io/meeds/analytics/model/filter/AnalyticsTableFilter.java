@@ -57,14 +57,19 @@ public class AnalyticsTableFilter extends AbstractAnalyticsFilter {
 
   private String                           sortDirection    = null;
 
+  private boolean                          spaceOnly        = false;
+
+  private String                           defaultPeriod    = null;
+
   public AnalyticsTableFilter(String title,
                               String timeZone,
                               AnalyticsTableColumnFilter clonedMainColumn,
                               List<AnalyticsTableColumnFilter> clonedColumns,
                               int pageSize,
                               String sortBy,
-                              String sortDirection) {
-    this(clonedMainColumn, clonedColumns, pageSize, sortBy, sortDirection);
+                              String sortDirection,
+                              boolean spaceOnly) {
+    this(clonedMainColumn, clonedColumns, pageSize, sortBy, sortDirection, spaceOnly, null);
     setTitle(title);
     setTimeZone(timeZone);
   }
@@ -143,6 +148,7 @@ public class AnalyticsTableFilter extends AbstractAnalyticsFilter {
                                xAxisAggregations,
                                yAxisAggregation,
                                null,
+                               spaceOnly,
                                0,
                                limit);
   }
@@ -176,7 +182,9 @@ public class AnalyticsTableFilter extends AbstractAnalyticsFilter {
                                                                      new ArrayList<>(columns.stream()
                                                                                             .map(AnalyticsTableColumnFilter::clone)
                                                                                             .toList());
-    return new AnalyticsTableFilter(getTitle(), getTimeZone(), clonedMainColumn, clonedColumns, pageSize, sortBy, sortDirection);
+    AnalyticsTableFilter clone = new AnalyticsTableFilter(getTitle(), getTimeZone(), clonedMainColumn, clonedColumns, pageSize, sortBy, sortDirection, spaceOnly);
+    clone.setDefaultPeriod(defaultPeriod);
+    return clone;
   }
 
   private void addPeriodFilter(AnalyticsPeriod period,
