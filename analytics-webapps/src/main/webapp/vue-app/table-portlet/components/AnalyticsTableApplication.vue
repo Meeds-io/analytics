@@ -393,10 +393,11 @@ export default {
           const defaultLanguage = eXo?.env?.portal?.defaultLanguage || 'en';
           return translations[lang] || translations[defaultLanguage] || Object.values(translations)[0] || '';
         }
+        return title;
       } catch (e) {
-        // Legacy plain-text title (not yet translated)
+        // Legacy plain-text title (not yet translated): JSON.parse failed, use as-is
+        return title;
       }
-      return title;
     },
     init() {
       this.loading = true;

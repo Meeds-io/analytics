@@ -366,6 +366,7 @@ export default {
       this.$refs.chartSettingDrawer.open();
     },
     parseTitleTranslations(title) {
+      const defaultLanguage = eXo?.env?.portal?.defaultLanguage || 'en';
       if (title) {
         try {
           const parsed = JSON.parse(title);
@@ -373,10 +374,13 @@ export default {
             return parsed;
           }
         } catch (e) {
-          // Legacy plain-text title (not yet translated): fall through
+          // Legacy plain-text title (not yet translated): JSON.parse failed,
+          // wrap it as-is instead of falling through silently
+          return {
+            [defaultLanguage]: title,
+          };
         }
       }
-      const defaultLanguage = eXo?.env?.portal?.defaultLanguage || 'en';
       return {
         [defaultLanguage]: title || '',
       };
