@@ -19,19 +19,20 @@
 -->
 <template>
   <v-layout column>
-    <v-flex xs12 class="d-flex flex-nowrap">
+    <v-flex xs12 class="d-flex flex-nowrap align-center">
       <span v-if="!noTitle" class="me-2">
         <template v-if="$slots.title">
           <slot name="title"></slot>
         </template>
         <h4 v-else>{{ $t('analytics.dataFilters') }}</h4>
       </span>
-      <v-btn
-        icon
-        class="my-auto"
+      <button
+        type="button"
+        class="btn btn-primary ignore-vuetify-classes"
         @click="addFilter">
-        <v-icon>fa-plus-circle</v-icon>
-      </v-btn>
+        <i class="fa fa-plus" aria-hidden="true"></i>
+        <span class="ms-2">{{ $t('analytics.add') }}</span>
+      </button>
     </v-flex>
     <v-flex v-if="filters && filters.length" xs12>
       <v-form
@@ -47,6 +48,7 @@
           :filter="filter"
           :fields-mappings="fieldsMappings"
           :attach="attach"
+          :expand="expand"
           class="my-2"
           @delete="deleteFilter(index)" />
       </v-form>
@@ -74,6 +76,10 @@ export default {
       default: false,
     },
     noTitle: {
+      type: Boolean,
+      default: false,
+    },
+    expand: {
       type: Boolean,
       default: false,
     },

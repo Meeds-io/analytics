@@ -28,7 +28,7 @@
     </v-btn>
     <exo-drawer
       ref="multipleValuesDrawer"
-      drawer-width="650px"
+      drawer-width="420px"
       right
       @closed="$emit('closed')">
       <template slot="content">

@@ -18,25 +18,29 @@
   Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 -->
 <template>
-  <v-form
-    ref="form"
-    class="generalSettingForm"
-    @submit="
-      $event.preventDefault();
-      $event.stopPropagation();
-    ">
-    <v-layout wrap xs12>
-      <v-flex
+  <div>
+    <v-list v-if="showTitles" class="py-0">
+      <v-list-item
         v-for="(color, index) in chartColors"
         :key="index"
-        class="mx-auto px-3 my-3"
-        xs4>
+        class="px-0 mb-1 d-flex align-center">
+        <v-list-item-content>
+          <v-list-item-title class="text-left">{{ chartColors.length > 1 ? $t('analytics.colorIndex', [index + 1]) : $t('analytics.colors') }}</v-list-item-title>
+        </v-list-item-content>
         <analytics-setting-color-picker
           v-model="colors[index]"
+          class="ms-auto"
           @input="setColor($event, index)" />
-      </v-flex>
-    </v-layout>
-  </v-form>
+      </v-list-item>
+    </v-list>
+    <template v-else>
+      <analytics-setting-color-picker
+        v-for="(color, index) in chartColors"
+        :key="index"
+        v-model="colors[index]"
+        @input="setColor($event, index)" />
+    </template>
+  </div>
 </template>
 
 <script>
@@ -47,6 +51,10 @@ export default {
       default: function() {
         return null;
       },
+    },
+    showTitles: {
+      type: Boolean,
+      default: true,
     },
   },
   data: () => ({
@@ -81,6 +89,9 @@ export default {
         return this.colors && this.colors.slice(0, 1)  || [];
       }
     },
+  },
+  mounted() {
+    this.init();
   },
   methods: {
     init() {
