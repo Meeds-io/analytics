@@ -34,7 +34,7 @@
     </div>
     <label
       v-show="!yAxisAggregationCount"
-      class="text-header mb-1 my-4"
+      class="text mb-1 my-4"
       :for="`analyticsYAxisFieldInput${uid}`">{{ yAxisAggregationCardinality || yAxisAggregationGroupBy ? $t('analytics.distinctAggregationField') : $t('analytics.numericAggregationField') }}</label>
     <div
       v-show="!yAxisAggregationCount"
@@ -48,7 +48,7 @@
         aggregation />
     </div>
     <template v-if="yAxisAggregationGroupBy">
-      <label class="text-header mb-1 my-4" :for="`analyticsYAxisThresholdInput${uid}`">{{ $t('analytics.threshold') }}</label>
+      <label class="text mb-1 my-4" :for="`analyticsYAxisThresholdInput${uid}`">{{ $t('analytics.threshold') }}</label>
       <div class="width-auto flex-grow-1 mt-1 mb-4">
         <v-text-field
           :id="`analyticsYAxisThresholdInput${uid}`"
