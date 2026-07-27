@@ -33,17 +33,11 @@
         chips />
     </div>
     <div
-      v-if="!dateAggregationType"
+      v-if="!dateAggregationType && xAxisAggregation"
       class="width-auto flex-grow-1 mt-1 mb-4">
       <analytics-x-axis-aggregation-field
-        v-for="(aggregation, index) in xAxisAggregations"
-        :key="index"
-        :aggregation="aggregation"
-        :fields-mappings="fieldsMappings"
-        :display-add="(index +1) === xAxisAggregations.length"
-        :display-delete="xAxisAggregations.length > 1"
-        @delete="deleteAggregation(index)"
-        @add="addAggregation" />
+        :aggregation="xAxisAggregation"
+        :fields-mappings="fieldsMappings" />
     </div>
   </div>
 </template>
@@ -155,17 +149,6 @@ export default {
       } else {
         this.settings.xAxisAggregations.splice(0, this.settings.xAxisAggregations.length, Object.assign({}, this.fieldAggregation));
       }
-      this.$forceUpdate();
-    },
-    deleteAggregation(aggregationIndex) {
-      this.xAxisAggregations.splice(aggregationIndex, 1);
-    },
-    addAggregation() {
-      this.xAxisAggregations.push({
-        type: 'TERMS',
-        sortDirection: 'desc',
-        limit: 0,
-      });
       this.$forceUpdate();
     },
   },
