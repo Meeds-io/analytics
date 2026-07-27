@@ -18,38 +18,31 @@
   Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 -->
 <template>
-  <v-form
-    ref="form"
-    class="aggregationForm"
-    @submit="
-      $event.preventDefault();
-      $event.stopPropagation();
-    ">
-    <v-card-text>
-      <v-layout wrap>
-        <v-flex class="my-auto px-2" xs6>
-          <v-radio-group v-model="aggregationType">
-            <v-radio
-              v-for="aggregationType in aggregationTypes"
-              :key="aggregationType.value"
-              :label="aggregationType.text"
-              :value="aggregationType.value" />
-          </v-radio-group>
-        </v-flex>
-        <v-flex
-          v-show="!yAxisAggregationCount"
-          class="my-auto px-2"
-          xs6>
-          <analytics-field-selection
-            v-model="yAxisAggregation.field"
-            :fields-mappings="fieldsMappings"
-            :placeholder="yAxisAggregationCardinality ? $t('analytics.distinctAggregationField') : $t('analytics.numericAggregationField')"
-            :numeric="!yAxisAggregationCardinality"
-            aggregation />
-        </v-flex>
-      </v-layout>
-    </v-card-text>
-  </v-form>
+  <div>
+    <label class="text-header me-1 my-4" :for="`analyticsYAxisDataInput${uid}`">{{ $t('analytics.data') }}</label>
+    <div class="width-auto flex-grow-1 mt-1 mb-4">
+      <v-select
+        :id="`analyticsYAxisDataInput${uid}`"
+        v-model="aggregationType"
+        :items="aggregationTypes"
+        item-text="text"
+        item-value="value"
+        outlined
+        dense
+        hide-details
+        chips />
+    </div>
+    <div
+      v-show="!yAxisAggregationCount"
+      class="width-auto flex-grow-1 mt-1 mb-4">
+      <analytics-field-selection
+        v-model="yAxisAggregation.field"
+        :fields-mappings="fieldsMappings"
+        :placeholder="yAxisAggregationCardinality ? $t('analytics.distinctAggregationField') : $t('analytics.numericAggregationField')"
+        :numeric="!yAxisAggregationCardinality"
+        aggregation />
+    </div>
+  </div>
 </template>
 
 <script>
@@ -78,6 +71,9 @@ export default {
     aggregationType: 'MAX',
   }),
   computed: {
+    uid() {
+      return this._uid;
+    },
     aggregationTypes() {
       return [
         {
