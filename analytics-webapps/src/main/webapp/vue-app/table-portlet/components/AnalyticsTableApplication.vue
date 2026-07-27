@@ -396,6 +396,7 @@ export default {
         return title;
       } catch (e) {
         // Legacy plain-text title (not yet translated): JSON.parse failed, use as-is
+        console.debug('Table title is not a translations JSON object, using it as plain text', e);
         return title;
       }
     },
