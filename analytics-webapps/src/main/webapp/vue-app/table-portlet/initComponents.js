@@ -21,7 +21,6 @@ import AnalyticsTableApplication from './components/AnalyticsTableApplication.vu
 import AnalyticsTableSetting from './components/settings/AnalyticsTableSetting.vue';
 import AnalyticsTableColumnSetting from './components/settings/AnalyticsTableColumnSetting.vue';
 import AnalyticsTableColumnAggregationSetting from './components/settings/AnalyticsTableColumnAggregationSetting.vue';
-import AnalyticsTableGeneralSetting from './components/settings/AnalyticsTableGeneralSetting.vue';
 import AnalyticsTable from './components/table/AnalyticsTable.vue';
 import AnalyticsTableCell from './components/table/AnalyticsTableCell.vue';
 import AnalyticsTableCellValue from './components/table/AnalyticsTableCellValue.vue';
@@ -34,7 +33,6 @@ const components = {
   'analytics-table-application': AnalyticsTableApplication,
   'analytics-table-column-aggregation-setting': AnalyticsTableColumnAggregationSetting,
   'analytics-table-column-setting': AnalyticsTableColumnSetting,
-  'analytics-table-general-setting': AnalyticsTableGeneralSetting,
   'analytics-table-setting': AnalyticsTableSetting,
   'analytics-table': AnalyticsTable,
   'analytics-table-cell': AnalyticsTableCell,
