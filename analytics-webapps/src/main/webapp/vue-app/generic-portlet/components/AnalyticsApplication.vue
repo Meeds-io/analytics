@@ -416,6 +416,23 @@ export default {
     document.removeEventListener('click', this.handlePeriodSelectorOutsideClick, true);
   },
   methods: {
+    resolveTitleTranslation(title) {
+      if (!title) {
+        return '';
+      }
+      try {
+        const translations = JSON.parse(title);
+        if (translations && typeof translations === 'object') {
+          const lang = eXo?.env?.portal?.language || 'en';
+          const defaultLanguage = eXo?.env?.portal?.defaultLanguage || 'en';
+          return translations[lang] || translations[defaultLanguage] || Object.values(translations)[0] || '';
+        }
+        return title;
+      } catch (e) {
+        // Legacy plain-text title (not yet translated): JSON.parse failed, use as-is
+        return title;
+      }
+    },
     init() {
       this.loading = true;
       return this.getSettings()
@@ -446,7 +463,7 @@ export default {
           this.scope = settings && settings.scope;
           this.canEdit = settings && settings.canEdit;
           this.chartType = settings && settings.chartType;
-          this.title = settings && this.$t(settings.title) || this.$t('analytics.chartDataPlaceholder');
+          this.title = settings && this.resolveTitleTranslation(settings.title) || this.$t('analytics.chartDataPlaceholder');
           // The initial selectedPeriod (set on mount, before settings were
           // known) used a hardcoded guess - correct it once the portlet's
           // actual configured default is known, if it turns out different.
