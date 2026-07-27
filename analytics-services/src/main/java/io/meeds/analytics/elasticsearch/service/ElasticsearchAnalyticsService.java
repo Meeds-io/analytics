@@ -1024,7 +1024,14 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
     if (nextAggregation == null) {
       return null;
     }
-
+    if (nextAggregation.getType() == AnalyticsAggregationType.GROUP_BY) {
+      // GROUP_BY's value is computed through a bucket_script (a pipeline
+      // aggregation): ES rejects ordering sibling buckets by it
+      // ("Invalid aggregation order path ... is a pipeline aggregation and
+      // cannot be used to sort the buckets"). Fall back to the default
+      // (doc count) ordering instead of failing the whole query.
+      return null;
+    }
     if (nextAggregation.getType().isNumericResult()) {
       return getAggregationFieldName(nextAggregation.getType()) + ".value";
     }

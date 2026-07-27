@@ -141,4 +141,33 @@ public class ElasticsearchAnalyticsServiceTest {
               "min_doc_count must never be 0 (would scan every empty bucket)");
   }
 
+  @Test
+  public void testGroupByIsNotUsedToSortAPrecedingTermsAggregation() {
+    when(elasticsearchStorage.search(anyString())).thenReturn(cannedResponse(3));
+
+    // X axis is a TERMS aggregation (e.g. grouping by module), Y axis is
+    // GROUP_BY: ES rejects ordering a terms aggregation by a pipeline
+    // aggregation such as GROUP_BY's bucket_script ("Invalid aggregation
+    // order path ... is a pipeline aggregation and cannot be used to sort
+    // the buckets"), so no such order clause must ever be generated.
+    AnalyticsFilter filter = new AnalyticsFilter();
+    filter.setFilters(new ArrayList<>());
+    filter.addXAxisAggregation(new AnalyticsAggregation(AnalyticsAggregationType.TERMS, "module", "desc", null, 200));
+
+    AnalyticsAggregation yAxisAggregation = new AnalyticsAggregation();
+    yAxisAggregation.setType(AnalyticsAggregationType.GROUP_BY);
+    yAxisAggregation.setField("userId");
+    yAxisAggregation.setMinDocCount(1);
+    filter.setYAxisAggregation(yAxisAggregation);
+
+    elasticsearchAnalyticsService.computeChartData(filter);
+
+    ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
+    org.mockito.Mockito.verify(elasticsearchStorage).search(queryCaptor.capture());
+    String generatedQuery = queryCaptor.getValue();
+
+    assertTrue(!generatedQuery.contains("\"order\": {\"aggregation_result_value"),
+              "Terms aggregation must not be ordered by the GROUP_BY pipeline aggregation");
+  }
+
 }
