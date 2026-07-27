@@ -229,7 +229,8 @@ public class AnalyticsTableFilter extends AbstractAnalyticsFilter {
                                                      2,
                                                      true,
                                                      fromInMS,
-                                                     toInMS));
+                                                     toInMS,
+                                                     0));
     }
     AnalyticsFieldFilter periodFilter = new AnalyticsFieldFilter("timestamp",
                                                                  AnalyticsFieldFilterType.RANGE,
