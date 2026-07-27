@@ -113,9 +113,9 @@
         </template>
         <v-list>
           <v-list-item
-            :disabled="exporting"
-            @mousedown="$event.preventDefault()"
-            @click="exportExcel">
+            :href="exportExcelLink"
+            :download="exportFileName"
+            @mousedown="$event.preventDefault()">
             <v-list-item-title>{{ $t('analytics.export.excel') }}</v-list-item-title>
           </v-list-item>
           <template v-if="canEdit">
@@ -215,7 +215,6 @@ export default {
     scope: null,
     initialized: false,
     showMenu: false,
-    exporting: false,
     selectedPeriod: null,
     periodSelectorCompact: false,
     periodSelectorResizeObserver: null,
@@ -272,6 +271,29 @@ export default {
       const from = this.formatDate(new Date(this.selectedPeriod.min));
       const to = this.formatDate(new Date(this.selectedPeriod.max));
       return `${from}~${to}`;
+    },
+    exportExcelLink() {
+      if (!this.exportExcelUrl || !this.selectedPeriod) {
+        return null;
+      }
+      const table = this.$refs.table;
+      const params = $.param({
+        lang: this.lang,
+        min: this.selectedPeriod.min,
+        max: this.selectedPeriod.max + 60000,
+        periodType: this.selectedPeriod.period || '',
+        timeZone: this.$analyticsUtils.USER_TIMEZONE_ID,
+        sortBy: (table && table.sortBy) || 0,
+        sortDirection: (table && table.sortDirection) || 'desc',
+      });
+      return `${this.exportExcelUrl}&${params}`;
+    },
+    exportFileName() {
+      const sanitizedTitle = (this.title || 'analytics-table').replace(/[^a-zA-Z0-9-_]/g, '_');
+      const now = new Date();
+      const pad = n => `${n}`.padStart(2, '0');
+      const timestamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+      return `${sanitizedTitle}_${timestamp}.xlsx`;
     },
     scopeTooltip() {
       switch (this.scope) {
@@ -371,10 +393,12 @@ export default {
           const defaultLanguage = eXo?.env?.portal?.defaultLanguage || 'en';
           return translations[lang] || translations[defaultLanguage] || Object.values(translations)[0] || '';
         }
+        return title;
       } catch (e) {
-        // Legacy plain-text title (not yet translated)
+        // Legacy plain-text title (not yet translated): JSON.parse failed, use as-is
+        console.debug('Table title is not a translations JSON object, using it as plain text', e);
+        return title;
       }
-      return title;
     },
     init() {
       this.loading = true;
@@ -614,52 +638,6 @@ export default {
       this.applyCompactPeriod();
       this.periodSelectorMenu = false;
     },
-    exportExcel() {
-      if (!this.exportExcelUrl || this.exporting) {
-        return;
-      }
-      this.exporting = true;
-      // Load every remaining page first: the export must contain all rows,
-      // not just the ones currently visible before "Load More" was clicked.
-      return this.$refs.table.loadAll()
-        .then(() => this.$refs.table.getDisplayedGrid())
-        .then(({headers, rows}) => fetch(this.exportExcelUrl, {
-          method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: $.param({
-            title: this.title || '',
-            data: JSON.stringify({headers, rows}),
-          }),
-        }))
-        .then(resp => {
-          if (!resp || !resp.ok) {
-            throw new Error('Error exporting table to Excel');
-          }
-          return resp.blob();
-        })
-        .then(blob => {
-          const sanitizedTitle = (this.title || 'analytics-table').replace(/[^a-zA-Z0-9-_]/g, '_');
-          const now = new Date();
-          const pad = n => `${n}`.padStart(2, '0');
-          const timestamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = `${sanitizedTitle}_${timestamp}.xlsx`;
-          document.body.appendChild(link);
-          link.click();
-          link.remove();
-          URL.revokeObjectURL(url);
-        })
-        .catch(e => {
-          console.error('Error exporting table to Excel', e);
-          this.error = 'Error exporting table to Excel';
-        })
-        .finally(() => this.exporting = false);
-    }
   }
 };
 </script>
