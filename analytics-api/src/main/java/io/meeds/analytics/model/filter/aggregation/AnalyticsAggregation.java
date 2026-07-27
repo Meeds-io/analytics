@@ -104,9 +104,9 @@ public class AnalyticsAggregation implements Serializable, Cloneable {
   /**
    * Minimum number of matching documents (ES min_doc_count) a distinct
    * value of {@link #field} must have to be counted, when {@link #type} is
-   * {@link AnalyticsAggregationType#GROUP_BY}. A value <= 0 still results in
-   * min_doc_count=1 being sent to ES (never omitted), to avoid scanning
-   * empty buckets.
+   * {@link AnalyticsAggregationType#GROUP_BY}. A value lower than or equal to
+   * 0 still results in min_doc_count=1 being sent to ES (never omitted), to
+   * avoid scanning empty buckets.
    */
   private long                          minDocCount;
 
