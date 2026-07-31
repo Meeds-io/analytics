@@ -96,7 +96,9 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
     }
     String fromDateString = request.getParameter("min");
     String toDateString = request.getParameter("max");
-    AnalyticsPeriod period = new AnalyticsPeriod(Long.parseLong(fromDateString), Long.parseLong(toDateString));
+    AnalyticsPeriod period = new AnalyticsPeriod(Long.parseLong(fromDateString),
+                                                 Long.parseLong(toDateString),
+                                                 tableFilter.zoneId());
     AnalyticsPeriodType periodType = null;
     String analyticsPeriodType = request.getParameter("periodType");
     if (StringUtils.isNotBlank(analyticsPeriodType)) {
