@@ -47,8 +47,12 @@ public class AnalyticsPeriod implements Serializable, Cloneable {
   }
 
   public AnalyticsPeriod(long fromInMS, long toInMS, ZoneId timeZone) {
-    this(fromInMS, toInMS);
-    this.timeZone = timeZone;
+    this.fromInMS = fromInMS;
+    this.toInMS = toInMS;
+    this.timeZone = timeZone == null ? ZoneOffset.UTC : timeZone;
+    // Computed once the time zone is set, else the days count would be the one
+    // of the UTC dates
+    this.interval = getDiffInDays() + "d";
   }
 
   public AnalyticsPeriod(LocalDate from, LocalDate to) {
@@ -79,11 +83,22 @@ public class AnalyticsPeriod implements Serializable, Cloneable {
   }
 
   public AnalyticsPeriod previousPeriod() {
-    return new AnalyticsPeriod(fromInMS - (toInMS - fromInMS), fromInMS);
+    return new AnalyticsPeriod(fromInMS - getDurationInMS(), fromInMS, getTimeZone());
   }
 
   public long getDiffInDays() {
     return ChronoUnit.DAYS.between(getFrom(), getTo());
+  }
+
+  public long getDurationInMS() {
+    return toInMS - fromInMS;
+  }
+
+  public boolean isContiguousTo(AnalyticsPeriod previousPeriod) {
+    return previousPeriod != null
+           && previousPeriod.getToInMS() == fromInMS
+           && previousPeriod.getDurationInMS() == getDurationInMS()
+           && getDurationInMS() > 0;
   }
 
   public boolean isInPeriod(long timestamp) {
