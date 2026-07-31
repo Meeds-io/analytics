@@ -805,7 +805,7 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
     if (aggregationType.isUseInterval()) {
       appendIntervalTypeQuery(esQuery, aggregation);
       appendIntervalOffsetQuery(esQuery, aggregation);
-      appendIntervalTimeZoneQuery(esQuery, timeZone, aggregationFieldName);
+      appendIntervalTimeZoneQuery(esQuery, timeZone, aggregation, aggregationFieldName);
       appendIntervalBoundQuery(esQuery, aggregation);
     }
   }
@@ -833,9 +833,13 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
     }
   }
 
-  private void appendIntervalTimeZoneQuery(StringBuilder esQuery, ZoneId timeZone, String aggregationFieldName) {
+  private void appendIntervalTimeZoneQuery(StringBuilder esQuery,
+                                           ZoneId timeZone,
+                                           AnalyticsAggregation aggregation,
+                                           String aggregationFieldName) {
     if (timeZone != null
         && !ZoneOffset.UTC.equals(timeZone)
+        && !aggregation.isIgnoreTimeZone()
         && aggregationFieldName.equals(FIELD_TIMESTAMP)) {
       esQuery.append("""
                  ,
