@@ -228,28 +228,31 @@ public class AnalyticsPercentageFilter extends AbstractAnalyticsFilter {
     if (interval == null) {
       return null;
     }
+    AnalyticsPeriod currentPeriod = getCurrentAnalyticsPeriod();
+    AnalyticsPeriod previousPeriod = getPreviousAnalyticsPeriod();
+    if (currentPeriod == null || previousPeriod == null) {
+      return null;
+    }
+    if (currentPeriod.isContiguousTo(previousPeriod)) {
+      // Both periods have the same duration: aggregate them in exactly two
+      // buckets aligned on their boundaries
+      return AnalyticsAggregation.periodsComparison(previousPeriod.getFromInMS(),
+                                                    currentPeriod.getFromInMS(),
+                                                    currentPeriod.getToInMS(),
+                                                    "DESC");
+    }
     AnalyticsAggregation xAxisAggregation = new AnalyticsAggregation();
     xAxisAggregation.setField("timestamp");
     xAxisAggregation.setSortDirection("DESC");
     xAxisAggregation.setType(AnalyticsAggregationType.DATE);
     xAxisAggregation.setInterval(interval);
-    xAxisAggregation.setMinBound(getPreviousAnalyticsPeriod().getFromInMS());
-    xAxisAggregation.setMaxBound(getCurrentAnalyticsPeriod().getToInMS() - 1000);
+    xAxisAggregation.setMinBound(previousPeriod.getFromInMS());
+    xAxisAggregation.setMaxBound(currentPeriod.getToInMS() - 1000);
     xAxisAggregation.setUseBounds(true);
-    if (customPeriod != null) {
-      long diffInDays = customPeriod.getDiffInDays();
-      if (diffInDays > 0) {
-        long offset = (xAxisAggregation.getMinBound() / 86400000l) % diffInDays;
-        if (offset > 0) {
-          xAxisAggregation.setOffset(offset + "d");
-        }
-      }
-    } else {
-      AnalyticsPeriodType analyticsPeriodType = getAnalyticsPeriodType();
-      if (analyticsPeriodType != null && analyticsPeriodType.getOffset(xAxisAggregation.getMinBound()) > 0) {
-        long offset = analyticsPeriodType.getOffset(xAxisAggregation.getMinBound());
-        xAxisAggregation.setOffset(offset + "d");
-      }
+    AnalyticsPeriodType analyticsPeriodType = getAnalyticsPeriodType();
+    if (analyticsPeriodType != null && analyticsPeriodType.getOffset(xAxisAggregation.getMinBound()) > 0) {
+      long offset = analyticsPeriodType.getOffset(xAxisAggregation.getMinBound());
+      xAxisAggregation.setOffset(offset + "d");
     }
     return xAxisAggregation;
   }
@@ -318,7 +321,9 @@ public class AnalyticsPercentageFilter extends AbstractAnalyticsFilter {
       if (previousAnalyticsPeriod == null || currentAnalyticsPeriod == null) {
         return null;
       }
-      period = new AnalyticsPeriod(previousAnalyticsPeriod.getFrom(), currentAnalyticsPeriod.getTo());
+      // Exact bounds of the two periods, without rounding them to the day, to
+      // not aggregate documents that are outside of the compared periods
+      period = new AnalyticsPeriod(previousAnalyticsPeriod.getFromInMS(), currentAnalyticsPeriod.getToInMS(), zoneId());
     }
     AnalyticsFilter.Range rangeFilter = new AnalyticsFilter.Range(period.getFromInMS(),
                                                                   period.getToInMS());
