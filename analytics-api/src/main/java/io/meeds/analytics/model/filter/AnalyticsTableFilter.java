@@ -188,45 +188,47 @@ public class AnalyticsTableFilter extends AbstractAnalyticsFilter {
     long toInMS = period.getToInMS();
 
     if (compareWithPreviousPeriod) {
-      AnalyticsPeriod previousPeriod;
-      String interval;
-      String offset = null;
-      if (periodType == null) {
-        previousPeriod = period.previousPeriod();
-        fromInMS = previousPeriod.getFromInMS();
-        long diffInDays = period.getDiffInDays();
-        if (diffInDays > 0) {
-          interval = period.getInterval();
-          long offsetLong = (fromInMS / 86400000l) % diffInDays;
-          if (offsetLong > 0) {
-            offset = offsetLong + "d";
-          }
-        } else {
-          interval = "1d";
-        }
-      } else {
-        previousPeriod = periodType.getPreviousPeriod(period.getFrom(), zoneId());
-        fromInMS = previousPeriod.getFromInMS();
-        interval = periodType.getInterval();
-        if (periodType.getOffset(previousPeriod.getFromInMS()) > 0) {
-          offset = periodType.getOffset(previousPeriod.getFromInMS()) + "d";
-        }
-      }
-      xAxisAggregations.add(0,
-                            new AnalyticsAggregation(AnalyticsAggregationType.DATE,
-                                                     "timestamp",
-                                                     "asc",
-                                                     interval,
-                                                     offset,
-                                                     2,
-                                                     true,
-                                                     fromInMS,
-                                                     toInMS));
+      // Both periods are aggregated within the same query: the searched range
+      // has to cover them, and has to be split by the date histogram
+      // aggregation exactly on the boundary between the two periods
+      AnalyticsPeriod currentPeriod = getCurrentPeriod(period, periodType);
+      AnalyticsPeriod previousPeriod = getPreviousPeriod(period, periodType);
+      fromInMS = previousPeriod.getFromInMS();
+      toInMS = currentPeriod.getToInMS();
+      xAxisAggregations.add(0, buildPeriodsComparisonAggregation(currentPeriod, previousPeriod, periodType));
     }
     AnalyticsFieldFilter periodFilter = new AnalyticsFieldFilter("timestamp",
                                                                  AnalyticsFieldFilterType.RANGE,
                                                                  new Range(fromInMS, toInMS));
     filters.add(periodFilter);
+  }
+
+  private AnalyticsAggregation buildPeriodsComparisonAggregation(AnalyticsPeriod currentPeriod,
+                                                                 AnalyticsPeriod previousPeriod,
+                                                                 AnalyticsPeriodType periodType) {
+    if (currentPeriod.isContiguousTo(previousPeriod)) {
+      return AnalyticsAggregation.periodsComparison(previousPeriod.getFromInMS(),
+                                                    currentPeriod.getFromInMS(),
+                                                    currentPeriod.getToInMS(),
+                                                    "asc");
+    }
+    // Periods of different durations (month, quarter, year...): the calendar
+    // interval of the period type is aligned on the periods boundaries
+    String interval = periodType == null ? "1d" : periodType.getInterval();
+    String offset = null;
+    if (periodType != null && periodType.getOffset(previousPeriod.getFromInMS()) > 0) {
+      offset = periodType.getOffset(previousPeriod.getFromInMS()) + "d";
+    }
+    return new AnalyticsAggregation(AnalyticsAggregationType.DATE,
+                                    "timestamp",
+                                    "asc",
+                                    interval,
+                                    offset,
+                                    2,
+                                    true,
+                                    previousPeriod.getFromInMS(),
+                                    currentPeriod.getToInMS(),
+                                    false);
   }
 
 }
