@@ -101,7 +101,8 @@ public enum AnalyticsPeriodType {
         AnalyticsPeriod currentPeriod = getCurrentPeriod(date, timeZone);
         return new AnalyticsPeriod(currentPeriod.getFrom().minusDays(182), // NOSONAR
                                    currentPeriod.getTo().minusDays(182),
-                                   interval);
+                                   interval,
+                                   currentPeriod.getTimeZone());
       case THIS_YEAR:
         return getCurrentPeriod(date.minusYears(1), timeZone);
       default:

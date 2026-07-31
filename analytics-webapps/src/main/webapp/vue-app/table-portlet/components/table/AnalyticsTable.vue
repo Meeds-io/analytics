@@ -291,7 +291,9 @@ export default {
           limit: String(limit || 0),
           periodType: this.period.period || '',
           min: this.period.min,
-          max: this.period.max + 1000,
+          // The selected period ends at 23:59:59.999 of the last selected day:
+          // one more millisecond to get the start of the next day
+          max: this.period.max + 1,
           timeZone: this.$analyticsUtils.USER_TIMEZONE_ID,
         };
         if (sort) {

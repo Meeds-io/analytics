@@ -345,8 +345,10 @@ export default {
       const params = {
         lang: eXo.env.portal.language && eXo.env.portal.language.replace('_','-'),
         periodType: this.selectedPeriod.period || '',
-        min: isPredefinedPeriod ? this.selectedPeriod.min : this.toLocalDayStartInMS(this.selectedPeriod.min),
-        max: isPredefinedPeriod ? this.selectedPeriod.max + 60000 : this.toLocalDayEndExclusiveInMS(this.selectedPeriod.max),
+        min: this.selectedPeriod.min,
+        // The selected period ends at 23:59:59.999 of the last selected day:
+        // one more millisecond to get the start of the next day
+        max: isPredefinedPeriod ? this.selectedPeriod.max + 60000 : this.selectedPeriod.max + 1,
         timeZone: this.$analyticsUtils.USER_TIMEZONE_ID,
       };
       if (this.selectedPeriod.period) {
@@ -376,14 +378,6 @@ export default {
           this.error = 'Error getting analytics';
         })
         .finally(() => this.loading = false);
-    },
-    toLocalDayStartInMS(timestamp) {
-      const date = new Date(timestamp);
-      return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()).getTime();
-    },
-    toLocalDayEndExclusiveInMS(timestamp) {
-      const date = new Date(timestamp);
-      return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + 1).getTime();
     },
     closeMenu(){
       this.showMenu=false;
