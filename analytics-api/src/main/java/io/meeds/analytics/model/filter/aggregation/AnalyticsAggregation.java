@@ -103,6 +103,14 @@ public class AnalyticsAggregation implements Serializable, Cloneable {
   @Exclude
   private long                          maxBound;
 
+  /**
+   * When true, the user time zone isn't used to compute the interval buckets
+   * boundaries. Used when the buckets grid is already aligned, in milliseconds,
+   * on the exact boundaries of the aggregated periods.
+   */
+  @Exclude
+  private boolean                       ignoreTimeZone;
+
   public AnalyticsAggregation(AnalyticsAggregationType type, String field, String sortDirection, String interval, long limit) {
     super();
     this.type = type;
@@ -115,6 +123,29 @@ public class AnalyticsAggregation implements Serializable, Cloneable {
   public AnalyticsAggregation(String field) {
     this.field = field;
     this.type = AnalyticsAggregationType.TERMS;
+  }
+
+  public static AnalyticsAggregation periodsComparison(long fromInMS, long splitInMS, long toInMS, String sortDirection) {
+    long intervalInMS = splitInMS - fromInMS;
+    AnalyticsAggregation aggregation = new AnalyticsAggregation();
+    aggregation.setType(AnalyticsAggregationType.DATE);
+    aggregation.setField(AnalyticsUtils.FIELD_TIMESTAMP);
+    aggregation.setSortDirection(sortDirection);
+    aggregation.setInterval(intervalInMS + "ms");
+    long offsetInMS = Math.floorMod(fromInMS, intervalInMS);
+    if (offsetInMS > 0) {
+      aggregation.setOffset(offsetInMS + "ms");
+    }
+    // Force the two buckets to be returned, even when one of the periods
+    // doesn't have any document
+    aggregation.setUseBounds(true);
+    aggregation.setMinBound(fromInMS);
+    aggregation.setMaxBound(toInMS - 1);
+    // The buckets grid is already aligned on the periods boundaries, computed
+    // in milliseconds since the epoch: applying the user time zone on top of it
+    // would shift the buckets by the time zone offset
+    aggregation.setIgnoreTimeZone(true);
+    return aggregation;
   }
 
   public String getSortDirection() {
@@ -169,7 +200,16 @@ public class AnalyticsAggregation implements Serializable, Cloneable {
 
   @Override
   public AnalyticsAggregation clone() { // NOSONAR
-    return new AnalyticsAggregation(type, field, sortDirection, interval, offset, limit, useBounds, minBound, maxBound);
+    return new AnalyticsAggregation(type,
+                                   field,
+                                   sortDirection,
+                                   interval,
+                                   offset,
+                                   limit,
+                                   useBounds,
+                                   minBound,
+                                   maxBound,
+                                   ignoreTimeZone);
   }
 
 }
