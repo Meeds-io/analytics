@@ -161,12 +161,15 @@ public class AnalyticsTableFilter extends AbstractAnalyticsFilter {
                   .toLocalDate();
   }
 
+  /**
+   * @param period selected {@link AnalyticsPeriod}
+   * @param periodType selected {@link AnalyticsPeriodType}, null for a custom
+   *          period
+   * @return the {@link AnalyticsPeriod} of the same duration preceding the
+   *         current one, whether the period is a custom one or a period type
+   */
   public AnalyticsPeriod getPreviousPeriod(AnalyticsPeriod period, AnalyticsPeriodType periodType) {
-    if (periodType == null) {
-      return period.previousPeriod();
-    } else {
-      return periodType.getPreviousPeriod(middleOfPeriod(period), zoneId());
-    }
+    return getCurrentPeriod(period, periodType).previousPeriod();
   }
 
   @Override
