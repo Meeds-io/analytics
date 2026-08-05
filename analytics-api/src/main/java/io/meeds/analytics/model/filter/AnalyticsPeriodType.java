@@ -53,31 +53,52 @@ public enum AnalyticsPeriodType {
     LocalDate end = null;
     switch (this) {
       case TODAY:
-        return new AnalyticsPeriod(date, date.plusDays(1), interval, timeZone);
+        start = date;
+        end = date.plusDays(1);
+        break;
       case THIS_WEEK:
         start = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         end = start.plusDays(7);
-        return new AnalyticsPeriod(start, end, interval, timeZone);
+        break;
       case THIS_MONTH:
         start = date.withDayOfMonth(1);
         end = start.plusMonths(1);
-        return new AnalyticsPeriod(start, end, interval, timeZone);
+        break;
       case THIS_QUARTER:
         start = Year.of(date.getYear()).atMonth(date.getMonth().firstMonthOfQuarter()).atDay(1);
         end = start.plusMonths(3);
-        return new AnalyticsPeriod(start, end, interval, timeZone);
+        break;
       case THIS_SEMESTER:
         start = date.getMonth().compareTo(Month.JUNE) > 0 ? Year.of(date.getYear()).atMonth(Month.JULY).atDay(1)
                                                           : Year.of(date.getYear()).atMonth(Month.JANUARY).atDay(1);
         end = start.plusMonths(6);
-        return new AnalyticsPeriod(start, end, interval, timeZone);
+        break;
       case THIS_YEAR:
         start = date.withDayOfYear(1);
         end = start.plusYears(1);
-        return new AnalyticsPeriod(start, end, interval, timeZone);
+        break;
       default:
         return null;
     }
+    return new AnalyticsPeriod(start, elapsedEnd(start, end, timeZone), interval, timeZone);
+  }
+
+  /**
+   * A period that is still in progress is measured until the end of the current
+   * day only: its days that aren't elapsed yet would else be compared to a
+   * complete previous period, which displays for example a -100% evolution on
+   * the first days of a month. The end of the current day is kept, and not the
+   * current time, so that no statistic of the day is left out.
+   *
+   * @param start first day of the period
+   * @param end day following the last day of the period
+   * @param timeZone user {@link ZoneId}
+   * @return the end of the elapsed part of the period, which is its own end when
+   *         the period is already complete
+   */
+  private LocalDate elapsedEnd(LocalDate start, LocalDate end, ZoneId timeZone) {
+    LocalDate endOfToday = LocalDate.now(timeZone).plusDays(1);
+    return endOfToday.isAfter(start) && endOfToday.isBefore(end) ? endOfToday : end;
   }
 
   public long getOffset(long timestamp) {
@@ -87,27 +108,18 @@ public enum AnalyticsPeriodType {
     return 0;
   }
 
+  /**
+   * The previous period is the window of the same duration that immediately
+   * precedes the current one: a period in progress is compared to the same
+   * number of elapsed days, and not to a complete previous period.
+   *
+   * @param date date included in the current period
+   * @param timeZone user {@link ZoneId}
+   * @return {@link AnalyticsPeriod} preceding the current period
+   */
   public AnalyticsPeriod getPreviousPeriod(LocalDate date, ZoneId timeZone) {
-    switch (this) {
-      case TODAY:
-        return getCurrentPeriod(date.minusDays(1), timeZone);
-      case THIS_WEEK:
-        return getCurrentPeriod(date.minusWeeks(1), timeZone);
-      case THIS_MONTH:
-        return getCurrentPeriod(date.minusMonths(1), timeZone);
-      case THIS_QUARTER:
-        return getCurrentPeriod(date.minusMonths(3), timeZone);
-      case THIS_SEMESTER:
-        AnalyticsPeriod currentPeriod = getCurrentPeriod(date, timeZone);
-        return new AnalyticsPeriod(currentPeriod.getFrom().minusDays(182), // NOSONAR
-                                   currentPeriod.getTo().minusDays(182),
-                                   interval,
-                                   currentPeriod.getTimeZone());
-      case THIS_YEAR:
-        return getCurrentPeriod(date.minusYears(1), timeZone);
-      default:
-        return null;
-    }
+    AnalyticsPeriod currentPeriod = getCurrentPeriod(date, timeZone);
+    return currentPeriod == null ? null : currentPeriod.previousPeriod();
   }
 
   public String getTypeName() {
