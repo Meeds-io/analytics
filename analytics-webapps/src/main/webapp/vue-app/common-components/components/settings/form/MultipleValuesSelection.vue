@@ -43,8 +43,10 @@
                 <v-icon @click="$refs.multipleValuesDrawer.close()">mdi-arrow-left</v-icon>
               </v-btn>
             </v-list-item-action>
-            <v-list-item-content class="drawerTitle align-start text-header-title text-truncate">
-              {{ fieldLabel }}
+            <v-list-item-content class="drawerTitle align-start">
+              <span class="text-title">
+                <span class="text-truncate">{{ fieldLabel }}</span>
+              </span>
             </v-list-item-content>
           </v-list-item>
         </v-flex>
