@@ -26,7 +26,7 @@
         :loading="loading"
         extra-class="application-body fill-height">
         <template #title>
-          <div class="d-flex flex-grow-1 flex-shrink-1 full-width align-center position-relative">
+          <div class="d-flex flex-grow-1 flex-shrink-1 min-width-0 full-width align-center position-relative pe-16">
             <div class="text-header text-none d-flex align-center min-width-0">
               <span class="text-truncate">{{ title }}</span>
             </div>
