@@ -20,6 +20,7 @@ package io.meeds.analytics.listener.social;
 
 import static io.meeds.analytics.utils.AnalyticsUtils.addStatisticData;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -35,15 +36,20 @@ import jakarta.annotation.PostConstruct;
 
 /**
  * Tracks an analytics operation each time a user confirms the deactivation
- * request of their own account (event source = username, data = social
- * identity id), so that platform administrators can follow these requests in
- * reports.
+ * request of their own account, and a distinct one when the deletion of the
+ * account was requested along (event source = username, data = social identity
+ * id). The operations share the organization/user coordinates of the
+ * enableUser/disableUser/deleteUser operations recorded by
+ * UserAnalyticsEventListener, so that administrators follow a request and its
+ * outcome in a single chart.
  */
 @Asynchronous
 @Component
 public class AccountDeactivationAnalyticsListener extends Listener<String, String> {
 
-  public static final String OPERATION = "accountDeactivationRequest";
+  public static final String DEACTIVATION_OPERATION = "accountDeactivationRequest";
+
+  public static final String DELETION_OPERATION     = "accountDeletionRequest";
 
   @Autowired
   private ListenerService    listenerService;
@@ -51,14 +57,17 @@ public class AccountDeactivationAnalyticsListener extends Listener<String, Strin
   @PostConstruct
   public void init() {
     listenerService.addListener(AccountDeactivationService.ACCOUNT_DEACTIVATION_REQUESTED_EVENT, this);
+    listenerService.addListener(AccountDeactivationService.ACCOUNT_DELETION_REQUESTED_EVENT, this);
   }
 
   @Override
   public void onEvent(Event<String, String> event) throws Exception {
+    boolean deletionRequested = StringUtils.equals(event.getEventName(),
+                                                   AccountDeactivationService.ACCOUNT_DELETION_REQUESTED_EVENT);
     StatisticData statisticData = new StatisticData();
-    statisticData.setModule("social");
-    statisticData.setSubModule("account");
-    statisticData.setOperation(OPERATION);
+    statisticData.setModule("organization");
+    statisticData.setSubModule("user");
+    statisticData.setOperation(deletionRequested ? DELETION_OPERATION : DEACTIVATION_OPERATION);
     statisticData.setUserId(Long.parseLong(event.getData()));
     addStatisticData(statisticData);
   }
