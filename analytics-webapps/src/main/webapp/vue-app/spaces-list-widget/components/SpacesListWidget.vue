@@ -20,7 +20,7 @@
 
 -->
 <template>
-  <v-app v-if="initialized">
+  <v-app v-if="initialized && !hiddenWidget">
     <v-hover v-model="hover">
       <widget-wrapper
         :loading="loading"
@@ -70,17 +70,20 @@
         <template v-if="initialized" #default>
           <div v-if="emptyWidget" class="d-flex flex-column align-center justify-center full-width full-height">
             <v-icon color="tertiary" size="60">fa-layer-group</v-icon>
-            <span class="mt-5">{{ $t('analytics.spacesListWidget.noSpaces') }}</span>
-            <span class="my-4">
-              <space-creation-button
-                v-if="$root.canCreateSpace"
-                :color="'primary'"
-                :elevation="0"
-                :parent-space-id="$root.isParentSpace && spaceId || null"
-                outlined
-                require-form-drawer
-                display-label />
-            </span>
+            <span v-if="profileMode" class="mt-5">{{ $t('analytics.spacesListWidget.noCommonSpaces') }}</span>
+            <template v-else>
+              <span class="mt-5">{{ $t('analytics.spacesListWidget.noSpaces') }}</span>
+              <span class="my-4">
+                <space-creation-button
+                  v-if="$root.canCreateSpace"
+                  :color="'primary'"
+                  :elevation="0"
+                  :parent-space-id="$root.isParentSpace && spaceId || null"
+                  outlined
+                  require-form-drawer
+                  display-label />
+              </span>
+            </template>
           </div>
           <div v-else>
             <spaces-list-widget-list
@@ -111,6 +114,8 @@ export default {
     applicationMounted: false,
     mostRecentSpaces: null,
     mostActiveSpaces: null,
+    profileSpaces: null,
+    profileError: false,
   }),
   computed: {
     hoverEdit() {
@@ -139,7 +144,25 @@ export default {
     spacesMemberOf() {
       return this.$root.spacesMemberOf;
     },
+    profileMode() {
+      return !!this.$root.profileOwner;
+    },
+    ownProfile() {
+      return this.profileMode && this.$root.profileOwner === eXo.env.portal.userName;
+    },
+    hiddenWidget() {
+      // On one's own profile an empty listing hides the block entirely: no
+      // placeholder and no create-space invitation (board story US01). A
+      // visited profile keeps the block and shows the placeholder instead.
+      // A failed listing also hides the block: painting the no-common-spaces
+      // placeholder over an error would present a failure as a fact about the
+      // profile owner.
+      return (this.profileMode && this.profileError) || (this.ownProfile && this.emptyWidget);
+    },
     userSpaces() {
+      if (this.profileMode) {
+        return this.profileSpaces;
+      }
       return this.$root.userSpacesLimit && this.$root.spaceIds?.slice?.(0, this.$root.userSpacesLimit);
     },
     title() {
@@ -202,6 +225,13 @@ export default {
   methods: {
     refresh() {
       this.loading = true;
+      if (this.profileMode) {
+        // The listing of a profile owner's spaces comes from social, which owns
+        // the data and its access rules; none of the analytics queries applies
+        // on a profile. Ordering comes from the endpoint — alphabetical — and
+        // is not reapplied here.
+        return this.getProfileSpaces().finally(() => this.loading = false);
+      }
       const getUserSpaces = this.$root.userSpacesLimit ?
         this.getUserSpaces()
         : Promise.resolve().then(() => this.$root.spaceIds = null);
@@ -210,6 +240,20 @@ export default {
         this.getMostActiveSpaces(),
         getUserSpaces,
       ]).finally(() => this.loading = false);
+    },
+    getProfileSpaces() {
+      // The endpoint refuses a page size above 100 rather than clamping it
+      // silently; the widget caps what it sends so an oversized instance
+      // setting degrades to the endpoint's bound instead of a 400
+      const limit = Math.min(this.$root.userSpacesLimit || 4, 100);
+      this.profileError = false;
+      return this.$spaceService.getUserSpaces(this.$root.profileOwner, 0, limit)
+        .then(data => this.profileSpaces = data?.spaces || [])
+        .catch(error => {
+          // eslint-disable-next-line no-console
+          console.error('Error listing the spaces of the profile owner', error);
+          this.profileError = true;
+        });
     },
     getUserSpaces() {
       return this.$spaceService.getSpacesByFilter({

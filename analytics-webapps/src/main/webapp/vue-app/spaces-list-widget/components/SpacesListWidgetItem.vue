@@ -51,6 +51,10 @@ export default {
       type: String,
       default: () => null,
     },
+    providedSpace: {
+      type: Object,
+      default: () => null,
+    },
   },
   data: () => ({
     space: null,
@@ -69,6 +73,10 @@ export default {
     },
   },
   created() {
+    if (this.providedSpace) {
+      this.space = this.providedSpace;
+      return;
+    }
     this.loading = true;
     this.$spaceService.getSpaceById(this.spaceId)
       .then(space => this.space = space)
