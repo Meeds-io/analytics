@@ -161,6 +161,7 @@ export default {
     commonSpaces: null,
     allSpaces: null,
     profileHasMore: {},
+    profilePending: {},
   }),
   computed: {
     profileMode() {
@@ -285,8 +286,17 @@ export default {
       // asked to know whether more remain. The scope is the tab; the Service
       // still narrows it for a viewer who may not use it.
       const tab = this.tabName;
+      if (this.profilePending[tab]) {
+        // One in-flight page per tab. open() resets and fetches the initial
+        // tab, then the tabName watcher fires for that same tab and would
+        // request the first page a second time; a switch to the other tab
+        // during a load still fetches, since the guard is per tab and not
+        // the shared loading flag.
+        return Promise.resolve();
+      }
       const accumulated = (tab === 'all' ? this.allSpaces : this.commonSpaces) || [];
       const scope = tab === 'all' || this.ownProfile ? 'ALL' : 'COMMON';
+      this.profilePending = {...this.profilePending, [tab]: true};
       this.loading = true;
       return this.$spaceService.getUserSpaces(this.$root.profileOwner, accumulated.length, this.pageSize + 1, scope)
         .then(data => {
@@ -309,7 +319,10 @@ export default {
           // eslint-disable-next-line no-console
           console.error('Error listing the spaces of the profile owner', error);
         })
-        .finally(() => this.loading = false);
+        .finally(() => {
+          this.profilePending = {...this.profilePending, [tab]: false};
+          this.loading = false;
+        });
     },
     getUserSpaces() {
       return this.$spaceService.getSpacesByFilter({

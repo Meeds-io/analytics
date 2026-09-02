@@ -62,7 +62,7 @@
         <div class="font-weight-bold">{{ $t('analytics.spacesListWidget.settings.userSpaces') }}</div>
         <number-input
           v-model="userSpacesLimit"
-          :min="0"
+          :min="profileMode ? 1 : 0"
           :max="25"
           :step="1"
           class="ms-auto me-n1 my-0 pa-0" />
