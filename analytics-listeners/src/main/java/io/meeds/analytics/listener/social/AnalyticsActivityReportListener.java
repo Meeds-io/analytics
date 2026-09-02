@@ -66,12 +66,12 @@ public class AnalyticsActivityReportListener extends Listener<ActivityReport, Lo
     statisticData.setSubModule("activity");
     statisticData.setOperation(StringUtils.isBlank(report.getParentObjectId()) ? "reportPost" : "reportComment");
     statisticData.setUserId(report.getReporterIdentityId());
-    statisticData.addParameter("reportReason", report.getReason());
-    statisticData.addParameter("activityId", report.getActivityId());
+    statisticData.addKeyword("reportReason", report.getReason());
+    statisticData.addKeyword("activityId", report.getActivityId());
     if (StringUtils.isNotBlank(report.getParentObjectId())) {
       // for a reported comment, activityId is the comment id: the parent
       // activity id is what an "Activity link" chart dimension needs
-      statisticData.addParameter("parentActivityId", report.getParentObjectId());
+      statisticData.addKeyword("parentActivityId", report.getParentObjectId());
     }
     Identity streamOwnerIdentity = identityManager.getIdentity(String.valueOf(report.getStreamOwnerIdentityId()));
     if (streamOwnerIdentity != null) {
