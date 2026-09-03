@@ -26,9 +26,10 @@
       <v-divider class="flex-grow-1" />
     </div>
     <spaces-list-widget-item
-      v-for="id in list"
-      :key="id"
-      :space-id="id" />
+      v-for="item in list"
+      :key="itemId(item)"
+      :space-id="itemId(item)"
+      :provided-space="itemSpace(item)" />
   </v-list>
 </template>
 <script>
@@ -49,6 +50,17 @@ export default {
     },
     hasSpaces() {
       return this.list?.length;
+    },
+  },
+  methods: {
+    // The analytics sections hand this list space ids; the profile mode hands
+    // it the space objects its endpoint already resolved, since a per-space
+    // read could be refused for a listed space the viewer is not a member of
+    itemId(item) {
+      return typeof item === 'object' ? String(item.id) : item;
+    },
+    itemSpace(item) {
+      return typeof item === 'object' ? item : null;
     },
   },
 };
