@@ -39,7 +39,9 @@ export function init(
   canCreateSpace,
   isExternal,
   headerTranslations,
-  listOnlySubSpaces) {
+  listOnlySubSpaces,
+  profileOwner,
+  profileOwnerExternal) {
   exoi18n.loadLanguageAsync(lang, urls)
     .then(i18n => {
       Vue.createApp({
@@ -62,6 +64,8 @@ export function init(
           spaceId: eXo?.env?.portal?.spaceId,
           listOnlySubSpaces: listOnlySubSpaces,
           isParentSpace: false,
+          profileOwner,
+          profileOwnerExternal,
         },
         computed: {
           headerTitle() {
