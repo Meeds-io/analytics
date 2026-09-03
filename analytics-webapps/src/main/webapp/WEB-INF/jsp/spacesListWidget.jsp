@@ -26,7 +26,9 @@
 <%@ page import="org.exoplatform.portal.config.UserACL"%>
 <%@ page import="org.exoplatform.container.ExoContainerContext"%>
 <%@ page import="org.exoplatform.social.webui.Utils"%>
+<%@ page import="org.exoplatform.social.webui.URLUtils"%>
 <%@ page import="org.exoplatform.social.core.identity.model.Identity"%>
+<%@ page import="org.exoplatform.social.core.manager.IdentityManager"%>
 <%@ page import="io.meeds.social.space.template.service.SpaceTemplateService"%>
 <%@ page import="org.exoplatform.services.security.ConversationState"%>
 <%@ page import="org.apache.commons.text.StringEscapeUtils" %>
@@ -57,6 +59,24 @@
       .canCreateSpace(request.getRemoteUser());
   Identity viewerIdentity = Utils.getViewerIdentity();
   boolean isExternal = viewerIdentity == null || viewerIdentity.isExternal();
+  // The user carried by the page URL: the profile owner on a profile page, null
+  // anywhere else. Its presence is what switches the widget to profile mode.
+  // Deliberately NOT getCurrentUser(): that one also returns null for an
+  // external viewer on a profile it may not access, and the widget must not
+  // fall back to its viewer-centric analytics mode on a profile page — the
+  // endpoint it calls owns what such a viewer may see.
+  String profileOwnerId = URLUtils.getStreamOwnerId();
+  String profileOwnerJs = profileOwnerId == null || profileOwnerId.isEmpty() ? "null"
+      : "'" + StringEscapeUtils.escapeEcmaScript(profileOwnerId) + "'";
+  // Whether the profile owner is an external user decides the drawer's tabs:
+  // one tab (common spaces) on an external owner's profile, two on an internal
+  // one. The viewer's own externality is already carried by isExternal.
+  boolean profileOwnerExternal = false;
+  if (profileOwnerId != null && !profileOwnerId.isEmpty()) {
+    Identity profileOwnerIdentity = ExoContainerContext.getService(IdentityManager.class)
+        .getOrCreateUserIdentity(profileOwnerId);
+    profileOwnerExternal = profileOwnerIdentity != null && profileOwnerIdentity.isExternal();
+  }
 %>
 <div class="VuetifyApp">
   <div id="spacesListWidget">
@@ -76,7 +96,9 @@
         <%=canCreateSpace%>,
         <%=isExternal%>,
         JSON.parse(decodeURIComponent(document.getElementById('<%=valueDomId%>').value)),
-        <%=listOnlySubSpaces%>
+        <%=listOnlySubSpaces%>,
+        <%=profileOwnerJs%>,
+        <%=profileOwnerExternal%>
       ));
     </script>
   </div>
