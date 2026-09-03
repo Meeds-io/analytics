@@ -185,6 +185,15 @@ export default {
         this.initialized = true;
       }
     },
+    hiddenWidget() {
+      // Hiding the v-app alone leaves the layout's application wrapper in the
+      // page, and the column's gap padding with it (a 20px blank above the
+      // next widget). The platform's own hide hook marks that wrapper hidden,
+      // the same way the other self-hiding widgets do (RulesOverview,
+      // UserSettingNotifications). Kept in sync both ways: a refresh that
+      // brings spaces back must show the wrapper again.
+      this.$root.$updateApplicationVisibility(!this.hiddenWidget);
+    },
     initialized() {
       if (this.initialized) {
         this.$root.$applicationLoaded();
