@@ -51,6 +51,10 @@ export default {
       type: String,
       default: () => null,
     },
+    providedSpace: {
+      type: Object,
+      default: () => null,
+    },
   },
   data: () => ({
     space: null,
@@ -65,10 +69,20 @@ export default {
       return !this.loading && (this.space?.displayName || this.$t('analytics.spacesListWidget.hiddenSpace'));
     },
     url() {
+      // A space handed over by the profile listing carries whether the viewer
+      // is a member of it: a private space the viewer cannot open is listed
+      // as plain text, without an access link (spec, PRIVATE vs HIDDEN)
+      if (this.providedSpace && this.providedSpace.member === false) {
+        return null;
+      }
       return this.space?.id && `${eXo.env.portal.context}/s/${this.space.id}` || null;
     },
   },
   created() {
+    if (this.providedSpace) {
+      this.space = this.providedSpace;
+      return;
+    }
     this.loading = true;
     this.$spaceService.getSpaceById(this.spaceId)
       .then(space => this.space = space)
