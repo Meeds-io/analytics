@@ -28,10 +28,10 @@
     eager
     @closed="reset">
     <template slot="title">
-      {{ $t('analytics.spacesListWidgetSettings.title') }}
+      {{ profileMode ? $t('analytics.spacesListWidgetSettings.profileTitle') : $t('analytics.spacesListWidgetSettings.title') }}
     </template>
     <template v-if="drawer" #content>
-      <div class="d-flex flex-column pa-5">
+      <div v-if="!profileMode" class="d-flex flex-column pa-5">
         <translation-text-field
           ref="headerTitleInput"
           id="headerTitleInput"
@@ -43,34 +43,37 @@
           </template>
         </translation-text-field>
       </div>
-      <div class="d-flex align-center text-start px-5 pb-5">
+      <div v-if="!profileMode" class="d-flex align-center text-start px-5 pb-5">
         <div>{{ $t('analytics.spacesListWidget.settings.spacesMemberOf') }}</div>
         <v-switch
           v-model="spacesMemberOf"
           class="ms-auto me-n1 mt-0 mb-n2 pa-0" />
       </div>
-      <div class="d-flex align-center text-start px-5 pb-5">
+      <div v-if="!profileMode" class="d-flex align-center text-start px-5 pb-5">
         <div>{{ $t('analytics.spacesListWidget.settings.listSubSpaces') }}</div>
         <v-switch
           v-model="listOnlySubSpaces"
           class="ms-auto me-n1 mt-0 mb-n2 pa-0" />
       </div>
-      <div class="d-flex align-center text-start px-5 pb-5">
+      <div v-if="!profileMode" class="d-flex align-center text-start px-5 pb-5">
         {{ $t('analytics.spacesListWidgetSettings.numberOfItemsToList') }}
       </div>
-      <div class="d-flex align-center text-start px-5">
-        <div class="font-weight-bold">{{ $t('analytics.spacesListWidget.settings.userSpaces') }}</div>
+      <div :class="profileMode && 'pt-5'" class="d-flex align-center text-start px-5">
+        <!-- Profile mode follows the US04 design: one plain row, no section heading -->
+        <div :class="profileMode ? 'text-header' : 'font-weight-bold'">
+          {{ profileMode ? $t('analytics.spacesListWidget.settings.numberOfSpacesToList') : $t('analytics.spacesListWidget.settings.userSpaces') }}
+        </div>
         <number-input
           v-model="userSpacesLimit"
-          :min="0"
+          :min="profileMode ? 1 : 0"
           :max="25"
           :step="1"
           class="ms-auto me-n1 my-0 pa-0" />
       </div>
-      <div class="d-flex align-center text-start px-5 pt-5 pb-2">
+      <div v-if="!profileMode" class="d-flex align-center text-start px-5 pt-5 pb-2">
         <div class="font-weight-bold">{{ $t('analytics.spacesListWidget.settings.recentSpaces') }}</div>
       </div>
-      <div class="d-flex align-center text-start px-5 pb-2">
+      <div v-if="!profileMode" class="d-flex align-center text-start px-5 pb-2">
         <div>{{ $t('analytics.spacesListWidget.settings.numberOfSpaces') }}</div>
         <number-input
           v-model="spacesRecentlyVisitedLimit"
@@ -79,7 +82,7 @@
           :step="1"
           class="ms-auto me-n1 my-0 pa-0" />
       </div>
-      <div v-if="spacesRecentlyVisitedLimit" class="d-flex align-center text-start px-5">
+      <div v-if="!profileMode && spacesRecentlyVisitedLimit" class="d-flex align-center text-start px-5">
         <div>{{ $t('analytics.spacesListWidget.activePeriod') }}</div>
         <number-input
           v-model="spacesRecentlyVisitedPeriod"
@@ -89,10 +92,10 @@
           :unit="$t('analytics.spacesListWidget.days')"
           class="ms-auto me-n1 my-0 pa-0" />
       </div>
-      <div class="d-flex align-center text-start px-5 pt-5">
+      <div v-if="!profileMode" class="d-flex align-center text-start px-5 pt-5">
         <div class="font-weight-bold">{{ $t('analytics.spacesListWidget.settings.activeSpaces') }}</div>
       </div>
-      <div class="d-flex align-center text-start px-5 pb-2">
+      <div v-if="!profileMode" class="d-flex align-center text-start px-5 pb-2">
         <div>{{ $t('analytics.spacesListWidget.settings.numberOfSpaces') }}</div>
         <number-input
           v-model="spacesMostActiveLimit"
@@ -101,7 +104,7 @@
           :step="1"
           class="ms-auto me-n1 my-0 pa-0" />
       </div>
-      <div v-if="spacesMostActiveLimit" class="d-flex align-center text-start px-5">
+      <div v-if="!profileMode && spacesMostActiveLimit" class="d-flex align-center text-start px-5">
         <div>{{ $t('analytics.spacesListWidget.activePeriod') }}</div>
         <number-input
           v-model="spacesMostActivePeriod"
@@ -134,6 +137,14 @@
 </template>
 <script>
 export default {
+  computed: {
+    profileMode() {
+      // On a profile page the drawer exposes exactly two settings — the header
+      // translations and the number of listed spaces (board story US04); the
+      // analytics-mode settings have no meaning there and are not shown.
+      return !!this.$root.profileOwner;
+    },
+  },
   data: () => ({
     drawer: false,
     loading: false,
