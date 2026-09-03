@@ -25,13 +25,15 @@
     v-model="drawer"
     :loading="loading"
     :right="!$vuetify.rtl"
-    class="spacesListOverviewDrawer"
-    allow-expand>
+    :allow-expand="!profileMode && !$root.isExternal"
+    class="spacesListOverviewDrawer">
     <template #title>
       <div class="d-flex justify-space-between">
         <span> {{ memberSpacesOnly && $t('analytics.spacesListWidget.tab.userSpaces') || $t('analytics.spacesListWidget.drawer.title') }} </span>
+        <!-- The US05 design's drawer header carries only the title and the
+             close button: no create-space button in profile mode -->
         <space-creation-button
-          v-if="$root.canCreateSpace && (!profileMode || ownProfile)"
+          v-if="$root.canCreateSpace && !profileMode"
           require-form-drawer
           display-label
           :color="'primary'"
@@ -41,9 +43,14 @@
       </div>
     </template>
     <template v-if="drawer" #content>
+      <!-- US06 design: the two tabs split the drawer width evenly (grow),
+           active tab and slider in the tertiary theme color -->
       <v-tabs
         v-if="profileMode && !singleTab"
         v-model="tabName"
+        color="tertiary"
+        class="profile-spaces-tabs"
+        grow
         slider-size="4">
         <v-tab
           tab-value="common"

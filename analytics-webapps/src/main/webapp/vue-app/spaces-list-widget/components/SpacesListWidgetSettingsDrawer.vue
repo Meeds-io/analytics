@@ -28,10 +28,10 @@
     eager
     @closed="reset">
     <template slot="title">
-      {{ $t('analytics.spacesListWidgetSettings.title') }}
+      {{ profileMode ? $t('analytics.spacesListWidgetSettings.profileTitle') : $t('analytics.spacesListWidgetSettings.title') }}
     </template>
     <template v-if="drawer" #content>
-      <div class="d-flex flex-column pa-5">
+      <div v-if="!profileMode" class="d-flex flex-column pa-5">
         <translation-text-field
           ref="headerTitleInput"
           id="headerTitleInput"
@@ -55,11 +55,14 @@
           v-model="listOnlySubSpaces"
           class="ms-auto me-n1 mt-0 mb-n2 pa-0" />
       </div>
-      <div class="d-flex align-center text-start px-5 pb-5">
+      <div v-if="!profileMode" class="d-flex align-center text-start px-5 pb-5">
         {{ $t('analytics.spacesListWidgetSettings.numberOfItemsToList') }}
       </div>
-      <div class="d-flex align-center text-start px-5">
-        <div class="font-weight-bold">{{ $t('analytics.spacesListWidget.settings.userSpaces') }}</div>
+      <div :class="profileMode && 'pt-5'" class="d-flex align-center text-start px-5">
+        <!-- Profile mode follows the US04 design: one plain row, no section heading -->
+        <div :class="profileMode ? 'text-header' : 'font-weight-bold'">
+          {{ profileMode ? $t('analytics.spacesListWidget.settings.numberOfSpacesToList') : $t('analytics.spacesListWidget.settings.userSpaces') }}
+        </div>
         <number-input
           v-model="userSpacesLimit"
           :min="profileMode ? 1 : 0"
