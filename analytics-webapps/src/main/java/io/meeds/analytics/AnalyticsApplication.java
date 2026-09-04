@@ -19,8 +19,7 @@
 package io.meeds.analytics;
 
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
-import org.springframework.boot.autoconfigure.liquibase.LiquibaseAutoConfiguration;
+import org.springframework.boot.liquibase.autoconfigure.LiquibaseAutoConfiguration;
 import org.springframework.context.annotation.PropertySource;
 
 import io.meeds.spring.AvailableIntegration;
@@ -33,7 +32,6 @@ import io.meeds.spring.kernel.PortalApplicationContextInitializer;
 }, 
 exclude = {
  LiquibaseAutoConfiguration.class,
- JpaRepositoriesAutoConfiguration.class,
 })
 @PropertySource("classpath:application.properties")
 @PropertySource("classpath:application-common.properties")

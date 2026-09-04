@@ -63,9 +63,9 @@ import org.apache.hc.client5.http.classic.methods.HttpPut;
 import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.io.entity.StringEntity;
-import org.apache.http.HttpStatus;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -102,7 +102,7 @@ public class ElasticsearchAnalyticsStorage {
 
   private static final String           ALTERNATIVE_FIELD_SUFFIX    = "_alt";
 
-  private static final int              MAX_ALTERNATIVE_FIELD_COUNT = 3;
+  private static final int              MAX_ALTERNATIVE_FIELD_COUNT = 4;
 
   private static final Log              LOG                         =
                                             ExoLogger.getExoLogger(ElasticsearchAnalyticsStorage.class);
