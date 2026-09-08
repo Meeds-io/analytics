@@ -43,95 +43,105 @@
       </div>
     </template>
     <template v-if="drawer" #content>
-      <!-- US06 design: the two tabs split the drawer width evenly (grow),
-           active tab and slider in the tertiary theme color -->
-      <v-tabs
-        v-if="profileMode && !singleTab"
-        v-model="tabName"
-        color="tertiary"
-        class="profile-spaces-tabs"
-        grow
-        slider-size="4">
-        <v-tab
-          tab-value="common"
-          href="#common">
-          {{ $t('analytics.spacesListWidget.tab.common') }}
-        </v-tab>
-        <v-tab
-          tab-value="all"
-          href="#all">
-          {{ $t('analytics.spacesListWidget.tab.all') }}
-        </v-tab>
-      </v-tabs>
-      <v-tabs
-        v-else-if="!profileMode && !memberSpacesOnly"
-        v-model="tabName"
-        slider-size="4">
-        <v-tab
-          tab-value="member"
-          href="#member">
-          {{ $t('analytics.spacesListWidget.tab.userSpaces') }}
-        </v-tab>
-        <v-tab
-          tab-value="visited"
-          href="#visited">
-          {{ $t('analytics.spacesListWidget.tab.visited') }}
-        </v-tab>
-        <v-tab
-          v-if="!$root.isExternal"
-          tab-value="mostActive"
-          href="#mostActive">
-          {{ $t('analytics.spacesListWidget.tab.mostActive') }}
-        </v-tab>
-      </v-tabs>
-      <v-list
-        v-if="profileMode && singleTab"
-        class="ma-5">
-        <spaces-list-widget-list :list="list" />
-      </v-list>
-      <v-tabs-items
-        v-else-if="profileMode"
-        v-model="tabName"
-        class="px-4">
-        <v-tab-item value="common">
-          <v-list v-if="commonSpaces">
-            <spaces-list-widget-list :list="commonSpaces" />
-          </v-list>
-        </v-tab-item>
-        <v-tab-item value="all">
-          <v-list v-if="allSpaces">
-            <spaces-list-widget-list :list="allSpaces" />
-          </v-list>
-        </v-tab-item>
-      </v-tabs-items>
-      <v-list
-        v-else-if="memberSpacesOnly"
-        class="ma-5">
-        <spaces-list-widget-list :list="memberSpacesToDisplay" />
-      </v-list>
-      <v-tabs-items
-        v-else
-        v-model="tabName"
-        class="px-4">
-        <v-tab-item value="member">
-          <v-list v-if="memberSpaces">
-            <spaces-list-widget-list :list="memberSpacesToDisplay" />
-          </v-list>
-        </v-tab-item>
-        <v-tab-item value="visited">
-          <v-list v-if="visitedSpaces">
-            <spaces-list-widget-list :list="visitedSpacesToDisplay" />
-          </v-list>
-        </v-tab-item>
-        <v-tab-item v-if="!$root.isExternal" value="mostActive">
-          <v-list v-if="activeSpaces">
-            <spaces-list-widget-list :list="activeSpacesToDisplay" />
-          </v-list>
-        </v-tab-item>
-      </v-tabs-items>
-      <div v-if="emptyList" class="d-flex flex-column align-center justify-center full-width">
-        <v-icon color="tertiary" size="40">{{ profileMode && tabName === 'common' && !ownProfile && 'fa-layer-group' || 'fa-people-arrows' }}</v-icon>
-        <span class="mt-5">{{ profileMode && tabName === 'common' && !ownProfile && $t('analytics.spacesListWidget.noCommonSpaces') || $t('analytics.spacesListWidget.noSpaces') }}</span>
+      <!-- Flex column over the drawer's full content height so the empty
+           state below can take the room left under the tabs and center in it -->
+      <div class="d-flex flex-column fill-height">
+        <!-- US06 design: the two tabs split the drawer width evenly (grow),
+             active tab and slider in the tertiary theme color -->
+        <v-tabs
+          v-if="profileMode && !singleTab"
+          v-model="tabName"
+          color="tertiary"
+          class="profile-spaces-tabs flex-grow-0"
+          grow
+          slider-size="4">
+          <v-tab
+            tab-value="common"
+            href="#common">
+            {{ $t('analytics.spacesListWidget.tab.common') }}
+          </v-tab>
+          <v-tab
+            tab-value="all"
+            href="#all">
+            {{ $t('analytics.spacesListWidget.tab.all') }}
+          </v-tab>
+        </v-tabs>
+        <v-tabs
+          v-else-if="!profileMode && !memberSpacesOnly"
+          v-model="tabName"
+          class="flex-grow-0"
+          slider-size="4">
+          <v-tab
+            tab-value="member"
+            href="#member">
+            {{ $t('analytics.spacesListWidget.tab.userSpaces') }}
+          </v-tab>
+          <v-tab
+            tab-value="visited"
+            href="#visited">
+            {{ $t('analytics.spacesListWidget.tab.visited') }}
+          </v-tab>
+          <v-tab
+            v-if="!$root.isExternal"
+            tab-value="mostActive"
+            href="#mostActive">
+            {{ $t('analytics.spacesListWidget.tab.mostActive') }}
+          </v-tab>
+        </v-tabs>
+        <!-- An empty list keeps its padding and margins and would push the
+             empty state below off center: render the lists only with rows -->
+        <v-list
+          v-if="profileMode && singleTab && !emptyList"
+          class="ma-5">
+          <spaces-list-widget-list :list="list" />
+        </v-list>
+        <v-tabs-items
+          v-else-if="profileMode && !singleTab"
+          v-model="tabName"
+          class="px-4">
+          <v-tab-item value="common">
+            <v-list v-if="commonSpaces?.length">
+              <spaces-list-widget-list :list="commonSpaces" />
+            </v-list>
+          </v-tab-item>
+          <v-tab-item value="all">
+            <v-list v-if="allSpaces?.length">
+              <spaces-list-widget-list :list="allSpaces" />
+            </v-list>
+          </v-tab-item>
+        </v-tabs-items>
+        <v-list
+          v-else-if="!profileMode && memberSpacesOnly && !emptyList"
+          class="ma-5">
+          <spaces-list-widget-list :list="memberSpacesToDisplay" />
+        </v-list>
+        <v-tabs-items
+          v-else-if="!profileMode && !memberSpacesOnly"
+          v-model="tabName"
+          class="px-4">
+          <v-tab-item value="member">
+            <v-list v-if="memberSpaces?.length">
+              <spaces-list-widget-list :list="memberSpacesToDisplay" />
+            </v-list>
+          </v-tab-item>
+          <v-tab-item value="visited">
+            <v-list v-if="visitedSpaces?.length">
+              <spaces-list-widget-list :list="visitedSpacesToDisplay" />
+            </v-list>
+          </v-tab-item>
+          <v-tab-item v-if="!$root.isExternal" value="mostActive">
+            <v-list v-if="activeSpaces?.length">
+              <spaces-list-widget-list :list="activeSpacesToDisplay" />
+            </v-list>
+          </v-tab-item>
+        </v-tabs-items>
+        <!-- The drawer's own progress bar covers the load; the empty state is
+             only a statement once the current tab's request has answered,
+             otherwise it flashes before every first page -->
+        <div v-if="emptyList && !listLoading" class="d-flex flex-column flex-grow-1 align-center justify-center full-width">
+          <v-icon color="tertiary" size="40">{{ profileMode && tabName === 'common' && !ownProfile && 'fa-layer-group' || 'fa-people-arrows' }}</v-icon>
+          <span class="mt-5">{{ profileMode && tabName === 'common' && !ownProfile && $t('analytics.spacesListWidget.noCommonSpaces') || $t('analytics.spacesListWidget.noSpaces') }}</span>
+        </div>
       </div>
     </template>
     <template v-if="drawer && hasMore" slot="footer">
@@ -196,6 +206,12 @@ export default {
     emptyList() {
       return !this.list?.length;
     },
+    listLoading() {
+      // In profile mode the shared loading flag drops as soon as the first of
+      // two concurrent tab requests answers; the per-tab pending map is the
+      // flag that follows the displayed tab.
+      return this.profileMode ? !!this.profilePending[this.tabName] : this.loading;
+    },
     memberSpacesToDisplay() {
       return this.memberSpaces?.slice?.(0, this.limit);
     },
@@ -224,13 +240,14 @@ export default {
   watch: {
     tabName() {
       if (this.profileMode) {
-        // Each tab keeps its accumulated pages; only an empty tab fetches. No
+        // Each tab keeps its accumulated pages; only a tab that never answered
+        // fetches (an answered-empty tab is [] and stays as it is). No
         // early return on loading: retrieveProfileSpaces captures its tab and
         // writes only into that tab's accumulator, so a fetch started while the
         // other tab is still loading is safe — the early return would leave a
         // tab switched to during a load permanently unfetched, wearing the
         // empty state as if it were data.
-        if (!this.list?.length) {
+        if (!this.list) {
           this.retrieveProfileSpaces();
         }
       } else if (!this.loading) {
