@@ -37,22 +37,26 @@
                 'r-0': !$vuetify.rtl,
               }"
               class="position-absolute absolute-vertical-center z-index-one">
+              <!-- Same hover affordance as the Documents and Task widgets: a
+                   small text button (28px-high pill) behind the label, a small
+                   icon button (28px circle) once the edit icons show. No
+                   height/min-width override: it shrank the hover background
+                   to the text or the icon -->
               <v-btn
                 v-if="!emptyWidget"
                 :icon="hoverEdit"
-                :small="hoverEdit"
-                height="auto"
-                min-width="auto"
-                class="pa-0"
-                text
+                :text="!hoverEdit"
+                :title="hoverEdit && $t('analytics.spacesListWidgetSettings.seeAll') || null"
+                color="primary"
+                small
+                link
                 @click="$refs.listDrawer.open()">
                 <v-icon
                   v-if="hoverEdit"
-                  size="18"
-                  color="primary">
+                  size="18">
                   fa-external-link-alt
                 </v-icon>
-                <span v-else class="primary--text text-none">{{ $t('analytics.spacesListWidgetSettings.seeAll') }}</span>
+                <span v-else class="text-font-size text-none">{{ $t('analytics.spacesListWidgetSettings.seeAll') }}</span>
               </v-btn>
               <v-fab-transition hide-on-leave>
                 <v-btn
