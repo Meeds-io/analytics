@@ -519,18 +519,32 @@
   }
 }
 
+// One row per bound, on a 3-column grid (label / date / time) so both rows
+// line up whatever the label's translated width. Nothing is kept on a single
+// nowrap line any more: that is what pushed the leading label out of the
+// menu's fixed width.
 .analytics-compact-period-times {
-  // One row per bound. Nothing is kept on a single nowrap line any more:
-  // that is what pushed the leading label out of the menu's fixed width.
-  .analytics-compact-period-time-label {
-    // Label column wide enough to align both rows' dates under each other,
-    // free to grow for a longer translation
-    min-width: 40px;
-    flex: 0 0 auto;
+  // Columns hug their content (label / date / hour) and the whole block
+  // stays left-aligned, so the hour sits next to its date instead of being
+  // pushed to the far edge by a stretching middle column.
+  display: grid;
+  grid-template-columns: auto auto auto;
+  justify-content: start;
+  align-items: baseline;
+  gap: 10px 12px;
+
+  .analytics-period-bound-label {
+    white-space: nowrap;
   }
 
+  // Both bounds are editable controls: same borderless styling as the hour,
+  // stretched to their column so the two rows' dates and hours line up on
+  // the same edges whatever their rendered width ("Sep 1" vs "Sep 10").
   .analytics-date-time-selection {
-    width: auto;
-    flex-shrink: 0;
+    justify-self: stretch;
+    width: 100%;
+    border: 0;
+    background: none;
+    padding: 0;
   }
 }
