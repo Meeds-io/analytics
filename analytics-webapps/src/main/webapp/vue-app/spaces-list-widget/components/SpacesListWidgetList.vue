@@ -29,7 +29,8 @@
       v-for="item in list"
       :key="itemId(item)"
       :space-id="itemId(item)"
-      :provided-space="itemSpace(item)" />
+      :provided-space="itemSpace(item)"
+      :emphasized="emphasized" />
   </v-list>
 </template>
 <script>
@@ -42,6 +43,10 @@ export default {
     labelKey: {
       type: String,
       default: null,
+    },
+    emphasized: {
+      type: Boolean,
+      default: false,
     },
   },
   computed: {

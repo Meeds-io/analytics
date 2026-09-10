@@ -25,7 +25,7 @@
     v-model="drawer"
     :loading="loading"
     :right="!$vuetify.rtl"
-    :allow-expand="!profileMode && !$root.isExternal"
+    :allow-expand="!profileMode"
     class="spacesListOverviewDrawer">
     <template #title>
       <div class="d-flex justify-space-between">
@@ -47,21 +47,26 @@
            state below can take the room left under the tabs and center in it -->
       <div class="d-flex flex-column fill-height">
         <!-- US06 design: the two tabs split the drawer width evenly (grow),
-             active tab and slider in the tertiary theme color -->
+             active tab and slider in the tertiary theme color; label size and
+             the inactive grey come from the platform-ui text helpers -->
         <v-tabs
           v-if="profileMode && !singleTab"
           v-model="tabName"
           color="tertiary"
-          class="profile-spaces-tabs flex-grow-0"
+          class="flex-grow-0"
           grow
           slider-size="4">
           <v-tab
+            :class="tabName !== 'common' && 'text-sub-title'"
             tab-value="common"
+            class="text-header"
             href="#common">
             {{ $t('analytics.spacesListWidget.tab.common') }}
           </v-tab>
           <v-tab
+            :class="tabName !== 'all' && 'text-sub-title'"
             tab-value="all"
+            class="text-header"
             href="#all">
             {{ $t('analytics.spacesListWidget.tab.all') }}
           </v-tab>
@@ -93,7 +98,7 @@
         <v-list
           v-if="profileMode && singleTab && !emptyList"
           class="ma-5">
-          <spaces-list-widget-list :list="list" />
+          <spaces-list-widget-list :list="list" emphasized />
         </v-list>
         <v-tabs-items
           v-else-if="profileMode && !singleTab"
@@ -101,12 +106,12 @@
           class="px-4">
           <v-tab-item value="common">
             <v-list v-if="commonSpaces?.length">
-              <spaces-list-widget-list :list="commonSpaces" />
+              <spaces-list-widget-list :list="commonSpaces" emphasized />
             </v-list>
           </v-tab-item>
           <v-tab-item value="all">
             <v-list v-if="allSpaces?.length">
-              <spaces-list-widget-list :list="allSpaces" />
+              <spaces-list-widget-list :list="allSpaces" emphasized />
             </v-list>
           </v-tab-item>
         </v-tabs-items>
