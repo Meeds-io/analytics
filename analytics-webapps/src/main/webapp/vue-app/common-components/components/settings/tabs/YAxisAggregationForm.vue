@@ -53,13 +53,19 @@
         <v-text-field
           :id="`analyticsYAxisThresholdInput${uid}`"
           :value="yAxisAggregation.minDocCount"
+          :error="!validThreshold"
           type="number"
           min="1"
           step="1"
           outlined
           dense
           hide-details
-          @change="updateMinDocCount" />
+          @input="updateMinDocCount" />
+        <div
+          v-if="!validThreshold"
+          class="text-subtitle error--text mt-1">
+          {{ $t('analytics.threshold.minValueError') }}
+        </div>
       </div>
     </template>
   </div>
@@ -142,6 +148,10 @@ export default {
     yAxisAggregationGroupBy() {
       return this.aggregationType === 'GROUP_BY';
     },
+    validThreshold() {
+      return !this.yAxisAggregationGroupBy
+        || this.$analyticsUtils.isValidThreshold(this.yAxisAggregation && this.yAxisAggregation.minDocCount);
+    },
   },
   watch: {
     yAxisAggregationCount() {
@@ -150,7 +160,7 @@ export default {
     aggregationType() {
       this.yAxisAggregation.type = this.aggregationType;
       if (this.yAxisAggregationGroupBy) {
-        this.ensureValidThreshold();
+        this.initThreshold();
       }
     },
   },
@@ -160,17 +170,26 @@ export default {
     } else {
       this.aggregationType = 'COUNT';
     }
-    this.ensureValidThreshold();
+    this.initThreshold();
   },
   methods: {
-    ensureValidThreshold() {
-      if (!this.yAxisAggregation.minDocCount || this.yAxisAggregation.minDocCount < 1) {
-        this.yAxisAggregation.minDocCount = 1; // NOSONAR mutating the shared settings object passed by the parent is this form's established pattern (see yAxisAggregation.field above)
+    // Seeds a default for a threshold the user has not typed yet. An invalid value the
+    // user *did* type is never rewritten here: it stays on screen and blocks the save
+    // (validThreshold above, and the drawer's disabled save CTA).
+    // $set keeps the key reactive so the parent drawer sees the edits.
+    initThreshold() {
+      if (!this.yAxisAggregation) {
+        return;
       }
+      const threshold = this.yAxisAggregation.minDocCount;
+      const value = this.$analyticsUtils.isValidThreshold(threshold) ? Number(threshold) : 1;
+      this.$set(this.yAxisAggregation, 'minDocCount', value); // NOSONAR mutating the shared settings object passed by the parent is this form's established pattern (see yAxisAggregation.field above)
     },
     updateMinDocCount(value) {
-      this.yAxisAggregation.minDocCount = Number(value) || 0; // NOSONAR same established pattern as above
-      this.ensureValidThreshold();
+      // Keep what the user typed, an emptied field included: coercing it here would
+      // display one threshold and save another.
+      const threshold = value === '' || value === null ? null : Number(value);
+      this.$set(this.yAxisAggregation, 'minDocCount', threshold); // NOSONAR same established pattern as above
     },
   },
 };

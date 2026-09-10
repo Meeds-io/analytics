@@ -1,7 +1,7 @@
 /**
  * This file is part of the Meeds project (https://meeds.io/).
  *
- * Copyright (C) 2020 - 2024 Meeds Association contact@meeds.io
+ * Copyright (C) 2020 - 2026 Meeds Association contact@meeds.io
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -20,6 +20,7 @@
 package io.meeds.analytics.model.filter.aggregation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
@@ -30,9 +31,9 @@ class AnalyticsAggregationTest {
   void testGroupByTypeProperties() {
     assertEquals("terms", AnalyticsAggregationType.GROUP_BY.getAggName());
     assertTrue(AnalyticsAggregationType.GROUP_BY.isNumericResult());
-    assertTrue(!AnalyticsAggregationType.GROUP_BY.isUseInterval());
-    assertTrue(!AnalyticsAggregationType.GROUP_BY.isUseSort());
-    assertTrue(!AnalyticsAggregationType.GROUP_BY.isUseLimit());
+    assertFalse(AnalyticsAggregationType.GROUP_BY.isUseInterval());
+    assertFalse(AnalyticsAggregationType.GROUP_BY.isUseSort());
+    assertFalse(AnalyticsAggregationType.GROUP_BY.isUseLimit());
   }
 
   @Test
