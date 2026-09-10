@@ -77,10 +77,13 @@ export default {
       return !this.loading && (this.space?.displayName || this.$t('analytics.spacesListWidget.hiddenSpace'));
     },
     url() {
-      // Every listed space is a link, member or not (PO decision on EXO-89465):
-      // a non-member lands on the space access page, which offers to join,
-      // to request to join, or says the space is invite-only depending on its
-      // registration. Hidden spaces the viewer is not in are never listed.
+      // Every listed space is a link, member or not: a non-member lands on the
+      // space access page, which offers to join, to request to join, or says
+      // the space is invite-only depending on its registration. Hidden spaces
+      // the viewer is not in are never listed. Source: review round 1 of
+      // Meeds-io/analytics#446 (eXIP 7.3.0.18 rationale, "discover other
+      // spaces they can access"); PO confirmation pending on board story US02
+      // (task 89466), whose validated rendering predates this link.
       return this.space?.id && `${eXo.env.portal.context}/s/${this.space.id}` || null;
     },
   },
