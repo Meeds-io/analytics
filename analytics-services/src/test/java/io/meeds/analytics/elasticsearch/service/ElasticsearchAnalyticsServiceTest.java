@@ -1,7 +1,7 @@
 /**
  * This file is part of the Meeds project (https://meeds.io/).
  *
- * Copyright (C) 2020 - 2024 Meeds Association contact@meeds.io
+ * Copyright (C) 2020 - 2026 Meeds Association contact@meeds.io
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -19,7 +19,9 @@
  */
 package io.meeds.analytics.elasticsearch.service;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
@@ -28,6 +30,7 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -76,6 +79,24 @@ class ElasticsearchAnalyticsServiceTest {
     return filter;
   }
 
+  /**
+   * The Elasticsearch request body is assembled by hand, as text blocks
+   * concatenated across several append* methods: a misplaced brace or comma
+   * yields a body that every contains() assertion below still accepts, and
+   * that only a real Elasticsearch rejects. Parsing it here runs the query
+   * through the grammar it must satisfy, which is what a unit suite can
+   * check without a running cluster. It does not prove Elasticsearch accepts
+   * the aggregation semantics: that still needs a run against a real index.
+   */
+  private String captureGeneratedQuery() {
+    ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
+    verify(elasticsearchStorage).search(queryCaptor.capture());
+    String generatedQuery = queryCaptor.getValue();
+    assertDoesNotThrow(() -> new JSONObject(generatedQuery),
+                       () -> "The generated Elasticsearch query must be well-formed JSON, but was:\n" + generatedQuery);
+    return generatedQuery;
+  }
+
   private String cannedResponse(int groupByCount) {
     return """
         {
@@ -104,9 +125,7 @@ class ElasticsearchAnalyticsServiceTest {
     AnalyticsFilter filter = newGroupByFilter(5);
     ChartDataList chartDataList = elasticsearchAnalyticsService.computeChartData(filter);
 
-    ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
-    verify(elasticsearchStorage).search(queryCaptor.capture());
-    String generatedQuery = queryCaptor.getValue();
+    String generatedQuery = captureGeneratedQuery();
 
     assertTrue(generatedQuery.contains("\"aggregation_group_by\""),
               "Query should contain the terms sub-aggregation for the distinct field");
@@ -132,14 +151,12 @@ class ElasticsearchAnalyticsServiceTest {
     AnalyticsFilter filter = newGroupByFilter(0);
     elasticsearchAnalyticsService.computeChartData(filter);
 
-    ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
-    verify(elasticsearchStorage).search(queryCaptor.capture());
-    String generatedQuery = queryCaptor.getValue();
+    String generatedQuery = captureGeneratedQuery();
 
     assertTrue(generatedQuery.contains("\"min_doc_count\": 1"),
-              "A minDocCount <= 0 must be floored to 1, never sent as 0 or omitted");
-    assertTrue(!generatedQuery.contains("\"min_doc_count\": 0"),
-              "min_doc_count must never be 0 (would scan every empty bucket)");
+               "A minDocCount <= 0 must be floored to 1, never sent as 0 or omitted");
+    assertFalse(generatedQuery.contains("\"min_doc_count\": 0"),
+                "min_doc_count must never be 0 (would scan every empty bucket)");
   }
 
   @Test
@@ -163,12 +180,10 @@ class ElasticsearchAnalyticsServiceTest {
 
     elasticsearchAnalyticsService.computeChartData(filter);
 
-    ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
-    verify(elasticsearchStorage).search(queryCaptor.capture());
-    String generatedQuery = queryCaptor.getValue();
+    String generatedQuery = captureGeneratedQuery();
 
-    assertTrue(!generatedQuery.contains("\"order\": {\"aggregation_result_value"),
-              "Terms aggregation must not be ordered by the GROUP_BY pipeline aggregation");
+    assertFalse(generatedQuery.contains("\"order\": {\"aggregation_result_value"),
+                "Terms aggregation must not be ordered by the GROUP_BY pipeline aggregation");
   }
 
 }
