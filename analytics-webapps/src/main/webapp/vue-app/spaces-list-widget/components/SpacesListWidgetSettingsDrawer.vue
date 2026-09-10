@@ -31,7 +31,7 @@
       {{ profileMode ? $t('analytics.spacesListWidgetSettings.profileTitle') : $t('analytics.spacesListWidgetSettings.title') }}
     </template>
     <template v-if="drawer" #content>
-      <div v-if="!profileMode" class="d-flex flex-column pa-5">
+      <div class="d-flex flex-column pa-5">
         <translation-text-field
           ref="headerTitleInput"
           id="headerTitleInput"

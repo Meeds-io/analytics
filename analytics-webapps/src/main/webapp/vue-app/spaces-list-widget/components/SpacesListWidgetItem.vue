@@ -38,7 +38,11 @@
     <v-list-item-content
       :id="id"
       class="pa-0">
-      <v-list-item-title class="text-color text-truncate-2 text-wrap spaceTitle">
+      <!-- US05 design: in the profile-mode drawer the space name is bold in
+           the primary color; the theme helpers do it without portlet CSS -->
+      <v-list-item-title
+        :class="emphasized ? 'primary--text font-weight-bold' : 'text-color'"
+        class="text-truncate-2 text-wrap spaceTitle">
         {{ displayName }}
       </v-list-item-title>
     </v-list-item-content>
@@ -55,6 +59,10 @@ export default {
       type: Object,
       default: () => null,
     },
+    emphasized: {
+      type: Boolean,
+      default: false,
+    },
   },
   data: () => ({
     space: null,
@@ -69,12 +77,10 @@ export default {
       return !this.loading && (this.space?.displayName || this.$t('analytics.spacesListWidget.hiddenSpace'));
     },
     url() {
-      // A space handed over by the profile listing carries whether the viewer
-      // is a member of it: a private space the viewer cannot open is listed
-      // as plain text, without an access link (spec, PRIVATE vs HIDDEN)
-      if (this.providedSpace && this.providedSpace.member === false) {
-        return null;
-      }
+      // Every listed space is a link, member or not (PO decision on EXO-89465):
+      // a non-member lands on the space access page, which offers to join,
+      // to request to join, or says the space is invite-only depending on its
+      // registration. Hidden spaces the viewer is not in are never listed.
       return this.space?.id && `${eXo.env.portal.context}/s/${this.space.id}` || null;
     },
   },
