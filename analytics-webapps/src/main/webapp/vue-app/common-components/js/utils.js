@@ -19,6 +19,19 @@
  */
 export const USER_TIMEZONE_ID = new window.Intl.DateTimeFormat().resolvedOptions().timeZone;
 
+/**
+ * A GROUP_BY aggregation threshold is a minimum number of occurrences: only a whole
+ * number greater than or equal to 1 is meaningful, and the backend field it feeds
+ * (AnalyticsAggregation.minDocCount) is a long.
+ *
+ * @param {Number|String} threshold the threshold to check, as typed in the settings form
+ * @returns {Boolean} true when the threshold is a whole number greater than or equal to 1
+ */
+export function isValidThreshold(threshold) {
+  const value = Number(threshold);
+  return Number.isInteger(value) && value >= 1;
+}
+
 export function loadUser(users, userId) {
   if (!userId) {
     return Promise.resolve(null);

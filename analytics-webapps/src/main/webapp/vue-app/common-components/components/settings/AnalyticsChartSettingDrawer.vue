@@ -178,7 +178,10 @@
         <button class="btn ignore-vuetify-classes me-1" @click="close">
           {{ $t('analytics.close') }}
         </button>
-        <button class="btn btn-primary ignore-vuetify-classes ms-1" @click="save">
+        <button
+          :disabled="!validThreshold"
+          class="btn btn-primary ignore-vuetify-classes ms-1"
+          @click="save">
           {{ $t('analytics.save') }}
         </button>
       </div>
@@ -243,6 +246,14 @@ export default {
     },
     isPercentageBar() {
       return this.chartType === 'percentageBar' || this.chartType=== 'percentage';
+    },
+    validThreshold() {
+      // The GROUP_BY threshold is only offered on the standard Y axis tab (show-group-by),
+      // which the percentage bar / percentage chart types do not display.
+      const aggregation = !this.isPercentageBar && this.chartSettings && this.chartSettings.yAxisAggregation;
+      return !aggregation
+        || aggregation.type !== 'GROUP_BY'
+        || this.$analyticsUtils.isValidThreshold(aggregation.minDocCount);
     },
     isMultipleColors() {
       return this.chartSettings && (this.chartSettings.multipleChartsField
@@ -388,6 +399,9 @@ export default {
       };
     },
     save() {
+      if (!this.validThreshold) {
+        return;
+      }
       this.chartSettings.title = JSON.stringify(this.titleTranslations);
       this.$emit('save', this.chartSettings);
       this.dialog = false;
