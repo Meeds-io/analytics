@@ -43,7 +43,8 @@
     <template slot="content">
       <div
         v-if="drawerOpened"
-        class="d-flex align-center px-4 py-3 analyticsSamplesDateFilter">
+        class="d-flex flex-column px-4 py-3 analyticsSamplesDateFilter">
+        <span class="text-subtitle mb-1">{{ $t('analytics.selectPeriod') }}</span>
         <analytics-period-picker
           :period="localPeriod"
           attach
