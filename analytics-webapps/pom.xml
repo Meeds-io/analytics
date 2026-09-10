@@ -28,6 +28,12 @@
   <artifactId>analytics-webapps</artifactId>
   <packaging>war</packaging>
   <name>Meeds:: Analytics - Application</name>
+  <properties>
+    <!-- Same as analytics-api and analytics-services: the parent defaults
+         this gate to 1.0, so jacoco:check fails any module that has tests
+         at all without covering every instruction. -->
+    <exo.test.coverage.ratio>0</exo.test.coverage.ratio>
+  </properties>
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
