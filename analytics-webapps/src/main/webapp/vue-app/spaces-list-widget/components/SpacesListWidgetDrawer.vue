@@ -46,13 +46,15 @@
       <!-- Flex column over the drawer's full content height so the empty
            state below can take the room left under the tabs and center in it -->
       <div class="d-flex flex-column fill-height">
-        <!-- US06 design: the two tabs split the drawer width evenly (grow),
-             active tab and slider in the tertiary theme color; label size and
-             the inactive grey come from the platform-ui text helpers -->
+        <!-- US06 design: the two tabs split the drawer width evenly (grow).
+             The active tab and the slider take the colour the shared skin
+             gives every v-tabs (platform-ui vuetify-all.less forces the
+             secondary colour with !important on .v-tab--active and
+             .v-tabs-slider, so a color prop here would be inert); label size
+             and the inactive grey come from the platform-ui text helpers -->
         <v-tabs
           v-if="profileMode && !singleTab"
           v-model="tabName"
-          color="tertiary"
           class="flex-grow-0"
           grow
           slider-size="4">
