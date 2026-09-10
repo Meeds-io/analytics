@@ -464,6 +464,35 @@ public abstract class AbstractAnalyticsPortlet<T> extends GenericPortlet {
    *         when this bucket has no faithful date representation and the
    *         caller should fall back to the textual label
    */
+  /**
+   * Writes an epoch-milliseconds value as a real date-time cell.
+   * <p>
+   * Used for a column aggregating a date *field* (a MAX over a "last
+   * connection" field, say): the aggregation type is MAX, not DATE, so it is
+   * not a date histogram and has no interval — but its value is still an
+   * instant, and written as a plain number it reaches the reader as
+   * 1.75941E+12.
+   *
+   * @return {@code true} when the cell was written as a date, {@code false}
+   *         when the value is not epoch millis and the caller should fall
+   *         back
+   */
+  protected boolean writeTimestampCell(Cell cell, String value, ZoneId zoneId, Map<String, CellStyle> styles) {
+    long timestamp;
+    try {
+      timestamp = Long.parseLong(StringUtils.trim(value));
+    } catch (NumberFormatException e) {
+      return false;
+    }
+    if (timestamp <= 0) {
+      // A "never connected" style zero is not a date, and would export as
+      // 1 January 1970
+      return false;
+    }
+    writeDateValue(cell, timestamp, zoneId, styles, "yyyy-mm-dd hh:mm");
+    return true;
+  }
+
   protected boolean writeDateCell(Cell cell,
                                   AnalyticsAggregation aggregation,
                                   String key,
@@ -485,6 +514,11 @@ public abstract class AbstractAnalyticsPortlet<T> extends GenericPortlet {
       LOG.debug("Analytics export: bucket key '{}' is not a timestamp, exporting its label instead", key, e);
       return false;
     }
+    writeDateValue(cell, timestamp, zoneId, styles, excelFormat);
+    return true;
+  }
+
+  private void writeDateValue(Cell cell, long timestamp, ZoneId zoneId, Map<String, CellStyle> styles, String excelFormat) {
     Workbook workbook = cell.getSheet().getWorkbook();
     CellStyle style = styles.computeIfAbsent(excelFormat, format -> {
       CellStyle createdStyle = workbook.createCellStyle();
@@ -497,7 +531,6 @@ public abstract class AbstractAnalyticsPortlet<T> extends GenericPortlet {
     cell.setCellValue(LocalDateTime.ofInstant(Instant.ofEpochMilli(timestamp),
                                               zoneId == null ? ZoneOffset.UTC : zoneId));
     cell.setCellStyle(style);
-    return true;
   }
 
   enum SearchScope {
