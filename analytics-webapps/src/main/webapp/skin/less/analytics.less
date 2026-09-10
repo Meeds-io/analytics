@@ -222,18 +222,27 @@
     position: relative;
     display: flex;
     align-items: center;
-    flex: 0 1 25%;
-    max-width: 25%;
     min-width: 40px;
-    overflow: hidden;
+  }
 
-    // Below the 25% budget, the date range text can't fit: a dedicated icon
-    // button (opening a self-contained menu, not the shared select-period
-    // widget - see the template comment) replaces the full-width input.
-    &.analytics-chart-period-selector-compact {
-      flex-basis: 40px;
-      max-width: 40px;
-      overflow: visible;
+  // The 25% budget belongs to the portlet headers the picker shares with a
+  // title and an action menu, not to the picker itself: in the samples
+  // drawer the same component gets the room it needs.
+  .analytics-chart-header,
+  .analytics-table-header {
+    > .analytics-chart-period-selector {
+      flex: 0 1 25%;
+      max-width: 25%;
+      overflow: hidden;
+
+      // Below the 25% budget, the date range text can't fit: a dedicated icon
+      // button (opening a self-contained menu, not the shared select-period
+      // widget - see the template comment) replaces the full-width input.
+      &.analytics-chart-period-selector-compact {
+        flex-basis: 40px;
+        max-width: 40px;
+        overflow: visible;
+      }
     }
   }
 
@@ -511,11 +520,17 @@
 }
 
 .analytics-compact-period-times {
-  flex-wrap: nowrap !important;
-  white-space: nowrap;
+  // One row per bound. Nothing is kept on a single nowrap line any more:
+  // that is what pushed the leading label out of the menu's fixed width.
+  .analytics-compact-period-time-label {
+    // Label column wide enough to align both rows' dates under each other,
+    // free to grow for a longer translation
+    min-width: 40px;
+    flex: 0 0 auto;
+  }
 
   .analytics-date-time-selection {
-    width: 80px;
+    width: auto;
     flex-shrink: 0;
   }
 }
