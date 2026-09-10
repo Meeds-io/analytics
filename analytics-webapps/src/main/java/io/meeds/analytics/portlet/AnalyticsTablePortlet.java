@@ -41,6 +41,7 @@ import javax.ws.rs.core.MediaType;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -349,8 +350,7 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
         headerRow.createCell(col).setCellValue(resolveLabel(columns.get(col).getTitle(), request));
       }
 
-      ZoneId zoneId = tableFilter.zoneId();
-      String lang = request.getParameter("lang");
+      ExportFormatting formatting = new ExportFormatting(tableFilter.zoneId(), request.getParameter("lang"), new HashMap<>());
       for (int rowIndex = 0; rowIndex < rowKeys.size(); rowIndex++) {
         String key = rowKeys.get(rowIndex);
         Row row = sheet.createRow(rowIndex + 1);
@@ -360,15 +360,14 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
                    columnItemsByKey.get(col) == null ? null : columnItemsByKey.get(col).get(key),
                    identityByKey.get(key),
                    spaceByKey.get(key),
-                   zoneId,
-                   lang);
+                   formatting);
         }
       }
       for (int col = 0; col < columns.size(); col++) {
         sheet.autoSizeColumn(col);
       }
 
-      response.setContentType("application/vnd.ms-excel");
+      response.setContentType(XLSX_CONTENT_TYPE);
       response.addProperty("Content-Disposition", "attachment; filename=" + buildFileName(tableFilter) + ".xlsx");
       try (OutputStream outputStream = response.getPortletOutputStream()) {
         workbook.write(outputStream);
@@ -425,13 +424,20 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
     return type == AnalyticsAggregationType.TERMS && (StringUtils.equals(field, "userId") || StringUtils.equals(field, "spaceId"));
   }
 
+  /**
+   * What every exported cell needs beyond its own value: the time zone the
+   * buckets were aligned on, the language its labels are resolved in, and
+   * the workbook-wide cache of date cell styles.
+   */
+  private record ExportFormatting(ZoneId zoneId, String lang, Map<String, CellStyle> dateStyles) {
+  }
+
   private void writeCell(Cell cell,
                          AnalyticsTableColumnFilter columnFilter,
                          TableColumnItemValue item,
                          Identity rowIdentity,
                          Space rowSpace,
-                         ZoneId zoneId,
-                         String lang) {
+                         ExportFormatting formatting) {
     if (StringUtils.isNotBlank(columnFilter.getUserField())) {
       cell.setCellValue(rowIdentity == null || rowIdentity.getProfile() == null ? "" :
                         String.valueOf(rowIdentity.getProfile().getProperty(columnFilter.getUserField())));
@@ -447,7 +453,11 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
     AnalyticsAggregation aggregation = columnFilter.getValueAggregation().getAggregation();
     String rawValue = String.valueOf(item.getValue());
     if (aggregation.getType() == AnalyticsAggregationType.DATE) {
-      cell.setCellValue(aggregation.getLabel(String.valueOf(item.getKey()), zoneId, lang));
+      // A real date cell where the interval allows one, so the column sorts
+      // and filters chronologically instead of alphabetically
+      if (!writeDateCell(cell, aggregation, String.valueOf(item.getKey()), formatting.zoneId(), formatting.dateStyles())) {
+        cell.setCellValue(aggregation.getLabel(String.valueOf(item.getKey()), formatting.zoneId(), formatting.lang()));
+      }
     } else if (isIdentityAggregation(aggregation.getField(), aggregation.getType())) {
       cell.setCellValue(StringUtils.equals(aggregation.getField(), "spaceId") ? spaceFieldValue(rowSpace, "displayName")
                                                                               : (rowIdentity == null || rowIdentity.getProfile() == null ? rawValue
