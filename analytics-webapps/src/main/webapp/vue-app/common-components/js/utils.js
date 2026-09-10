@@ -32,6 +32,61 @@ export function isValidThreshold(threshold) {
   return Number.isInteger(value) && value >= 1;
 }
 
+/**
+ * Resolves one of the period shortcuts offered by the period picker into the
+ * date range it covers, never running past today (analytics has no data in
+ * the future, and an end bound beyond today makes the chart draw an empty
+ * tail).
+ *
+ * @param {String} periodName one of today, thisWeek, thisMonth, thisQuarter,
+ *          thisSemester, thisYear
+ * @returns {Object} {from, to} Dates, or null for an unknown period name
+ */
+export function computePeriodDateRange(periodName) {
+  const today = new Date();
+  let from;
+  let to;
+  switch (periodName) {
+  case 'today':
+    from = today;
+    to = today;
+    break;
+  case 'thisWeek': {
+    const day = today.getDay();
+    const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+    from = new Date(new Date().setDate(diff));
+    to = new Date(new Date(from).setDate(from.getDate() + 6));
+    break;
+  }
+  case 'thisMonth':
+    from = new Date(today.getFullYear(), today.getMonth(), 1);
+    to = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    break;
+  case 'thisQuarter': {
+    const quarter = Math.floor(today.getMonth() / 3);
+    from = new Date(today.getFullYear(), quarter * 3, 1);
+    to = new Date(today.getFullYear(), quarter * 3 + 3, 0);
+    break;
+  }
+  case 'thisSemester': {
+    const semester = Math.floor(today.getMonth() / 6);
+    from = new Date(today.getFullYear(), semester * 6, 1);
+    to = new Date(today.getFullYear(), semester * 6 + 6, 0);
+    break;
+  }
+  case 'thisYear':
+    from = new Date(today.getFullYear(), 0, 1);
+    to = new Date(today.getFullYear(), 11, 31);
+    break;
+  default:
+    return null;
+  }
+  if (to > today) {
+    to = today;
+  }
+  return {from, to};
+}
+
 export function loadUser(users, userId) {
   if (!userId) {
     return Promise.resolve(null);
