@@ -23,11 +23,14 @@ import static io.meeds.analytics.utils.AnalyticsUtils.convertFieldName;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.portlet.PortletException;
@@ -37,6 +40,8 @@ import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -45,11 +50,14 @@ import org.json.JSONObject;
 
 import io.meeds.analytics.model.StatisticData;
 import io.meeds.analytics.model.StatisticFieldMapping;
+import io.meeds.analytics.model.chart.ChartAggregationLabel;
 import io.meeds.analytics.model.chart.ChartAggregationResult;
+import io.meeds.analytics.model.chart.ChartAggregationValue;
 import io.meeds.analytics.model.chart.ChartData;
 import io.meeds.analytics.model.chart.ChartDataList;
 import io.meeds.analytics.model.filter.AnalyticsFilter;
 import io.meeds.analytics.model.filter.aggregation.AnalyticsAggregation;
+import io.meeds.analytics.model.filter.aggregation.AnalyticsAggregationType;
 import io.meeds.analytics.model.filter.search.AnalyticsFieldFilter;
 import io.meeds.analytics.utils.AnalyticsUtils;
 
@@ -138,12 +146,12 @@ public class AnalyticsPortlet extends AbstractAnalyticsPortlet<AnalyticsFilter> 
     try (XSSFWorkbook workbook = new XSSFWorkbook()) {
       Sheet sheet = workbook.createSheet(english ? "Chart" : "Graphique");
       int columnsCount = pie ? writePieSheet(sheet, chartDataList, english)
-                             : writeSeriesSheet(sheet, chartDataList, english, getXAxisFieldName(filter));
+                             : writeSeriesSheet(sheet, chartDataList, english, getXAxisFieldName(filter), filter.zoneId());
       for (int i = 0; i < columnsCount; i++) {
         sheet.autoSizeColumn(i);
       }
 
-      response.setContentType("application/vnd.ms-excel");
+      response.setContentType(XLSX_CONTENT_TYPE);
       response.addProperty("Content-Disposition", "attachment; filename=" + buildFileName(filter) + ".xlsx");
       try (OutputStream outputStream = response.getPortletOutputStream()) {
         workbook.write(outputStream);
@@ -155,11 +163,20 @@ public class AnalyticsPortlet extends AbstractAnalyticsPortlet<AnalyticsFilter> 
    * Writes one row per x-axis category (as displayed on the chart), one
    * column per series, mirroring the data actually shown on a line/bar/area
    * chart rather than the raw collected samples.
+   * <p>
+   * A category produced by a date histogram is written as a real date cell
+   * rather than as the label the chart draws, so the sheet can be sorted and
+   * filtered chronologically (see
+   * {@link AbstractAnalyticsPortlet#writeDateCell}).
    *
    * @return the number of columns written, for later auto-sizing
    */
-  private int writeSeriesSheet(Sheet sheet, ChartDataList chartDataList, boolean english, String xAxisFieldName) {
-    List<String> labels = chartDataList.getLabels();
+  private int writeSeriesSheet(Sheet sheet,
+                               ChartDataList chartDataList,
+                               boolean english,
+                               String xAxisFieldName,
+                               ZoneId zoneId) {
+    List<ChartAggregationLabel> aggregationLabels = new ArrayList<>(chartDataList.getAggregationLabels());
     List<ChartData> charts = new ArrayList<>(chartDataList.getCharts());
 
     String xAxisHeader = StringUtils.isBlank(xAxisFieldName) ? categoryLabel(english) : xAxisFieldName;
@@ -169,15 +186,38 @@ public class AnalyticsPortlet extends AbstractAnalyticsPortlet<AnalyticsFilter> 
       headerRow.createCell(col + 1).setCellValue(seriesLabel(charts.get(col).getChartLabel(), english));
     }
 
-    for (int rowIndex = 0; rowIndex < labels.size(); rowIndex++) {
+    Map<String, CellStyle> dateStyles = new HashMap<>();
+    for (int rowIndex = 0; rowIndex < aggregationLabels.size(); rowIndex++) {
       Row row = sheet.createRow(rowIndex + 1);
-      row.createCell(0).setCellValue(labels.get(rowIndex));
+      writeCategoryCell(row.createCell(0), aggregationLabels.get(rowIndex), zoneId, dateStyles);
       for (int col = 0; col < charts.size(); col++) {
         List<String> values = charts.get(col).getValues();
         row.createCell(col + 1).setCellValue(rowIndex < values.size() ? parseDouble(values.get(rowIndex)) : 0d);
       }
     }
     return charts.size() + 1;
+  }
+
+  /**
+   * Writes one x-axis category, as a date cell when it is a single date
+   * bucket and as its label otherwise. A category aggregated on several
+   * x-axis fields at once carries a composite label ("date - space"), which
+   * only a text cell can hold.
+   */
+  private void writeCategoryCell(Cell cell,
+                                 ChartAggregationLabel aggregationLabel,
+                                 ZoneId zoneId,
+                                 Map<String, CellStyle> dateStyles) {
+    List<ChartAggregationValue> aggregationValues = aggregationLabel.getAggregationValues();
+    if (aggregationValues != null && aggregationValues.size() == 1) {
+      ChartAggregationValue aggregationValue = aggregationValues.get(0);
+      if (aggregationValue.getAggregation() != null
+          && aggregationValue.getAggregation().getType() == AnalyticsAggregationType.DATE
+          && writeDateCell(cell, aggregationValue.getAggregation(), aggregationValue.getFieldValue(), zoneId, dateStyles)) {
+        return;
+      }
+    }
+    cell.setCellValue(aggregationLabel.getLabel());
   }
 
   /**

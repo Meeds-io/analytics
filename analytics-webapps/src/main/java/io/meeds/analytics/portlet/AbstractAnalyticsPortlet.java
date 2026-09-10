@@ -20,6 +20,9 @@
 package io.meeds.analytics.portlet;
 
 import java.io.IOException;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.*;
 
@@ -27,6 +30,9 @@ import javax.portlet.*;
 import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.json.*;
 
 import org.exoplatform.commons.utils.CommonsUtils;
@@ -68,6 +74,15 @@ public abstract class AbstractAnalyticsPortlet<T> extends GenericPortlet {
   private static final String READ_FIELD_VALUES_OPERATION = "GET_FIELD_VALUES";
 
   private static final String EXPORT_EXCEL_OPERATION      = "EXPORT_EXCEL";
+
+  /**
+   * Both exports write an OOXML workbook (XSSF, ".xlsx"). Declaring the
+   * legacy "application/vnd.ms-excel" type of the binary ".xls" format makes
+   * Excel greet the download with a "the file format and the extension don't
+   * match" warning before opening it.
+   */
+  protected static final String XLSX_CONTENT_TYPE         =
+                                                  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
   private SpaceService        spaceService;
 
@@ -395,6 +410,94 @@ public abstract class AbstractAnalyticsPortlet<T> extends GenericPortlet {
       LOG.debug("Error while cloning object. Returning original one.", e);
       return filter;
     }
+  }
+
+  /**
+   * Excel number format per date-histogram interval, for the intervals a
+   * spreadsheet can render faithfully from a real date value.
+   * <p>
+   * The day format is Excel's builtin "m/d/yy" (format index 14), which
+   * Excel renders using the *reader's* own short-date convention rather
+   * than the literal pattern, so a French and an English reader each see
+   * their own. The coarser ones spell out a pattern because no locale-aware
+   * builtin exists for them.
+   * <p>
+   * Absent on purpose: quarter and ISO-week (no faithful spreadsheet format
+   * token — a real date value would display as its first day, losing the
+   * "Q3 2026" / "W37-2026" the chart shows) and hour, whose bucket key is an
+   * hour of day (0-23) cumulated over the period, not an instant. Those keep
+   * the textual label.
+   */
+  private static final Map<String, String> EXCEL_DATE_FORMATS = Map.of(AnalyticsAggregation.YEAR_INTERVAL,
+                                                                       "yyyy",
+                                                                       AnalyticsAggregation.MONTH_INTERVAL,
+                                                                       "mmm yyyy",
+                                                                       AnalyticsAggregation.DAY_INTERVAL,
+                                                                       "m/d/yy",
+                                                                       AnalyticsAggregation.MINUTE_INTERVAL,
+                                                                       "yyyy-mm-dd hh:mm",
+                                                                       AnalyticsAggregation.SECOND_INTERVAL,
+                                                                       "yyyy-mm-dd hh:mm:ss");
+
+  /**
+   * Writes a date bucket as a real date-typed cell instead of the localized
+   * label the chart displays.
+   * <p>
+   * A label such as "1 sept. 2026" written as text is only a picture of a
+   * date to a spreadsheet: it cannot be sorted chronologically (it sorts
+   * lexicographically, so "10 août" lands before "1 sept."), filtered by
+   * period, or fed to a date formula, and no cell formatting recovers it
+   * because the underlying value is a string. A date-typed cell carries the
+   * instant itself and each reader's Excel renders it in their own locale.
+   *
+   * @param cell        cell to write
+   * @param aggregation the aggregation the bucket belongs to
+   * @param key         the raw bucket key, epoch milliseconds for a date
+   *                      histogram
+   * @param zoneId      time zone the buckets were aligned on, so the written
+   *                      wall-clock date is the one the chart shows
+   * @param styles      per-workbook cache of the created cell styles: a
+   *                      workbook holds a bounded number of them, so one per
+   *                      cell would both bloat the file and eventually hit
+   *                      that limit
+   * @return {@code true} when the cell was written as a date, {@code false}
+   *         when this bucket has no faithful date representation and the
+   *         caller should fall back to the textual label
+   */
+  protected boolean writeDateCell(Cell cell,
+                                  AnalyticsAggregation aggregation,
+                                  String key,
+                                  ZoneId zoneId,
+                                  Map<String, CellStyle> styles) {
+    if (aggregation == null || StringUtils.isBlank(key)) {
+      return false;
+    }
+    String excelFormat = EXCEL_DATE_FORMATS.get(aggregation.getInterval());
+    if (excelFormat == null) {
+      return false;
+    }
+    long timestamp;
+    try {
+      timestamp = Long.parseLong(key);
+    } catch (NumberFormatException e) {
+      // Not an epoch-millis bucket key after all: the textual label is the
+      // only representation left
+      LOG.debug("Analytics export: bucket key '{}' is not a timestamp, exporting its label instead", key, e);
+      return false;
+    }
+    Workbook workbook = cell.getSheet().getWorkbook();
+    CellStyle style = styles.computeIfAbsent(excelFormat, format -> {
+      CellStyle createdStyle = workbook.createCellStyle();
+      createdStyle.setDataFormat(workbook.createDataFormat().getFormat(format));
+      return createdStyle;
+    });
+    // setCellValue(LocalDateTime) writes the wall-clock value as-is, unlike
+    // the Date overload which would re-read it through the server's default
+    // time zone
+    cell.setCellValue(LocalDateTime.ofInstant(Instant.ofEpochMilli(timestamp),
+                                              zoneId == null ? ZoneOffset.UTC : zoneId));
+    cell.setCellStyle(style);
+    return true;
   }
 
   enum SearchScope {
