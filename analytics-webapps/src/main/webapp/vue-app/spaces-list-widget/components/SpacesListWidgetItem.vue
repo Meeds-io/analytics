@@ -38,7 +38,11 @@
     <v-list-item-content
       :id="id"
       class="pa-0">
-      <v-list-item-title class="text-color text-truncate-2 text-wrap spaceTitle">
+      <!-- US05 design: in the profile-mode drawer the space name is bold in
+           the primary color; the theme helpers do it without portlet CSS -->
+      <v-list-item-title
+        :class="emphasized ? 'primary--text font-weight-bold' : 'text-color'"
+        class="text-truncate-2 text-wrap spaceTitle">
         {{ displayName }}
       </v-list-item-title>
     </v-list-item-content>
@@ -50,6 +54,14 @@ export default {
     spaceId: {
       type: String,
       default: () => null,
+    },
+    providedSpace: {
+      type: Object,
+      default: () => null,
+    },
+    emphasized: {
+      type: Boolean,
+      default: false,
     },
   },
   data: () => ({
@@ -65,10 +77,21 @@ export default {
       return !this.loading && (this.space?.displayName || this.$t('analytics.spacesListWidget.hiddenSpace'));
     },
     url() {
+      // Every listed space is a link, member or not: a non-member lands on the
+      // space access page, which offers to join, to request to join, or says
+      // the space is invite-only depending on its registration. Hidden spaces
+      // the viewer is not in are never listed. Source: review round 1 of
+      // Meeds-io/analytics#446 (eXIP 7.3.0.18 rationale, "discover other
+      // spaces they can access"); PO confirmation pending on board story US02
+      // (task 89466), whose validated rendering predates this link.
       return this.space?.id && `${eXo.env.portal.context}/s/${this.space.id}` || null;
     },
   },
   created() {
+    if (this.providedSpace) {
+      this.space = this.providedSpace;
+      return;
+    }
     this.loading = true;
     this.$spaceService.getSpaceById(this.spaceId)
       .then(space => this.space = space)
