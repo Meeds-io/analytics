@@ -41,51 +41,16 @@
       </v-btn>
     </template>
     <template slot="content">
-      <v-row
+      <div
         v-if="drawerOpened"
-        justify="center"
-        class="ma-0 px-2 pt-2 flex-wrap analyticsSamplesDateFilter">
-        <v-text-field
-          v-model="fromDate"
-          :label="$t('analytics.from')"
-          :max="toDate"
-          type="date"
-          dense
-          outlined
-          hide-details
-          class="mx-1 mb-2 flex-grow-0"
-          style="max-width: 170px;"
+        class="d-flex flex-column px-4 py-3 analyticsSamplesDateFilter">
+        <span class="text-subtitle mb-1">{{ $t('analytics.selectPeriod') }}</span>
+        <analytics-period-picker
+          :period="localPeriod"
+          attach
           @change="applyDateFilter" />
-        <v-text-field
-          v-model="fromTime"
-          type="time"
-          dense
-          outlined
-          hide-details
-          class="mx-1 mb-2 flex-grow-0"
-          style="max-width: 120px;"
-          @change="applyDateFilter" />
-        <v-text-field
-          v-model="toDate"
-          :label="$t('analytics.toDate')"
-          :min="fromDate"
-          type="date"
-          dense
-          outlined
-          hide-details
-          class="mx-1 mb-2 flex-grow-0"
-          style="max-width: 170px;"
-          @change="applyDateFilter" />
-        <v-text-field
-          v-model="toTime"
-          type="time"
-          dense
-          outlined
-          hide-details
-          class="mx-1 mb-2 flex-grow-0"
-          style="max-width: 120px;"
-          @change="applyDateFilter" />
-      </v-row>
+      </div>
+      <v-divider />
       <v-row justify="center" class="ma-0 analyticsDrawerContent">
         <v-expansion-panels v-if="chartDatas" accordion>
           <analytics-sample-item
@@ -144,16 +109,9 @@ export default {
     sampleItemExtensions: {},
     // Independent from the chart's own period selector: filtering here must
     // only affect the samples listed in this drawer, never the chart itself.
+    // The picker is fed this copy and its changes come back through
+    // applyDateFilter, so the chart's selectedPeriod prop is never mutated.
     localPeriod: null,
-    // Plain native date inputs, not the shared select-period widget: that
-    // component recomputes its calendar from toLocaleDateString() (locale-
-    // dependent, e.g. "01/07/2026") whenever its dropdown reopens with an
-    // existing value, which the underlying Vuetify date-picker can't parse
-    // (it requires ISO yyyy-MM-dd) — a pre-existing bug, not introduced here.
-    fromDate: null,
-    toDate: null,
-    fromTime: '00:00',
-    toTime: '23:59',
     drawerOpened: false,
   }),
   watch: {
@@ -185,12 +143,6 @@ export default {
       // Own copy of the period: changing it must never mutate the parent
       // chart's selectedPeriod prop.
       this.localPeriod = this.selectedPeriod && {...this.selectedPeriod} || null;
-      const fromDate = this.localPeriod && new Date(this.localPeriod.min);
-      const toDate = this.localPeriod && new Date(this.localPeriod.max);
-      this.fromDate = fromDate && this.toIsoDate(fromDate) || null;
-      this.toDate = toDate && this.toIsoDate(toDate) || null;
-      this.fromTime = fromDate && this.toIsoTime(fromDate) || '00:00';
-      this.toTime = toDate && this.toIsoTime(toDate) || '23:59';
       this.drawerOpened = true;
       this.loadData();
     },
@@ -198,22 +150,11 @@ export default {
       this.drawerOpened = false;
       this.$emit('cancel');
     },
-    toIsoDate(date) {
-      const pad = n => `${n}`.padStart(2, '0');
-      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-    },
-    toIsoTime(date) {
-      const pad = n => `${n}`.padStart(2, '0');
-      return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
-    },
-    applyDateFilter() {
-      if (!this.fromDate || !this.toDate) {
+    applyDateFilter(period) {
+      if (!period) {
         return;
       }
-      this.localPeriod = {
-        min: new Date(`${this.fromDate}T${this.fromTime || '00:00'}:00`).getTime(),
-        max: new Date(`${this.toDate}T${this.toTime || '23:59'}:59.999`).getTime(),
-      };
+      this.localPeriod = period;
       this.limit = this.pageSize;
       this.loadData();
     },

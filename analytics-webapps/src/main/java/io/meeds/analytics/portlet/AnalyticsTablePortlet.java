@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.portlet.PortletException;
 import javax.portlet.ResourceRequest;
@@ -41,6 +42,7 @@ import javax.ws.rs.core.MediaType;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -349,8 +351,15 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
         headerRow.createCell(col).setCellValue(resolveLabel(columns.get(col).getTitle(), request));
       }
 
-      ZoneId zoneId = tableFilter.zoneId();
-      String lang = request.getParameter("lang");
+      Set<String> dateFields = getAnalyticsService().retrieveMapping(false)
+                                                    .stream()
+                                                    .filter(StatisticFieldMapping::isDate)
+                                                    .map(StatisticFieldMapping::getName)
+                                                    .collect(Collectors.toSet());
+      ExportFormatting formatting = new ExportFormatting(tableFilter.zoneId(),
+                                                         request.getParameter("lang"),
+                                                         new HashMap<>(),
+                                                         dateFields);
       for (int rowIndex = 0; rowIndex < rowKeys.size(); rowIndex++) {
         String key = rowKeys.get(rowIndex);
         Row row = sheet.createRow(rowIndex + 1);
@@ -360,15 +369,14 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
                    columnItemsByKey.get(col) == null ? null : columnItemsByKey.get(col).get(key),
                    identityByKey.get(key),
                    spaceByKey.get(key),
-                   zoneId,
-                   lang);
+                   formatting);
         }
       }
       for (int col = 0; col < columns.size(); col++) {
         sheet.autoSizeColumn(col);
       }
 
-      response.setContentType("application/vnd.ms-excel");
+      response.setContentType(XLSX_CONTENT_TYPE);
       response.addProperty("Content-Disposition", "attachment; filename=" + buildFileName(tableFilter) + ".xlsx");
       try (OutputStream outputStream = response.getPortletOutputStream()) {
         workbook.write(outputStream);
@@ -425,16 +433,46 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
     return type == AnalyticsAggregationType.TERMS && (StringUtils.equals(field, "userId") || StringUtils.equals(field, "spaceId"));
   }
 
+  /**
+   * What every exported cell needs beyond its own value: the time zone the
+   * buckets were aligned on, the language its labels are resolved in, and
+   * the workbook-wide cache of date cell styles.
+   */
+  record ExportFormatting(ZoneId zoneId, String lang, Map<String, CellStyle> dateStyles, Set<String> dateFields) {
+
+    boolean isDateField(String field) {
+      return field != null && dateFields.contains(StringUtils.removeEnd(field, ".keyword"));
+    }
+  }
+
+  /**
+   * Whether the column holds dates, using the same signal the table itself
+   * renders from: {@code dataType == "date"} makes AnalyticsTableCellValue
+   * display a &lt;date-format&gt;. The Elasticsearch mapping is only a
+   * fallback, for a column saved before the data type was recorded.
+   */
+  boolean isDateColumn(AnalyticsTableColumnFilter columnFilter, ExportFormatting formatting) {
+    if (StringUtils.equalsIgnoreCase(columnFilter.getDataType(), "date")) {
+      return true;
+    }
+    AnalyticsTableColumnAggregation valueAggregation = columnFilter.getValueAggregation();
+    return valueAggregation != null
+        && valueAggregation.getAggregation() != null
+        && formatting.isDateField(valueAggregation.getAggregation().getField());
+  }
+
   private void writeCell(Cell cell,
                          AnalyticsTableColumnFilter columnFilter,
                          TableColumnItemValue item,
                          Identity rowIdentity,
                          Space rowSpace,
-                         ZoneId zoneId,
-                         String lang) {
+                         ExportFormatting formatting) {
+    boolean dateColumn = isDateColumn(columnFilter, formatting);
     if (StringUtils.isNotBlank(columnFilter.getUserField())) {
-      cell.setCellValue(rowIdentity == null || rowIdentity.getProfile() == null ? "" :
-                        String.valueOf(rowIdentity.getProfile().getProperty(columnFilter.getUserField())));
+      Object property = rowIdentity == null || rowIdentity.getProfile() == null ? null
+                                                                                : rowIdentity.getProfile()
+                                                                                             .getProperty(columnFilter.getUserField());
+      writeValue(cell, property == null ? null : String.valueOf(property), dateColumn, formatting);
       return;
     } else if (StringUtils.isNotBlank(columnFilter.getSpaceField())) {
       cell.setCellValue(spaceFieldValue(rowSpace, columnFilter.getSpaceField()));
@@ -446,19 +484,47 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
     }
     AnalyticsAggregation aggregation = columnFilter.getValueAggregation().getAggregation();
     String rawValue = String.valueOf(item.getValue());
-    if (aggregation.getType() == AnalyticsAggregationType.DATE) {
-      cell.setCellValue(aggregation.getLabel(String.valueOf(item.getKey()), zoneId, lang));
+    if (StringUtils.isBlank(rawValue) || StringUtils.equals(rawValue, "null")) {
+      // Elasticsearch returns no value for this row (a user who never
+      // connected, say). Exporting the literal string "null" puts the word
+      // in the reader's spreadsheet.
+      cell.setCellValue("");
+    } else if (aggregation.getType() == AnalyticsAggregationType.DATE) {
+      // A real date cell where the interval allows one, so the column sorts
+      // and filters chronologically instead of alphabetically
+      if (!writeDateCell(cell, aggregation, String.valueOf(item.getKey()), formatting.zoneId(), formatting.dateStyles())) {
+        cell.setCellValue(aggregation.getLabel(String.valueOf(item.getKey()), formatting.zoneId(), formatting.lang()));
+      }
     } else if (isIdentityAggregation(aggregation.getField(), aggregation.getType())) {
       cell.setCellValue(StringUtils.equals(aggregation.getField(), "spaceId") ? spaceFieldValue(rowSpace, "displayName")
                                                                               : (rowIdentity == null || rowIdentity.getProfile() == null ? rawValue
                                                                                                                                           : rowIdentity.getProfile()
                                                                                                                                                        .getFullName()));
     } else {
-      try {
-        cell.setCellValue(Double.parseDouble(rawValue));
-      } catch (NumberFormatException e) {
-        cell.setCellValue(rawValue);
-      }
+      writeValue(cell, rawValue, dateColumn, formatting);
+    }
+  }
+
+  /**
+   * Writes one value, as a date when the column holds dates. A MIN/MAX over
+   * a date field is a numeric aggregation whose value is an instant in epoch
+   * milliseconds: written as a plain number it reaches the reader as
+   * 1.75941E+12.
+   */
+  void writeValue(Cell cell, String rawValue, boolean dateColumn, ExportFormatting formatting) {
+    if (StringUtils.isBlank(rawValue) || StringUtils.equals(rawValue, "null")) {
+      // No value for this row (a user who never connected, say). Exporting
+      // the literal string "null" puts the word in the reader's spreadsheet.
+      cell.setCellValue("");
+      return;
+    }
+    if (dateColumn && writeTimestampCell(cell, rawValue, formatting.zoneId(), formatting.dateStyles())) {
+      return;
+    }
+    try {
+      cell.setCellValue(Double.parseDouble(rawValue));
+    } catch (NumberFormatException e) {
+      cell.setCellValue(rawValue);
     }
   }
 

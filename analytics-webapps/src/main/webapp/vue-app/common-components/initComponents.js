@@ -39,6 +39,9 @@ import XAxisForm from './components/settings/tabs/XAxisAggregationForm.vue';
 import YAxisForm from './components/settings/tabs/YAxisAggregationForm.vue';
 import MultipleCharts from './components/settings/tabs/MultipleChartsAggregationForm.vue';
 
+import AnalyticsPeriodPicker from './components/period/AnalyticsPeriodPicker.vue';
+import AnalyticsPeriodPickerPanel from './components/period/AnalyticsPeriodPickerPanel.vue';
+
 import ViewSamplesDrawer from './components/samples/ViewSamplesDrawer.vue';
 import ProfileChip from './components/samples/ProfileChip.vue';
 import SampleItem from './components/samples/SampleItem.vue';
@@ -84,6 +87,8 @@ const components = {
   'analytics-multiple-charts': MultipleCharts,
   'analytics-chart-setting-drawer': AnalyticsChartSettingDrawer,
   'analytics-json-panel-drawer': JsonPanelDrawer,
+  'analytics-period-picker': AnalyticsPeriodPicker,
+  'analytics-period-picker-panel': AnalyticsPeriodPickerPanel,
   'analytics-view-samples-drawer': ViewSamplesDrawer,
   'analytics-profile-property-item-attribute': ProfilePropertyItemAttribute,
   'analytics-profile-property-item-attribute-value': ProfilePropertyItemAttributeValue,
