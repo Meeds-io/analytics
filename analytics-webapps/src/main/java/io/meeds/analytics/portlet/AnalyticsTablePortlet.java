@@ -438,7 +438,7 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
    * buckets were aligned on, the language its labels are resolved in, and
    * the workbook-wide cache of date cell styles.
    */
-  private record ExportFormatting(ZoneId zoneId, String lang, Map<String, CellStyle> dateStyles, Set<String> dateFields) {
+  record ExportFormatting(ZoneId zoneId, String lang, Map<String, CellStyle> dateStyles, Set<String> dateFields) {
 
     boolean isDateField(String field) {
       return field != null && dateFields.contains(StringUtils.removeEnd(field, ".keyword"));
@@ -451,7 +451,7 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
    * display a &lt;date-format&gt;. The Elasticsearch mapping is only a
    * fallback, for a column saved before the data type was recorded.
    */
-  private boolean isDateColumn(AnalyticsTableColumnFilter columnFilter, ExportFormatting formatting) {
+  boolean isDateColumn(AnalyticsTableColumnFilter columnFilter, ExportFormatting formatting) {
     if (StringUtils.equalsIgnoreCase(columnFilter.getDataType(), "date")) {
       return true;
     }
@@ -511,7 +511,7 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
    * milliseconds: written as a plain number it reaches the reader as
    * 1.75941E+12.
    */
-  private void writeValue(Cell cell, String rawValue, boolean dateColumn, ExportFormatting formatting) {
+  void writeValue(Cell cell, String rawValue, boolean dateColumn, ExportFormatting formatting) {
     if (StringUtils.isBlank(rawValue) || StringUtils.equals(rawValue, "null")) {
       // No value for this row (a user who never connected, say). Exporting
       // the literal string "null" puts the word in the reader's spreadsheet.
