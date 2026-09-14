@@ -218,47 +218,28 @@
     min-width: 0;
   }
 
-  .analytics-chart-period-selector {
-    position: relative;
-    display: flex;
-    align-items: center;
-    flex: 0 1 25%;
-    max-width: 25%;
-    min-width: 40px;
-    overflow: hidden;
 
-    // Below the 25% budget, the date range text can't fit: a dedicated icon
-    // button (opening a self-contained menu, not the shared select-period
-    // widget - see the template comment) replaces the full-width input.
-    &.analytics-chart-period-selector-compact {
-      flex-basis: 40px;
-      max-width: 40px;
-      overflow: visible;
-    }
-  }
-
-  .analytics-period-selector-full {
-    cursor: pointer;
-    width: 100%;
-    min-width: 0;
-    background: none;
-    border: 0;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.42);
-    padding: 0 0 2px;
-    margin: 0;
-    font: inherit;
-    color: inherit;
-    text-align: left;
-
-    &:focus-visible {
-      outline: 2px solid currentColor;
-      outline-offset: 2px;
-    }
-
-    span {
+  // The 25% budget belongs to the portlet headers the picker shares with a
+  // title and an action menu, not to the picker itself: in the samples
+  // drawer the same component gets the room it needs.
+  .analytics-chart-header,
+  .analytics-table-header {
+    > .analytics-chart-period-selector {
+      flex: 0 1 25%;
+      max-width: 25%;
       overflow: hidden;
+
+      // Below the 25% budget, the date range text can't fit: a dedicated icon
+      // button (opening a self-contained menu, not the shared select-period
+      // widget - see the template comment) replaces the full-width input.
+      &.analytics-chart-period-selector-compact {
+        flex-basis: 40px;
+        max-width: 40px;
+        overflow: visible;
+      }
     }
   }
+
 
   .analytics-chart-percentage {
     height: 182px;
@@ -490,6 +471,41 @@
 // Vuetify teleports its content out to the page's own shared VuetifyApp
 // root, not under this portlet's .analytics-application wrapper, so these
 // rules have to live at the top level to actually reach it.
+
+// Shared by the portlet headers and by the samples drawer. Top level, not
+// nested under .analytics-application: exo-drawer re-parents its content to
+// #vuetify-apps on every open, which sits under .VuetifyApp but outside the
+// portlet wrapper - nested here, the drawer got an unstyled activator.
+.analytics-chart-period-selector {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 40px;
+}
+
+.analytics-period-selector-full {
+  cursor: pointer;
+  width: 100%;
+  min-width: 0;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.42);
+  padding: 0 0 2px;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+
+  &:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
+
+  span {
+    overflow: hidden;
+  }
+}
+
 .analytics-compact-period-popup {
   // Fills whatever width the v-menu's own min-width/max-width props give
   // its content box (480px) - a hardcoded value here that doesn't match
@@ -510,12 +526,32 @@
   }
 }
 
+// One row per bound, on a 3-column grid (label / date / time) so both rows
+// line up whatever the label's translated width. Nothing is kept on a single
+// nowrap line any more: that is what pushed the leading label out of the
+// menu's fixed width.
 .analytics-compact-period-times {
-  flex-wrap: nowrap !important;
-  white-space: nowrap;
+  // Columns hug their content (label / date / hour) and the whole block
+  // stays left-aligned, so the hour sits next to its date instead of being
+  // pushed to the far edge by a stretching middle column.
+  display: grid;
+  grid-template-columns: auto auto auto;
+  justify-content: start;
+  align-items: baseline;
+  gap: 10px 12px;
 
+  .analytics-period-bound-label {
+    white-space: nowrap;
+  }
+
+  // Both bounds are editable controls: same borderless styling as the hour,
+  // stretched to their column so the two rows' dates and hours line up on
+  // the same edges whatever their rendered width ("Sep 1" vs "Sep 10").
   .analytics-date-time-selection {
-    width: 80px;
-    flex-shrink: 0;
+    justify-self: stretch;
+    width: 100%;
+    border: 0;
+    background: none;
+    padding: 0;
   }
 }

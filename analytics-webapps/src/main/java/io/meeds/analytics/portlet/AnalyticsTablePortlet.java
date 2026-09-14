@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.portlet.PortletException;
 import javax.portlet.ResourceRequest;
@@ -39,14 +40,17 @@ import javax.portlet.ResourceResponse;
 import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.json.JSONObject;
 
 import org.exoplatform.social.core.identity.model.Identity;
+import org.exoplatform.social.core.identity.model.Profile;
 import org.exoplatform.social.core.space.model.Space;
 
 import io.meeds.analytics.model.StatisticFieldMapping;
@@ -349,8 +353,15 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
         headerRow.createCell(col).setCellValue(resolveLabel(columns.get(col).getTitle(), request));
       }
 
-      ZoneId zoneId = tableFilter.zoneId();
-      String lang = request.getParameter("lang");
+      Set<String> dateFields = getAnalyticsService().retrieveMapping(false)
+                                                    .stream()
+                                                    .filter(StatisticFieldMapping::isDate)
+                                                    .map(StatisticFieldMapping::getName)
+                                                    .collect(Collectors.toSet());
+      ExportFormatting formatting = new ExportFormatting(tableFilter.zoneId(),
+                                                         request.getParameter("lang"),
+                                                         new HashMap<>(),
+                                                         dateFields);
       for (int rowIndex = 0; rowIndex < rowKeys.size(); rowIndex++) {
         String key = rowKeys.get(rowIndex);
         Row row = sheet.createRow(rowIndex + 1);
@@ -360,15 +371,15 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
                    columnItemsByKey.get(col) == null ? null : columnItemsByKey.get(col).get(key),
                    identityByKey.get(key),
                    spaceByKey.get(key),
-                   zoneId,
-                   lang);
+                   formatting,
+                   col == 0);
         }
       }
       for (int col = 0; col < columns.size(); col++) {
         sheet.autoSizeColumn(col);
       }
 
-      response.setContentType("application/vnd.ms-excel");
+      response.setContentType(XLSX_CONTENT_TYPE);
       response.addProperty("Content-Disposition", "attachment; filename=" + buildFileName(tableFilter) + ".xlsx");
       try (OutputStream outputStream = response.getPortletOutputStream()) {
         workbook.write(outputStream);
@@ -425,19 +436,74 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
     return type == AnalyticsAggregationType.TERMS && (StringUtils.equals(field, "userId") || StringUtils.equals(field, "spaceId"));
   }
 
-  private void writeCell(Cell cell,
+  /**
+   * What every exported cell needs beyond its own value: the time zone the
+   * buckets were aligned on, the language its labels are resolved in, and
+   * the workbook-wide cache of date cell styles.
+   */
+  record ExportFormatting(ZoneId zoneId, String lang, Map<String, CellStyle> dateStyles, Set<String> dateFields) {
+
+    boolean isDateField(String field) {
+      return field != null && dateFields.contains(StringUtils.removeEnd(field, ".keyword"));
+    }
+  }
+
+  /**
+   * Aggregations whose result is a count, not an instant, whatever field they
+   * are computed over. A CARDINALITY over a date field is a date column by
+   * both signals below and its value is a number of distinct values: treated
+   * as an instant, "28" would be exported as 28 ms after 1 January 1970.
+   */
+  private static final Set<AnalyticsAggregationType> COUNTING_AGGREGATIONS =
+                                                                           Set.of(AnalyticsAggregationType.CARDINALITY,
+                                                                                  AnalyticsAggregationType.COUNT,
+                                                                                  AnalyticsAggregationType.TERMS,
+                                                                                  AnalyticsAggregationType.GROUP_BY);
+
+  /**
+   * Whether the column holds dates, using the same signal the table itself
+   * renders from: {@code dataType == "date"} makes AnalyticsTableCellValue
+   * display a &lt;date-format&gt;. The Elasticsearch mapping is only a
+   * fallback, for a column saved before the data type was recorded.
+   *
+   * @param mainColumn whether this is the table's first column, whose cell
+   *                     holds the bucket <em>key</em> rather than an
+   *                     aggregated value (ElasticsearchAnalyticsService:
+   *                     {@code if (columnIndex == 0) itemValue.setValue(key)}).
+   *                     Its aggregation is always TERMS - the settings form
+   *                     forces it - so the counting exclusion must not apply
+   *                     to it: over a date field that key is epoch
+   *                     milliseconds, and excluding it exports the raw number
+   *                     this delivery exists to remove.
+   */
+  boolean isDateColumn(AnalyticsTableColumnFilter columnFilter, ExportFormatting formatting, boolean mainColumn) {
+    AnalyticsTableColumnAggregation valueAggregation = columnFilter.getValueAggregation();
+    AnalyticsAggregation aggregation = valueAggregation == null ? null : valueAggregation.getAggregation();
+    if (!mainColumn && aggregation != null && COUNTING_AGGREGATIONS.contains(aggregation.getType())) {
+      return false;
+    }
+    if (StringUtils.equalsIgnoreCase(columnFilter.getDataType(), "date")) {
+      return true;
+    }
+    return aggregation != null && formatting.isDateField(aggregation.getField());
+  }
+
+  void writeCell(Cell cell,
                          AnalyticsTableColumnFilter columnFilter,
                          TableColumnItemValue item,
                          Identity rowIdentity,
                          Space rowSpace,
-                         ZoneId zoneId,
-                         String lang) {
+                         ExportFormatting formatting,
+                         boolean mainColumn) {
+    boolean dateColumn = isDateColumn(columnFilter, formatting, mainColumn);
     if (StringUtils.isNotBlank(columnFilter.getUserField())) {
-      cell.setCellValue(rowIdentity == null || rowIdentity.getProfile() == null ? "" :
-                        String.valueOf(rowIdentity.getProfile().getProperty(columnFilter.getUserField())));
+      writeValue(cell, userFieldValue(rowIdentity, columnFilter.getUserField()), dateColumn, formatting);
       return;
     } else if (StringUtils.isNotBlank(columnFilter.getSpaceField())) {
-      cell.setCellValue(spaceFieldValue(rowSpace, columnFilter.getSpaceField()));
+      // Through writeValue like every other branch: a createdTime column
+      // carries dataType "date" and must reach the reader as a date, not as
+      // an epoch number
+      writeValue(cell, spaceFieldValue(rowSpace, columnFilter.getSpaceField()), dateColumn, formatting);
       return;
     }
     if (item == null || item.getValue() == null) {
@@ -446,33 +512,104 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
     }
     AnalyticsAggregation aggregation = columnFilter.getValueAggregation().getAggregation();
     String rawValue = String.valueOf(item.getValue());
-    if (aggregation.getType() == AnalyticsAggregationType.DATE) {
-      cell.setCellValue(aggregation.getLabel(String.valueOf(item.getKey()), zoneId, lang));
+    if (StringUtils.isBlank(rawValue) || StringUtils.equals(rawValue, "null")) {
+      // Same guard as writeValue, needed here too: the DATE and identity
+      // branches below never reach it
+      cell.setCellValue("");
+    } else if (aggregation.getType() == AnalyticsAggregationType.DATE) {
+      // A real date cell where the interval allows one, so the column sorts
+      // and filters chronologically instead of alphabetically
+      if (!writeDateCell(cell, aggregation, String.valueOf(item.getKey()), formatting.zoneId(), formatting.dateStyles())) {
+        cell.setCellValue(aggregation.getLabel(String.valueOf(item.getKey()), formatting.zoneId(), formatting.lang()));
+      }
     } else if (isIdentityAggregation(aggregation.getField(), aggregation.getType())) {
       cell.setCellValue(StringUtils.equals(aggregation.getField(), "spaceId") ? spaceFieldValue(rowSpace, "displayName")
                                                                               : (rowIdentity == null || rowIdentity.getProfile() == null ? rawValue
                                                                                                                                           : rowIdentity.getProfile()
                                                                                                                                                        .getFullName()));
     } else {
-      try {
-        cell.setCellValue(Double.parseDouble(rawValue));
-      } catch (NumberFormatException e) {
-        cell.setCellValue(rawValue);
-      }
+      writeValue(cell, rawValue, dateColumn, formatting);
     }
   }
 
+  /**
+   * Writes one value, as a date when the column holds dates. A MIN/MAX over
+   * a date field is a numeric aggregation whose value is an instant in epoch
+   * milliseconds: written as a plain number it reaches the reader as
+   * 1.75941E+12.
+   */
+  void writeValue(Cell cell, String rawValue, boolean dateColumn, ExportFormatting formatting) {
+    if (StringUtils.isBlank(rawValue) || StringUtils.equals(rawValue, "null")) {
+      // No value for this row (a user who never connected, say). Exporting
+      // the literal string "null" puts the word in the reader's spreadsheet.
+      cell.setCellValue("");
+      return;
+    }
+    if (dateColumn && writeTimestampCell(cell, rawValue, formatting.zoneId(), formatting.dateStyles())) {
+      return;
+    }
+    try {
+      cell.setCellValue(Double.parseDouble(rawValue));
+    } catch (NumberFormatException e) {
+      cell.setCellValue(rawValue);
+    }
+  }
+
+  /**
+   * The value of a user-profile column.
+   * <p>
+   * {@code createdDate} - the only user field the settings UI offers - is not
+   * a {@link org.exoplatform.social.core.identity.model.Profile} property:
+   * {@code getProperty} is a plain map lookup, and the creation instant lives
+   * in its own {@code createdTime} field. The key exists only on the REST
+   * DTO, which is what the live table reads client-side; without this case
+   * the column exported an empty cell while the screen showed a date.
+   */
+  private String userFieldValue(Identity rowIdentity, String field) {
+    Profile profile = rowIdentity == null ? null : rowIdentity.getProfile();
+    if (profile == null) {
+      return "";
+    }
+    if (StringUtils.equals(field, "createdDate")) {
+      return String.valueOf(profile.getCreatedTime());
+    }
+    Object property = profile.getProperty(field);
+    return property == null ? "" : String.valueOf(property);
+  }
+
+  /**
+   * One case per space field the settings UI offers
+   * (AnalyticsTableApplication.vue, spaceFields), plus {@code displayName}
+   * for a space identity main column, plus the legacy cases -
+   * {@code description}, {@code groupId}, {@code prettyName},
+   * {@code shortName}, {@code url} - which the UI does not offer and which
+   * exist for settings saved before that list and for the JSON settings
+   * drawer.
+   * <p>
+   * The default is deliberately empty rather than the display name: with a
+   * display-name fallback, every field missing a case exported the space name
+   * and looked like data, so the seven fields the UI actually offers -
+   * none of which had a case - silently exported the wrong column.
+   */
   private String spaceFieldValue(Space space, String field) {
     if (space == null) {
       return "";
     }
     return switch (field) {
+    case "displayName" -> space.getDisplayName();
     case "description" -> space.getDescription();
     case "groupId" -> space.getGroupId();
     case "prettyName" -> space.getPrettyName();
     case "shortName" -> space.getShortName();
     case "url" -> space.getUrl();
-    default -> space.getDisplayName();
+    case "createdTime" -> String.valueOf(space.getCreatedTime());
+    case "visibility" -> space.getVisibility();
+    case "subscription" -> space.getRegistration();
+    case "template" -> String.valueOf(space.getTemplateId());
+    case "managersCount" -> String.valueOf(ArrayUtils.getLength(space.getManagers()));
+    case "membersCount" -> String.valueOf(ArrayUtils.getLength(space.getMembers()));
+    case "redactorsCount" -> String.valueOf(ArrayUtils.getLength(space.getRedactors()));
+    default -> "";
     };
   }
 
