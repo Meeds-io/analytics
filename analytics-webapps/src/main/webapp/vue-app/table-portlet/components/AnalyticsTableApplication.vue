@@ -23,71 +23,10 @@
     class="analytics-application application-body"
     flat>
     <div ref="tableHeader" class="d-flex align-center px-3 pb-2 pt-5 analytics-table-header" flat>
-      <div
-        class="analytics-chart-period-selector"
-        :class="{ 'analytics-chart-period-selector-compact': periodSelectorCompact }">
-        <!--
-          Same self-contained picker as the Chart portlet (see
-          AnalyticsApplication.vue): the shared select-period widget
-          (Meeds-io/social) fails to mount in some states and leaks a
-          document click listener, so it was replaced everywhere.
-        -->
-        <v-menu
-          v-model="periodSelectorMenu"
-          :close-on-content-click="false"
-          min-width="420"
-          max-width="420"
-          offset-y>
-          <template #activator="{ on }">
-            <span class="d-flex align-center" style="min-width: 0;">
-              <v-btn
-                v-if="periodSelectorCompact"
-                ref="periodSelectorActivator"
-                icon
-                :aria-label="$t('analytics.selectPeriod')"
-                v-on="on"
-                @click="initCompactPeriodForm">
-                <v-icon size="18">fa-calendar-alt</v-icon>
-              </v-btn>
-              <button
-                v-else
-                ref="periodSelectorActivator"
-                type="button"
-                :aria-label="$t('analytics.selectPeriod')"
-                :title="$t('analytics.selectPeriod')"
-                class="analytics-period-selector-full d-flex align-center"
-                v-on="on"
-                @click="initCompactPeriodForm">
-                <v-icon size="16" class="me-2">fa-calendar-alt</v-icon>
-                <span class="text-truncate">{{ periodRangeLabel }}</span>
-              </button>
-            </span>
-          </template>
-          <div ref="compactPeriodPopup" class="d-flex flex-column white analytics-compact-period-popup">
-            <v-date-picker
-              v-model="compactDates"
-              :locale="lang"
-              :max="compactMaxDate"
-              width="100%"
-              show-current
-              first-day-of-week="1"
-              range
-              scrollable
-              @input="onCompactDatesInput" />
-            <v-divider />
-            <div class="analytics-compact-period-options">
-              <v-btn
-                v-for="item in compactPeriodOptions"
-                :key="item.value"
-                text
-                small
-                @click="selectCompactPeriodItem(item.value)">
-                {{ item.text }}
-              </v-btn>
-            </div>
-          </div>
-        </v-menu>
-      </div>
+      <analytics-period-picker
+        :period="selectedPeriod"
+        :compact="periodSelectorCompact"
+        @change="selectedPeriod = $event" />
       <v-spacer />
       <exo-identity-suggester
         v-if="canUseSuggester"
@@ -218,9 +157,6 @@ export default {
     selectedPeriod: null,
     periodSelectorCompact: false,
     periodSelectorResizeObserver: null,
-    periodSelectorMenu: false,
-    compactDates: [],
-    compactPeriodName: null,
     lang: eXo.env.portal.language && eXo.env.portal.language.replace('_', '-'),
     columnsData: {},
     searchOptions: {
@@ -250,27 +186,6 @@ export default {
     },
     canUseSuggester() {
       return this.useUsersInSearch || this.useSpacesInSearch;
-    },
-    compactPeriodOptions() {
-      return [
-        {value: 'thisYear', text: this.$t('analytics.periodOptions.thisYear')},
-        {value: 'thisSemester', text: this.$t('analytics.periodOptions.thisSemester')},
-        {value: 'thisQuarter', text: this.$t('analytics.periodOptions.thisQuarter')},
-        {value: 'thisMonth', text: this.$t('analytics.periodOptions.thisMonth')},
-        {value: 'thisWeek', text: this.$t('analytics.periodOptions.thisWeek')},
-        {value: 'today', text: this.$t('analytics.periodOptions.today')},
-      ];
-    },
-    compactMaxDate() {
-      return this.toIsoDate(new Date());
-    },
-    periodRangeLabel() {
-      if (!this.selectedPeriod) {
-        return '';
-      }
-      const from = this.formatDate(new Date(this.selectedPeriod.min));
-      const to = this.formatDate(new Date(this.selectedPeriod.max));
-      return `${from}~${to}`;
     },
     exportExcelLink() {
       if (!this.exportExcelUrl || !this.selectedPeriod) {
@@ -372,14 +287,12 @@ export default {
       this.periodSelectorCompact = entries[0].contentRect.width * 0.25 < 220;
     });
     this.periodSelectorResizeObserver.observe(this.$refs.tableHeader);
-    document.addEventListener('click', this.handlePeriodSelectorOutsideClick, true);
     this.initSelectedPeriod();
   },
   beforeDestroy() {
     if (this.periodSelectorResizeObserver) {
       this.periodSelectorResizeObserver.disconnect();
     }
-    document.removeEventListener('click', this.handlePeriodSelectorOutsideClick, true);
   },
   methods: {
     resolveTitleTranslation(title) {
@@ -530,113 +443,13 @@ export default {
     closeMenu(){
       this.showMenu=false;
     },
-    toIsoDate(date) {
-      const pad = n => `${n}`.padStart(2, '0');
-      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-    },
-    formatDate(date) {
-      return date.toLocaleDateString(this.lang, {day: 'numeric', month: 'short', year: 'numeric'});
-    },
-    initCompactPeriodForm() {
-      const from = this.selectedPeriod && new Date(this.selectedPeriod.min);
-      const to = this.selectedPeriod && new Date(this.selectedPeriod.max);
-      this.compactDates = from && to ? [this.toIsoDate(from), this.toIsoDate(to)] : [];
-      this.compactPeriodName = this.selectedPeriod && this.selectedPeriod.period || null;
-    },
-    onCompactDatesInput() {
-      this.compactPeriodName = null;
-      this.applyCompactPeriod();
-    },
-    computePeriodDateRange(periodName) {
-      const today = new Date();
-      let from;
-      let to;
-      switch (periodName) {
-      case 'today':
-        from = today;
-        to = today;
-        break;
-      case 'thisWeek': {
-        const day = today.getDay();
-        const diff = today.getDate() - day + (day === 0 ? -6 : 1);
-        from = new Date(new Date().setDate(diff));
-        to = new Date(new Date(from).setDate(from.getDate() + 6));
-        break;
-      }
-      case 'thisMonth':
-        from = new Date(today.getFullYear(), today.getMonth(), 1);
-        to = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-        break;
-      case 'thisQuarter': {
-        const quarter = Math.floor(today.getMonth() / 3);
-        from = new Date(today.getFullYear(), quarter * 3, 1);
-        to = new Date(today.getFullYear(), quarter * 3 + 3, 0);
-        break;
-      }
-      case 'thisSemester': {
-        const semester = Math.floor(today.getMonth() / 6);
-        from = new Date(today.getFullYear(), semester * 6, 1);
-        to = new Date(today.getFullYear(), semester * 6 + 6, 0);
-        break;
-      }
-      case 'thisYear':
-        from = new Date(today.getFullYear(), 0, 1);
-        to = new Date(today.getFullYear(), 11, 31);
-        break;
-      default:
-        return null;
-      }
-      if (to > today) {
-        to = today;
-      }
-      return {from, to};
-    },
-    selectCompactPeriodItem(periodName) {
-      const range = this.computePeriodDateRange(periodName);
-      if (!range) {
-        return;
-      }
-      this.compactDates = [this.toIsoDate(range.from), this.toIsoDate(range.to)];
-      this.compactPeriodName = periodName;
-      this.applyCompactPeriod();
-      this.periodSelectorMenu = false;
-    },
-    applyCompactPeriod() {
-      if (!this.compactDates || !this.compactDates.length) {
-        return;
-      }
-      let [from, to] = this.compactDates;
-      if (!to) {
-        to = from;
-      }
-      if (new Date(from) > new Date(to)) {
-        [from, to] = [to, from];
-      }
-      this.selectedPeriod = {
-        period: this.compactPeriodName,
-        min: new Date(`${from}T00:00:00`).getTime(),
-        max: new Date(`${to}T23:59:59.999`).getTime(),
-      };
-    },
     initSelectedPeriod(periodName) {
-      const range = this.computePeriodDateRange(periodName || 'thisMonth');
+      const range = this.$analyticsUtils.computePeriodDateRange(periodName || 'thisMonth');
       this.selectedPeriod = {
         period: periodName || 'thisMonth',
         min: new Date(range.from.getFullYear(), range.from.getMonth(), range.from.getDate()).getTime(),
         max: new Date(range.to.getFullYear(), range.to.getMonth(), range.to.getDate(), 23, 59, 59, 999).getTime(),
       };
-    },
-    handlePeriodSelectorOutsideClick(event) {
-      if (!this.periodSelectorMenu) {
-        return;
-      }
-      const popup = this.$refs.compactPeriodPopup;
-      const activator = this.$refs.periodSelectorActivator && this.$refs.periodSelectorActivator.$el;
-      if ((popup && popup.contains(event.target)) || (activator && activator.contains(event.target))) {
-        return;
-      }
-      this.applyCompactPeriod();
-      this.periodSelectorMenu = false;
     },
   }
 };
