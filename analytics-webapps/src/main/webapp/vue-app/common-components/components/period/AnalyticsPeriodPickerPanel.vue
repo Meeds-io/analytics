@@ -52,13 +52,13 @@
         v-model="fromDate"
         type="date"
         :max="maxDate"
-        :aria-label="$t('analytics.from')"
+        :aria-label="$t('analytics.period.dateOf', {0: $t('analytics.from')})"
         class="text-body analytics-date-time-selection analytics-period-bound-date"
         @change="onBoundInput">
       <input
         v-model="fromTime"
         type="time"
-        :aria-label="$t('analytics.from')"
+        :aria-label="$t('analytics.period.hourOf', {0: $t('analytics.from')})"
         class="text-body analytics-date-time-selection"
         @change="apply">
       <span class="text-body analytics-period-bound-label">{{ $t('analytics.toDate') }}</span>
@@ -66,13 +66,13 @@
         v-model="toDate"
         type="date"
         :max="maxDate"
-        :aria-label="$t('analytics.toDate')"
+        :aria-label="$t('analytics.period.dateOf', {0: $t('analytics.toDate')})"
         class="text-body analytics-date-time-selection analytics-period-bound-date"
         @change="onBoundInput">
       <input
         v-model="toTime"
         type="time"
-        :aria-label="$t('analytics.toDate')"
+        :aria-label="$t('analytics.period.hourOf', {0: $t('analytics.toDate')})"
         class="text-body analytics-date-time-selection"
         @change="apply">
     </div>
@@ -99,9 +99,6 @@ export default {
     periodName: null,
   }),
   computed: {
-    uid() {
-      return this._uid;
-    },
     periodOptions() {
       return [
         {value: 'thisYear', text: this.$t('analytics.periodOptions.thisYear')},
@@ -130,7 +127,10 @@ export default {
         return this.dates && (this.dates[1] || this.dates[0]) || '';
       },
       set(value) {
-        this.$set(this.dates, 1, value);
+        // On an unseeded panel $set(dates, 1, …) yields [undefined, value] -
+        // Vue pads the length first - and apply() then bails on an empty
+        // first bound, so typing a To date first would do nothing
+        this.$set(this.dates, this.dates.length ? 1 : 0, value);
       },
     },
   },

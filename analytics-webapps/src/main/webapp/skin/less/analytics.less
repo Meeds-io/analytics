@@ -218,12 +218,6 @@
     min-width: 0;
   }
 
-  .analytics-chart-period-selector {
-    position: relative;
-    display: flex;
-    align-items: center;
-    min-width: 40px;
-  }
 
   // The 25% budget belongs to the portlet headers the picker shares with a
   // title and an action menu, not to the picker itself: in the samples
@@ -246,28 +240,6 @@
     }
   }
 
-  .analytics-period-selector-full {
-    cursor: pointer;
-    width: 100%;
-    min-width: 0;
-    background: none;
-    border: 0;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.42);
-    padding: 0 0 2px;
-    margin: 0;
-    font: inherit;
-    color: inherit;
-    text-align: left;
-
-    &:focus-visible {
-      outline: 2px solid currentColor;
-      outline-offset: 2px;
-    }
-
-    span {
-      overflow: hidden;
-    }
-  }
 
   .analytics-chart-percentage {
     height: 182px;
@@ -499,6 +471,41 @@
 // Vuetify teleports its content out to the page's own shared VuetifyApp
 // root, not under this portlet's .analytics-application wrapper, so these
 // rules have to live at the top level to actually reach it.
+
+// Shared by the portlet headers and by the samples drawer. Top level, not
+// nested under .analytics-application: exo-drawer re-parents its content to
+// #vuetify-apps on every open, which sits under .VuetifyApp but outside the
+// portlet wrapper - nested here, the drawer got an unstyled activator.
+.analytics-chart-period-selector {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 40px;
+}
+
+.analytics-period-selector-full {
+  cursor: pointer;
+  width: 100%;
+  min-width: 0;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.42);
+  padding: 0 0 2px;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+
+  &:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
+
+  span {
+    overflow: hidden;
+  }
+}
+
 .analytics-compact-period-popup {
   // Fills whatever width the v-menu's own min-width/max-width props give
   // its content box (480px) - a hardcoded value here that doesn't match

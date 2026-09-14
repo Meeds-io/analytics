@@ -440,31 +440,6 @@ public abstract class AbstractAnalyticsPortlet<T> extends GenericPortlet {
                                                                        "yyyy-mm-dd hh:mm:ss");
 
   /**
-   * Writes a date bucket as a real date-typed cell instead of the localized
-   * label the chart displays.
-   * <p>
-   * A label such as "1 sept. 2026" written as text is only a picture of a
-   * date to a spreadsheet: it cannot be sorted chronologically (it sorts
-   * lexicographically, so "10 août" lands before "1 sept."), filtered by
-   * period, or fed to a date formula, and no cell formatting recovers it
-   * because the underlying value is a string. A date-typed cell carries the
-   * instant itself and each reader's Excel renders it in their own locale.
-   *
-   * @param cell        cell to write
-   * @param aggregation the aggregation the bucket belongs to
-   * @param key         the raw bucket key, epoch milliseconds for a date
-   *                      histogram
-   * @param zoneId      time zone the buckets were aligned on, so the written
-   *                      wall-clock date is the one the chart shows
-   * @param styles      per-workbook cache of the created cell styles: a
-   *                      workbook holds a bounded number of them, so one per
-   *                      cell would both bloat the file and eventually hit
-   *                      that limit
-   * @return {@code true} when the cell was written as a date, {@code false}
-   *         when this bucket has no faithful date representation and the
-   *         caller should fall back to the textual label
-   */
-  /**
    * Writes an epoch-milliseconds value as a real date-time cell.
    * <p>
    * Used for a column aggregating a date *field* (a MAX over a "last
@@ -493,6 +468,31 @@ public abstract class AbstractAnalyticsPortlet<T> extends GenericPortlet {
     return true;
   }
 
+  /**
+   * Writes a date bucket as a real date-typed cell instead of the localized
+   * label the chart displays.
+   * <p>
+   * A label such as "1 sept. 2026" written as text is only a picture of a
+   * date to a spreadsheet: it cannot be sorted chronologically (it sorts
+   * lexicographically, so "10 août" lands before "1 sept."), filtered by
+   * period, or fed to a date formula, and no cell formatting recovers it
+   * because the underlying value is a string. A date-typed cell carries the
+   * instant itself and each reader's Excel renders it in their own locale.
+   *
+   * @param cell        cell to write
+   * @param aggregation the aggregation the bucket belongs to
+   * @param key         the raw bucket key, epoch milliseconds for a date
+   *                      histogram
+   * @param zoneId      time zone the buckets were aligned on, so the written
+   *                      wall-clock date is the one the chart shows
+   * @param styles      per-workbook cache of the created cell styles: a
+   *                      workbook holds a bounded number of them, so one per
+   *                      cell would both bloat the file and eventually hit
+   *                      that limit
+   * @return {@code true} when the cell was written as a date, {@code false}
+   *         when this bucket has no faithful date representation and the
+   *         caller should fall back to the textual label
+   */
   protected boolean writeDateCell(Cell cell,
                                   AnalyticsAggregation aggregation,
                                   String key,

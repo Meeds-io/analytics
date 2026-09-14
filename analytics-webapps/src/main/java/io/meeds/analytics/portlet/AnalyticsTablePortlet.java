@@ -40,6 +40,7 @@ import javax.portlet.ResourceResponse;
 import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
@@ -49,6 +50,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.json.JSONObject;
 
 import org.exoplatform.social.core.identity.model.Identity;
+import org.exoplatform.social.core.identity.model.Profile;
 import org.exoplatform.social.core.space.model.Space;
 
 import io.meeds.analytics.model.StatisticFieldMapping;
@@ -451,14 +453,28 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
    * display a &lt;date-format&gt;. The Elasticsearch mapping is only a
    * fallback, for a column saved before the data type was recorded.
    */
+  /**
+   * Aggregations whose result is a count, not an instant, whatever field they
+   * are computed over. A CARDINALITY over a date field is a date column by
+   * both signals below and its value is a number of distinct values: treated
+   * as an instant, "28" would be exported as 28 ms after 1 January 1970.
+   */
+  private static final Set<AnalyticsAggregationType> COUNTING_AGGREGATIONS =
+                                                                           Set.of(AnalyticsAggregationType.CARDINALITY,
+                                                                                  AnalyticsAggregationType.COUNT,
+                                                                                  AnalyticsAggregationType.TERMS,
+                                                                                  AnalyticsAggregationType.GROUP_BY);
+
   boolean isDateColumn(AnalyticsTableColumnFilter columnFilter, ExportFormatting formatting) {
+    AnalyticsTableColumnAggregation valueAggregation = columnFilter.getValueAggregation();
+    AnalyticsAggregation aggregation = valueAggregation == null ? null : valueAggregation.getAggregation();
+    if (aggregation != null && COUNTING_AGGREGATIONS.contains(aggregation.getType())) {
+      return false;
+    }
     if (StringUtils.equalsIgnoreCase(columnFilter.getDataType(), "date")) {
       return true;
     }
-    AnalyticsTableColumnAggregation valueAggregation = columnFilter.getValueAggregation();
-    return valueAggregation != null
-        && valueAggregation.getAggregation() != null
-        && formatting.isDateField(valueAggregation.getAggregation().getField());
+    return aggregation != null && formatting.isDateField(aggregation.getField());
   }
 
   private void writeCell(Cell cell,
@@ -469,13 +485,13 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
                          ExportFormatting formatting) {
     boolean dateColumn = isDateColumn(columnFilter, formatting);
     if (StringUtils.isNotBlank(columnFilter.getUserField())) {
-      Object property = rowIdentity == null || rowIdentity.getProfile() == null ? null
-                                                                                : rowIdentity.getProfile()
-                                                                                             .getProperty(columnFilter.getUserField());
-      writeValue(cell, property == null ? null : String.valueOf(property), dateColumn, formatting);
+      writeValue(cell, userFieldValue(rowIdentity, columnFilter.getUserField()), dateColumn, formatting);
       return;
     } else if (StringUtils.isNotBlank(columnFilter.getSpaceField())) {
-      cell.setCellValue(spaceFieldValue(rowSpace, columnFilter.getSpaceField()));
+      // Through writeValue like every other branch: a createdTime column
+      // carries dataType "date" and must reach the reader as a date, not as
+      // an epoch number
+      writeValue(cell, spaceFieldValue(rowSpace, columnFilter.getSpaceField()), dateColumn, formatting);
       return;
     }
     if (item == null || item.getValue() == null) {
@@ -528,17 +544,57 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
     }
   }
 
+  /**
+   * The value of a user-profile column.
+   * <p>
+   * {@code createdDate} - the only user field the settings UI offers - is not
+   * a {@link org.exoplatform.social.core.identity.model.Profile} property:
+   * {@code getProperty} is a plain map lookup, and the creation instant lives
+   * in its own {@code createdTime} field. The key exists only on the REST
+   * DTO, which is what the live table reads client-side; without this case
+   * the column exported an empty cell while the screen showed a date.
+   */
+  private String userFieldValue(Identity rowIdentity, String field) {
+    Profile profile = rowIdentity == null ? null : rowIdentity.getProfile();
+    if (profile == null) {
+      return "";
+    }
+    if (StringUtils.equals(field, "createdDate")) {
+      return String.valueOf(profile.getCreatedTime());
+    }
+    Object property = profile.getProperty(field);
+    return property == null ? "" : String.valueOf(property);
+  }
+
+  /**
+   * One case per space field the settings UI offers
+   * (AnalyticsTableApplication.vue, spaceFields) plus the identity fields a
+   * main column can carry.
+   * <p>
+   * The default is deliberately empty rather than the display name: with a
+   * display-name fallback, every field missing a case exported the space name
+   * and looked like data, so the seven fields the UI actually offers -
+   * none of which had a case - silently exported the wrong column.
+   */
   private String spaceFieldValue(Space space, String field) {
     if (space == null) {
       return "";
     }
     return switch (field) {
+    case "displayName" -> space.getDisplayName();
     case "description" -> space.getDescription();
     case "groupId" -> space.getGroupId();
     case "prettyName" -> space.getPrettyName();
     case "shortName" -> space.getShortName();
     case "url" -> space.getUrl();
-    default -> space.getDisplayName();
+    case "createdTime" -> String.valueOf(space.getCreatedTime());
+    case "visibility" -> space.getVisibility();
+    case "subscription" -> space.getRegistration();
+    case "template" -> String.valueOf(space.getTemplateId());
+    case "managersCount" -> String.valueOf(ArrayUtils.getLength(space.getManagers()));
+    case "membersCount" -> String.valueOf(ArrayUtils.getLength(space.getMembers()));
+    case "redactorsCount" -> String.valueOf(ArrayUtils.getLength(space.getRedactors()));
+    default -> "";
     };
   }
 

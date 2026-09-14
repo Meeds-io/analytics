@@ -84,11 +84,15 @@ class AnalyticsTableExportCellTest {
   }
 
   private AnalyticsTableColumnFilter column(String dataType, String aggregationField) {
+    return column(dataType, aggregationField, AnalyticsAggregationType.MAX);
+  }
+
+  private AnalyticsTableColumnFilter column(String dataType, String aggregationField, AnalyticsAggregationType type) {
     AnalyticsTableColumnFilter columnFilter = new AnalyticsTableColumnFilter();
     columnFilter.setDataType(dataType);
-    if (aggregationField != null) {
+    if (aggregationField != null || type != null) {
       AnalyticsAggregation aggregation = new AnalyticsAggregation();
-      aggregation.setType(AnalyticsAggregationType.MAX);
+      aggregation.setType(type);
       aggregation.setField(aggregationField);
       AnalyticsTableColumnAggregation columnAggregation = new AnalyticsTableColumnAggregation();
       columnAggregation.setAggregation(aggregation);
@@ -111,6 +115,34 @@ class AnalyticsTableExportCellTest {
     // date, through the Elasticsearch mapping
     assertTrue(portlet.isDateColumn(column(null, "lastLoginTime"), formatting));
     assertTrue(portlet.isDateColumn(column(null, "lastLoginTime.keyword"), formatting));
+  }
+
+  @Test
+  void testACountOverADateFieldIsNotADateColumn() {
+    // A CARDINALITY or COUNT over a date field satisfies both date signals -
+    // the column's dataType comes from the field mapping - but its value is
+    // a number of items. Treated as an instant, "28" exports as 28ms after
+    // 1 January 1970; before the date export existed it was the number 28.
+    for (AnalyticsAggregationType counting : new AnalyticsAggregationType[] {AnalyticsAggregationType.CARDINALITY,
+                                                                            AnalyticsAggregationType.COUNT,
+                                                                            AnalyticsAggregationType.TERMS,
+                                                                            AnalyticsAggregationType.GROUP_BY}) {
+      assertFalse(portlet.isDateColumn(column("date", "lastLoginTime", counting), formatting),
+                  counting + " over a date field counts items, it does not produce an instant");
+    }
+    // the same field with an aggregation that does return an instant
+    assertTrue(portlet.isDateColumn(column("date", "lastLoginTime", AnalyticsAggregationType.MAX), formatting));
+  }
+
+  @Test
+  void testACountOverADateFieldKeepsItsNumber() {
+    Cell cell = cell();
+    AnalyticsTableColumnFilter countColumn = column("date", "lastLoginTime", AnalyticsAggregationType.CARDINALITY);
+    portlet.writeValue(cell, "28", portlet.isDateColumn(countColumn, formatting), formatting);
+
+    assertEquals(CellType.NUMERIC, cell.getCellType());
+    assertFalse(DateUtil.isCellDateFormatted(cell), "A distinct-value count must not become 1 January 1970");
+    assertEquals(28d, cell.getNumericCellValue());
   }
 
   @Test
