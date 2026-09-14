@@ -204,7 +204,7 @@ public class AnalyticsPortlet extends AbstractAnalyticsPortlet<AnalyticsFilter> 
    * x-axis fields at once carries a composite label ("date - space"), which
    * only a text cell can hold.
    */
-  private void writeCategoryCell(Cell cell,
+  void writeCategoryCell(Cell cell,
                                  ChartAggregationLabel aggregationLabel,
                                  ZoneId zoneId,
                                  Map<String, CellStyle> dateStyles) {

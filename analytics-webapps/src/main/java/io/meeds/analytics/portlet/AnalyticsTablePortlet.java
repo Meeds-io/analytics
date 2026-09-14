@@ -477,7 +477,7 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
     return aggregation != null && formatting.isDateField(aggregation.getField());
   }
 
-  private void writeCell(Cell cell,
+  void writeCell(Cell cell,
                          AnalyticsTableColumnFilter columnFilter,
                          TableColumnItemValue item,
                          Identity rowIdentity,

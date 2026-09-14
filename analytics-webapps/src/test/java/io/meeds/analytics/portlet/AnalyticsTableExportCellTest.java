@@ -38,6 +38,11 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import org.exoplatform.social.core.identity.model.Identity;
+import org.exoplatform.social.core.identity.model.Profile;
+import org.exoplatform.social.core.space.model.Space;
+
+import io.meeds.analytics.model.chart.TableColumnItemValue;
 import io.meeds.analytics.model.filter.AnalyticsTableColumnAggregation;
 import io.meeds.analytics.model.filter.AnalyticsTableColumnFilter;
 import io.meeds.analytics.model.filter.aggregation.AnalyticsAggregation;
@@ -216,6 +221,68 @@ class AnalyticsTableExportCellTest {
     assertEquals(CellType.NUMERIC, cell.getCellType());
     assertFalse(DateUtil.isCellDateFormatted(cell), "0 must not become 1 January 1970");
     assertEquals(0d, cell.getNumericCellValue());
+  }
+
+  @Test
+  void testASpaceFieldColumnGoesThroughTheSameValueWriter() {
+    // The space branch used to bypass writeValue entirely, so a createdTime
+    // column - which carries dataType "date" - exported an epoch number
+    Space space = new Space();
+    space.setDisplayName("Marketing");
+    space.setCreatedTime(1789055100000L);
+    AnalyticsTableColumnFilter spaceColumn = new AnalyticsTableColumnFilter();
+    spaceColumn.setSpaceField("createdTime");
+    spaceColumn.setDataType("date");
+
+    Cell cell = cell();
+    portlet.writeCell(cell, spaceColumn, null, null, space, formatting);
+
+    assertEquals(CellType.NUMERIC, cell.getCellType());
+    assertTrue(DateUtil.isCellDateFormatted(cell), "A space createdTime column must reach the reader as a date");
+    assertEquals(2026, cell.getLocalDateTimeCellValue().getYear());
+  }
+
+  @Test
+  void testAUserFieldColumnResolvesCreatedDate() {
+    // createdDate is not a Profile property: it lives in its own field, and
+    // the key exists only on the REST DTO the live table reads
+    Profile profile = new Profile();
+    profile.setCreatedTime(1789055100000L);
+    Identity identity = new Identity("organization", "john");
+    identity.setProfile(profile);
+    AnalyticsTableColumnFilter userColumn = new AnalyticsTableColumnFilter();
+    userColumn.setUserField("createdDate");
+    userColumn.setDataType("date");
+
+    Cell cell = cell();
+    portlet.writeCell(cell, userColumn, null, identity, null, formatting);
+
+    assertEquals(CellType.NUMERIC, cell.getCellType());
+    assertTrue(DateUtil.isCellDateFormatted(cell));
+    assertEquals(2026, cell.getLocalDateTimeCellValue().getYear());
+  }
+
+  @Test
+  void testAnAggregationColumnWithoutAValueIsEmpty() {
+    Cell cell = cell();
+    portlet.writeCell(cell, column("long", "activitiesCount"), null, null, null, formatting);
+
+    assertEquals(CellType.STRING, cell.getCellType());
+    assertEquals("", cell.getStringCellValue());
+  }
+
+  @Test
+  void testAnAggregationColumnWritesItsValue() {
+    Cell cell = cell();
+    portlet.writeCell(cell,
+                      column("long", "activitiesCount"),
+                      new TableColumnItemValue("activitiesCount", "28", null, null, null),
+                      null,
+                      null,
+                      formatting);
+
+    assertEquals(CellType.NUMERIC, cell.getCellType());
+    assertEquals(28d, cell.getNumericCellValue());
   }
 
   @Test
