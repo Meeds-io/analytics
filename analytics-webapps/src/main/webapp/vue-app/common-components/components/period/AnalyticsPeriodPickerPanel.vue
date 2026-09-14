@@ -52,13 +52,13 @@
         v-model="fromDate"
         type="date"
         :max="maxDate"
-        :aria-label="$t('analytics.period.dateOf', {0: $t('analytics.from')})"
+        :aria-label="$t('analytics.period.fromDate')"
         class="text-body analytics-date-time-selection analytics-period-bound-date"
         @change="onBoundInput">
       <input
         v-model="fromTime"
         type="time"
-        :aria-label="$t('analytics.period.hourOf', {0: $t('analytics.from')})"
+        :aria-label="$t('analytics.period.fromHour')"
         class="text-body analytics-date-time-selection"
         @change="apply">
       <span class="text-body analytics-period-bound-label">{{ $t('analytics.toDate') }}</span>
@@ -66,13 +66,13 @@
         v-model="toDate"
         type="date"
         :max="maxDate"
-        :aria-label="$t('analytics.period.dateOf', {0: $t('analytics.toDate')})"
+        :aria-label="$t('analytics.period.toDate')"
         class="text-body analytics-date-time-selection analytics-period-bound-date"
         @change="onBoundInput">
       <input
         v-model="toTime"
         type="time"
-        :aria-label="$t('analytics.period.hourOf', {0: $t('analytics.toDate')})"
+        :aria-label="$t('analytics.period.toHour')"
         class="text-body analytics-date-time-selection"
         @change="apply">
     </div>

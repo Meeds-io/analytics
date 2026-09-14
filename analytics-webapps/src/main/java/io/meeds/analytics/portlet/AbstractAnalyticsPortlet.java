@@ -20,6 +20,7 @@
 package io.meeds.analytics.portlet;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -455,8 +456,15 @@ public abstract class AbstractAnalyticsPortlet<T> extends GenericPortlet {
   protected boolean writeTimestampCell(Cell cell, String value, ZoneId zoneId, Map<String, CellStyle> styles) {
     long timestamp;
     try {
-      timestamp = Long.parseLong(StringUtils.trim(value));
-    } catch (NumberFormatException e) {
+      // Parsed as a decimal, not with Long.parseLong: a metric aggregation's
+      // value arrives from Elasticsearch as a JSON floating-point literal and
+      // org.json turns it into a BigDecimal, whose toString is scientific
+      // notation ("1.75941E+12"). Long.parseLong rejects that, which left the
+      // one case this method exists for - a MIN/MAX over a date field -
+      // falling through to a plain number in the reader's spreadsheet.
+      timestamp = new BigDecimal(StringUtils.trim(value)).longValueExact();
+    } catch (NumberFormatException | ArithmeticException e) {
+      // Not a whole number of milliseconds: not an instant
       return false;
     }
     if (timestamp <= 0) {

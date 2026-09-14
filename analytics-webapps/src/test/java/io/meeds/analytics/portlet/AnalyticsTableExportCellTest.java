@@ -110,16 +110,16 @@ class AnalyticsTableExportCellTest {
   void testColumnRenderedAsADateIsADateColumn() {
     // The signal the table itself renders from: dataType == "date" is what
     // makes AnalyticsTableCellValue display a <date-format>
-    assertTrue(portlet.isDateColumn(column("date", null), formatting));
-    assertTrue(portlet.isDateColumn(column("DATE", null), formatting));
+    assertTrue(portlet.isDateColumn(column("date", null), formatting, false));
+    assertTrue(portlet.isDateColumn(column("DATE", null), formatting, false));
   }
 
   @Test
   void testDateFieldMappingIsTheFallbackWhenNoDataTypeWasSaved() {
     // A column saved before the data type was recorded still exports as a
     // date, through the Elasticsearch mapping
-    assertTrue(portlet.isDateColumn(column(null, "lastLoginTime"), formatting));
-    assertTrue(portlet.isDateColumn(column(null, "lastLoginTime.keyword"), formatting));
+    assertTrue(portlet.isDateColumn(column(null, "lastLoginTime"), formatting, false));
+    assertTrue(portlet.isDateColumn(column(null, "lastLoginTime.keyword"), formatting, false));
   }
 
   @Test
@@ -132,18 +132,18 @@ class AnalyticsTableExportCellTest {
                                                                             AnalyticsAggregationType.COUNT,
                                                                             AnalyticsAggregationType.TERMS,
                                                                             AnalyticsAggregationType.GROUP_BY}) {
-      assertFalse(portlet.isDateColumn(column("date", "lastLoginTime", counting), formatting),
+      assertFalse(portlet.isDateColumn(column("date", "lastLoginTime", counting), formatting, false),
                   counting + " over a date field counts items, it does not produce an instant");
     }
     // the same field with an aggregation that does return an instant
-    assertTrue(portlet.isDateColumn(column("date", "lastLoginTime", AnalyticsAggregationType.MAX), formatting));
+    assertTrue(portlet.isDateColumn(column("date", "lastLoginTime", AnalyticsAggregationType.MAX), formatting, false));
   }
 
   @Test
   void testACountOverADateFieldKeepsItsNumber() {
     Cell cell = cell();
     AnalyticsTableColumnFilter countColumn = column("date", "lastLoginTime", AnalyticsAggregationType.CARDINALITY);
-    portlet.writeValue(cell, "28", portlet.isDateColumn(countColumn, formatting), formatting);
+    portlet.writeValue(cell, "28", portlet.isDateColumn(countColumn, formatting, false), formatting);
 
     assertEquals(CellType.NUMERIC, cell.getCellType());
     assertFalse(DateUtil.isCellDateFormatted(cell), "A distinct-value count must not become 1 January 1970");
@@ -151,9 +151,66 @@ class AnalyticsTableExportCellTest {
   }
 
   @Test
+  void testTheMainColumnOverADateFieldStaysADateColumn() {
+    // The main column's cell holds the bucket KEY, not an aggregated value
+    // (ElasticsearchAnalyticsService: if (columnIndex == 0) setValue(key)),
+    // and the settings form always forces its type to TERMS. Excluding it
+    // with the other counting aggregations exported the raw epoch number.
+    AnalyticsTableColumnFilter mainColumn = column("date", "timestamp", AnalyticsAggregationType.TERMS);
+
+    assertTrue(portlet.isDateColumn(mainColumn, formatting, true),
+               "A time-series table's main column must still export as a date");
+    assertFalse(portlet.isDateColumn(mainColumn, formatting, false),
+                "The same shape in any other column is a terms count");
+  }
+
+  @Test
+  void testTheMainColumnKeyIsWrittenAsADate() {
+    AnalyticsTableColumnFilter mainColumn = column("date", "timestamp", AnalyticsAggregationType.TERMS);
+    Cell cell = cell();
+    portlet.writeCell(cell,
+                      mainColumn,
+                      new TableColumnItemValue("1789055100000", "1789055100000", null, null, null),
+                      null,
+                      null,
+                      formatting,
+                      true);
+
+    assertEquals(CellType.NUMERIC, cell.getCellType());
+    assertTrue(DateUtil.isCellDateFormatted(cell));
+    assertEquals(2026, cell.getLocalDateTimeCellValue().getYear());
+    assertEquals(10, cell.getLocalDateTimeCellValue().getDayOfMonth());
+  }
+
+  @Test
+  void testAnAggregationValueInScientificNotationIsStillAnInstant() {
+    // org.json parses a JSON floating-point literal as a BigDecimal, whose
+    // toString is "1.789E+12". Elasticsearch answers a metric aggregation
+    // over a date field with exactly that shape, so Long.parseLong rejected
+    // the one case writeTimestampCell exists for.
+    Cell cell = cell();
+    portlet.writeValue(cell, new java.math.BigDecimal("1.7890551E12").toString(), true, formatting);
+
+    assertEquals(CellType.NUMERIC, cell.getCellType());
+    assertTrue(DateUtil.isCellDateFormatted(cell), "A MAX over a date field must not reach the reader as a bare number");
+    assertEquals(2026, cell.getLocalDateTimeCellValue().getYear());
+  }
+
+  @Test
+  void testAFractionalValueIsNotAnInstant() {
+    // An average of counts is not a point in time
+    Cell cell = cell();
+    portlet.writeValue(cell, "8.5", true, formatting);
+
+    assertEquals(CellType.NUMERIC, cell.getCellType());
+    assertFalse(DateUtil.isCellDateFormatted(cell));
+    assertEquals(8.5d, cell.getNumericCellValue());
+  }
+
+  @Test
   void testNonDateColumnIsNotADateColumn() {
-    assertFalse(portlet.isDateColumn(column("long", "activitiesCount"), formatting));
-    assertFalse(portlet.isDateColumn(column(null, null), formatting));
+    assertFalse(portlet.isDateColumn(column("long", "activitiesCount"), formatting, false));
+    assertFalse(portlet.isDateColumn(column(null, null), formatting, false));
   }
 
   @Test
@@ -235,7 +292,7 @@ class AnalyticsTableExportCellTest {
     spaceColumn.setDataType("date");
 
     Cell cell = cell();
-    portlet.writeCell(cell, spaceColumn, null, null, space, formatting);
+    portlet.writeCell(cell, spaceColumn, null, null, space, formatting, false);
 
     assertEquals(CellType.NUMERIC, cell.getCellType());
     assertTrue(DateUtil.isCellDateFormatted(cell), "A space createdTime column must reach the reader as a date");
@@ -255,7 +312,7 @@ class AnalyticsTableExportCellTest {
     userColumn.setDataType("date");
 
     Cell cell = cell();
-    portlet.writeCell(cell, userColumn, null, identity, null, formatting);
+    portlet.writeCell(cell, userColumn, null, identity, null, formatting, false);
 
     assertEquals(CellType.NUMERIC, cell.getCellType());
     assertTrue(DateUtil.isCellDateFormatted(cell));
@@ -265,7 +322,7 @@ class AnalyticsTableExportCellTest {
   @Test
   void testAnAggregationColumnWithoutAValueIsEmpty() {
     Cell cell = cell();
-    portlet.writeCell(cell, column("long", "activitiesCount"), null, null, null, formatting);
+    portlet.writeCell(cell, column("long", "activitiesCount"), null, null, null, formatting, false);
 
     assertEquals(CellType.STRING, cell.getCellType());
     assertEquals("", cell.getStringCellValue());
@@ -279,7 +336,8 @@ class AnalyticsTableExportCellTest {
                       new TableColumnItemValue("activitiesCount", "28", null, null, null),
                       null,
                       null,
-                      formatting);
+                      formatting,
+                      false);
 
     assertEquals(CellType.NUMERIC, cell.getCellType());
     assertEquals(28d, cell.getNumericCellValue());

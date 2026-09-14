@@ -89,7 +89,7 @@ class AnalyticsTableSpaceFieldTest {
   }
 
   @Test
-  void testTheIdentityFieldsStillResolve() throws Exception {
+  void testTheLegacyAndIdentityCasesStillResolve() throws Exception {
     assertEquals("Marketing", value("displayName"));
     assertEquals("The marketing space", value("description"));
     assertEquals("marketing", value("prettyName"));

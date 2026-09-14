@@ -371,7 +371,8 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
                    columnItemsByKey.get(col) == null ? null : columnItemsByKey.get(col).get(key),
                    identityByKey.get(key),
                    spaceByKey.get(key),
-                   formatting);
+                   formatting,
+                   col == 0);
         }
       }
       for (int col = 0; col < columns.size(); col++) {
@@ -448,12 +449,6 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
   }
 
   /**
-   * Whether the column holds dates, using the same signal the table itself
-   * renders from: {@code dataType == "date"} makes AnalyticsTableCellValue
-   * display a &lt;date-format&gt;. The Elasticsearch mapping is only a
-   * fallback, for a column saved before the data type was recorded.
-   */
-  /**
    * Aggregations whose result is a count, not an instant, whatever field they
    * are computed over. A CARDINALITY over a date field is a date column by
    * both signals below and its value is a number of distinct values: treated
@@ -465,10 +460,26 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
                                                                                   AnalyticsAggregationType.TERMS,
                                                                                   AnalyticsAggregationType.GROUP_BY);
 
-  boolean isDateColumn(AnalyticsTableColumnFilter columnFilter, ExportFormatting formatting) {
+  /**
+   * Whether the column holds dates, using the same signal the table itself
+   * renders from: {@code dataType == "date"} makes AnalyticsTableCellValue
+   * display a &lt;date-format&gt;. The Elasticsearch mapping is only a
+   * fallback, for a column saved before the data type was recorded.
+   *
+   * @param mainColumn whether this is the table's first column, whose cell
+   *                     holds the bucket <em>key</em> rather than an
+   *                     aggregated value (ElasticsearchAnalyticsService:
+   *                     {@code if (columnIndex == 0) itemValue.setValue(key)}).
+   *                     Its aggregation is always TERMS - the settings form
+   *                     forces it - so the counting exclusion must not apply
+   *                     to it: over a date field that key is epoch
+   *                     milliseconds, and excluding it exports the raw number
+   *                     this delivery exists to remove.
+   */
+  boolean isDateColumn(AnalyticsTableColumnFilter columnFilter, ExportFormatting formatting, boolean mainColumn) {
     AnalyticsTableColumnAggregation valueAggregation = columnFilter.getValueAggregation();
     AnalyticsAggregation aggregation = valueAggregation == null ? null : valueAggregation.getAggregation();
-    if (aggregation != null && COUNTING_AGGREGATIONS.contains(aggregation.getType())) {
+    if (!mainColumn && aggregation != null && COUNTING_AGGREGATIONS.contains(aggregation.getType())) {
       return false;
     }
     if (StringUtils.equalsIgnoreCase(columnFilter.getDataType(), "date")) {
@@ -482,8 +493,9 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
                          TableColumnItemValue item,
                          Identity rowIdentity,
                          Space rowSpace,
-                         ExportFormatting formatting) {
-    boolean dateColumn = isDateColumn(columnFilter, formatting);
+                         ExportFormatting formatting,
+                         boolean mainColumn) {
+    boolean dateColumn = isDateColumn(columnFilter, formatting, mainColumn);
     if (StringUtils.isNotBlank(columnFilter.getUserField())) {
       writeValue(cell, userFieldValue(rowIdentity, columnFilter.getUserField()), dateColumn, formatting);
       return;
@@ -501,9 +513,8 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
     AnalyticsAggregation aggregation = columnFilter.getValueAggregation().getAggregation();
     String rawValue = String.valueOf(item.getValue());
     if (StringUtils.isBlank(rawValue) || StringUtils.equals(rawValue, "null")) {
-      // Elasticsearch returns no value for this row (a user who never
-      // connected, say). Exporting the literal string "null" puts the word
-      // in the reader's spreadsheet.
+      // Same guard as writeValue, needed here too: the DATE and identity
+      // branches below never reach it
       cell.setCellValue("");
     } else if (aggregation.getType() == AnalyticsAggregationType.DATE) {
       // A real date cell where the interval allows one, so the column sorts
@@ -568,8 +579,12 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
 
   /**
    * One case per space field the settings UI offers
-   * (AnalyticsTableApplication.vue, spaceFields) plus the identity fields a
-   * main column can carry.
+   * (AnalyticsTableApplication.vue, spaceFields), plus {@code displayName}
+   * for a space identity main column, plus the legacy cases -
+   * {@code description}, {@code groupId}, {@code prettyName},
+   * {@code shortName}, {@code url} - which the UI does not offer and which
+   * exist for settings saved before that list and for the JSON settings
+   * drawer.
    * <p>
    * The default is deliberately empty rather than the display name: with a
    * display-name fallback, every field missing a case exported the space name
