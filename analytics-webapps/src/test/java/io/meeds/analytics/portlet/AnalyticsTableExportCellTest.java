@@ -152,10 +152,11 @@ class AnalyticsTableExportCellTest {
 
   @Test
   void testTheMainColumnOverADateFieldStaysADateColumn() {
-    // The main column's cell holds the bucket KEY, not an aggregated value
-    // (ElasticsearchAnalyticsService: if (columnIndex == 0) setValue(key)),
-    // and the settings form always forces its type to TERMS. Excluding it
-    // with the other counting aggregations exported the raw epoch number.
+    // The main column's cell holds the bucket key rather than an aggregated
+    // value - ElasticsearchAnalyticsService assigns the key itself to column
+    // index zero - and the settings form always forces its type to TERMS.
+    // Excluding it with the other counting aggregations exported the raw
+    // epoch number.
     AnalyticsTableColumnFilter mainColumn = column("date", "timestamp", AnalyticsAggregationType.TERMS);
 
     assertTrue(portlet.isDateColumn(mainColumn, formatting, true),
