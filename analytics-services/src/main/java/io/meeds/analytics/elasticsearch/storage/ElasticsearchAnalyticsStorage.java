@@ -20,6 +20,7 @@
 package io.meeds.analytics.elasticsearch.storage;
 
 import static io.meeds.analytics.elasticsearch.listener.ElasticsearchMappingListener.FIELD_MAPPING_CREATED_EVENT;
+import static io.meeds.analytics.utils.AnalyticsUtils.DEFAULT_FIELDS;
 import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_DURATION;
 import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_ERROR_CODE;
 import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_ERROR_MESSAGE;
@@ -40,6 +41,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.ResolverStyle;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -104,6 +106,15 @@ public class ElasticsearchAnalyticsStorage {
 
   private static final int              MAX_ALTERNATIVE_FIELD_COUNT = 4;
 
+  private static final Set<String>      EXPLICIT_MAPPING_TYPES      = Set.of(KEYWORD_MAPPING_TYPE,
+                                                                             TEXT_MAPPING_TYPE,
+                                                                             LONG_MAPPING_TYPE,
+                                                                             "integer",
+                                                                             "short",
+                                                                             FLOAT_MAPPING_TYPE,
+                                                                             "double",
+                                                                             BOOLEAN_MAPPING_TYPE);
+
   private static final Log              LOG                         =
                                             ExoLogger.getExoLogger(ElasticsearchAnalyticsStorage.class);
 
@@ -145,7 +156,7 @@ public class ElasticsearchAnalyticsStorage {
     }
 
     LOG.debug("Indexing in bulk {} documents", dataQueueEntries.size());
-    sendCreateIndexRequest();
+    sendCreateIndexRequest(esMappings);
 
     StringBuilder request = new StringBuilder();
     for (StatisticDataQueueEntry statisticDataQueueEntry : dataQueueEntries) {
@@ -228,7 +239,7 @@ public class ElasticsearchAnalyticsStorage {
     return handleESResponse(response, uri, content);
   }
 
-  private boolean sendCreateIndexRequest() {
+  private boolean sendCreateIndexRequest(Set<StatisticFieldMapping> esMappings) {
     String index = getIndex();
     if (sendIsIndexExistsRequest(index)) {
       LOG.debug("Index {} already exists. Index creation requests will not be sent.", index);
@@ -238,10 +249,66 @@ public class ElasticsearchAnalyticsStorage {
       sendCreateIndex(index);
       if (sendIsIndexExistsRequest(index)) {
         LOG.info("New analytics index {} created.", index);
+        sendKnownFieldMappings(index, esMappings);
         return true;
       } else {
         throw new IllegalStateException("Error creating index " + index + " on elasticsearch");
       }
+    }
+  }
+
+  private void sendKnownFieldMappings(String index, Set<StatisticFieldMapping> esMappings) {
+    JSONObject properties = getKnownFieldMappingProperties(esMappings);
+    if (properties.isEmpty()) {
+      return;
+    }
+    try {
+      sendPutRequest(index + "/_mapping", new JSONObject().put("properties", properties).toString());
+      LOG.info("Applied {} known field mappings on new analytics index {}", properties.length(), index);
+    } catch (Exception e) {
+      LOG.warn("Error applying known field mappings on new analytics index {}. Its fields will be mapped dynamically.",
+               index,
+               e);
+    }
+  }
+
+  private JSONObject getKnownFieldMappingProperties(Set<StatisticFieldMapping> esMappings) {
+    Map<String, StatisticFieldMapping> knownMappings = new HashMap<>();
+    mappedFieldNames.forEach((name, type) -> knownMappings.put(name, new StatisticFieldMapping(name, type, false)));
+    if (esMappings != null) {
+      esMappings.stream()
+                .filter(mapping -> !mapping.isScriptedField())
+                .forEach(mapping -> knownMappings.put(mapping.getName(), mapping));
+    }
+    Set<String> templateFieldNames = getIndexTemplateFieldNames();
+    JSONObject properties = new JSONObject();
+    knownMappings.values()
+                 .stream()
+                 .filter(mapping -> !StringUtils.contains(mapping.getName(), '.'))
+                 .filter(mapping -> !templateFieldNames.contains(mapping.getName()))
+                 .filter(mapping -> EXPLICIT_MAPPING_TYPES.contains(mapping.getType()))
+                 .forEach(mapping -> {
+                   JSONObject property = new JSONObject().put("type", mapping.getType());
+                   if (TEXT_MAPPING_TYPE.equals(mapping.getType()) && mapping.isHasKeywordSubField()) {
+                     property.put("fields",
+                                  new JSONObject().put(KEYWORD_MAPPING_TYPE,
+                                                       new JSONObject().put("type", KEYWORD_MAPPING_TYPE)
+                                                                       .put("ignore_above", 256)));
+                   }
+                   properties.put(mapping.getName(), property);
+                 });
+    return properties;
+  }
+
+  private Set<String> getIndexTemplateFieldNames() {
+    try {
+      JSONObject templateProperties = new JSONObject(elasticsearchConfiguration.getIndexTemplateMapping()).getJSONObject("template")
+                                                                                                          .getJSONObject("mappings")
+                                                                                                          .getJSONObject("properties");
+      return new HashSet<>(templateProperties.keySet());
+    } catch (Exception e) {
+      LOG.debug("Error reading index template field names, default fields will be used", e);
+      return new HashSet<>(DEFAULT_FIELDS);
     }
   }
 

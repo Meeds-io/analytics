@@ -121,7 +121,7 @@ public class AnalyticsUtils {
 
   public static final String            ALTERNATIVE_FIELD_SUFFIX         = "_alt";
 
-  public static final int               MAX_ALTERNATIVE_FIELD_COUNT      = 3;
+  public static final int               MAX_ALTERNATIVE_FIELD_COUNT      = 4;
 
   public static final String            FIELD_MODIFIER_USER_SOCIAL_ID    = "modifierSocialId";
 
@@ -538,13 +538,13 @@ public class AnalyticsUtils {
     for (int i = MAX_ALTERNATIVE_FIELD_COUNT; i >= 1; i--) {
       String altFieldName = getAlternativeFieldName(fieldNameNoKeyword, i);
       // Check if there is an alternative field mapping
-      if (convertKeywordFieldName(consumer, altFieldName, mappings, isAggregation)) {
+      if (convertKeywordFieldName(consumer, altFieldName, mappings, isAggregation, true)) {
         return;
       }
     }
     // Finally, if no alternative mapping, apply the modification on the
     // principal field Mapping instead of alternative
-    convertKeywordFieldName(consumer, fieldName, mappings, isAggregation);
+    convertKeywordFieldName(consumer, fieldName, mappings, isAggregation, false);
   }
 
   public static String getAlternativeFieldName(String fieldName, int alternativeIndex) {
@@ -560,13 +560,14 @@ public class AnalyticsUtils {
   private static boolean convertKeywordFieldName(Consumer<String> consumer,
                                                  String fieldName,
                                                  Set<StatisticFieldMapping> mappings,
-                                                 boolean isAggregation) {
+                                                 boolean isAggregation,
+                                                 boolean skipTypeConflict) {
     String fieldNameNoKeyword = fieldName.replace(KEYWORD_FIELD_NAME_SUFFIX, "");
     StatisticFieldMapping mapping = mappings.stream()
                                             .filter(f -> f.getName().equals(fieldNameNoKeyword))
                                             .findFirst()
                                             .orElse(null);
-    if (mapping == null) {
+    if (mapping == null || (skipTypeConflict && mapping.isTypeConflict())) {
       return false;
     }
     if (isAggregation && mapping.isHasKeywordSubField() && StringUtils.equals(mapping.getType(), "text")) {

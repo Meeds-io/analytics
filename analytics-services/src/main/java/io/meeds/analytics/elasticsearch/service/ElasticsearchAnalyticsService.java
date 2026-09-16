@@ -224,12 +224,8 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
         return new HashSet<>(esMappings.values());
       }
 
-      ObjectNode result = sortByAnalyticsDate(new JSONObject(mappingJsonString));
-      JsonNode mappingObject = getJsonNode(result, 0, null, MAPPINGS_SUB_NODE, PROPERTIES_SUB_NODE);
-
-      if (mappingObject != null) {
-        processFields(mappingObject, "", esMappings);
-      }
+      ObjectNode indicesMappings = sortByAnalyticsDate(new JSONObject(mappingJsonString));
+      mergeIndicesMappings(indicesMappings);
 
       // Add other timestamp fields
       addESDateSubField("hourOfDay");
@@ -1449,6 +1445,31 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
 
   private String toString(Object value) {
     return Objects.toString(value, null);
+  }
+
+  private void mergeIndicesMappings(ObjectNode indicesMappings) {
+    Map<String, StatisticFieldMapping> mergedMappings = new HashMap<>();
+    Map<String, Set<String>> typesByField = new HashMap<>();
+    Iterator<String> indexNames = indicesMappings.fieldNames();
+    while (indexNames.hasNext()) {
+      JsonNode indexProperties = getJsonNode(indicesMappings.get(indexNames.next()),
+                                             0,
+                                             MAPPINGS_SUB_NODE,
+                                             PROPERTIES_SUB_NODE);
+      if (indexProperties == null) {
+        continue;
+      }
+      Map<String, StatisticFieldMapping> indexMappings = new HashMap<>();
+      processFields(indexProperties, "", indexMappings);
+      indexMappings.forEach((fieldName, fieldMapping) -> {
+        typesByField.computeIfAbsent(fieldName, k -> new HashSet<>()).add(fieldMapping.getType());
+        mergedMappings.put(fieldName, fieldMapping);
+      });
+    }
+    mergedMappings.forEach((fieldName, fieldMapping) -> {
+      fieldMapping.setTypeConflict(typesByField.get(fieldName).size() > 1);
+      esMappings.put(fieldName, fieldMapping);
+    });
   }
 
   private void processFields(JsonNode fieldsNode,
