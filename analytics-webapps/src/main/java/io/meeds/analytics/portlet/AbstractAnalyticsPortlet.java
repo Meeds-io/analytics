@@ -34,6 +34,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.util.WorkbookUtil;
 import org.json.*;
 
 import org.exoplatform.commons.utils.CommonsUtils;
@@ -151,6 +152,52 @@ public abstract class AbstractAnalyticsPortlet<T> extends GenericPortlet {
     }
     preferences.store();
     response.setPortletMode(PortletMode.VIEW);
+  }
+
+  /**
+   * Resolves a stored title for an export. Since the chart settings drawer
+   * stores a multilingual title as a JSON object ({"en":"...","fr":"..."}),
+   * the raw value cannot be used as a sheet or file name: the text for the
+   * request locale is taken, then the English one, then the first non-blank
+   * translation. A plain title is returned unchanged.
+   */
+  protected static String resolveExportTitle(String title, Locale locale) {
+    if (StringUtils.isBlank(title)) {
+      return "";
+    }
+    String trimmed = title.trim();
+    if (!trimmed.startsWith("{") || !trimmed.endsWith("}")) {
+      return title;
+    }
+    try {
+      JSONObject translations = new JSONObject(trimmed);
+      String language = locale == null ? null : locale.getLanguage();
+      for (String candidate : new String[] {language, "en"}) {
+        if (candidate != null && StringUtils.isNotBlank(translations.optString(candidate))) {
+          return translations.getString(candidate);
+        }
+      }
+      for (String key : translations.keySet()) {
+        String value = translations.optString(key);
+        if (StringUtils.isNotBlank(value)) {
+          return value;
+        }
+      }
+      return "";
+    } catch (JSONException e) {
+      return title;
+    }
+  }
+
+  /**
+   * Builds a sheet name POI accepts from a user-typed title: the characters
+   * a sheet name cannot contain (: / \ ? * [ ] and a leading or trailing
+   * quote) are replaced and the name is cut to 31 characters, instead of
+   * letting {@link Workbook#createSheet(String)} throw on them.
+   */
+  protected static String safeSheetName(String title, String fallback) {
+    String name = StringUtils.defaultIfBlank(StringUtils.trimToNull(title), fallback);
+    return WorkbookUtil.createSafeSheetName(name);
   }
 
   protected void readSettingsReadOnly(ResourceRequest request,

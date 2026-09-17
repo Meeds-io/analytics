@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.Set;
@@ -346,7 +347,7 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
     }
 
     try (XSSFWorkbook workbook = new XSSFWorkbook()) {
-      Sheet sheet = workbook.createSheet(StringUtils.isBlank(tableFilter.getTitle()) ? "Table" : tableFilter.getTitle());
+      Sheet sheet = workbook.createSheet(safeSheetName(resolveExportTitle(tableFilter.getTitle(), request.getLocale()), "Table"));
 
       Row headerRow = sheet.createRow(0);
       for (int col = 0; col < columns.size(); col++) {
@@ -380,7 +381,7 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
       }
 
       response.setContentType(XLSX_CONTENT_TYPE);
-      response.addProperty("Content-Disposition", "attachment; filename=" + buildFileName(tableFilter) + ".xlsx");
+      response.addProperty("Content-Disposition", "attachment; filename=" + buildFileName(tableFilter, request.getLocale()) + ".xlsx");
       try (OutputStream outputStream = response.getPortletOutputStream()) {
         workbook.write(outputStream);
       }
@@ -637,9 +638,9 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
     }
   }
 
-  private String buildFileName(AnalyticsTableFilter filter) {
+  private String buildFileName(AnalyticsTableFilter filter, Locale locale) {
     String timestamp = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").format(ZonedDateTime.now(filter.zoneId()));
-    return sanitizeFileName(filter.getTitle()) + "_" + timestamp;
+    return sanitizeFileName(resolveExportTitle(filter.getTitle(), locale)) + "_" + timestamp;
   }
 
   private String sanitizeFileName(String title) {
