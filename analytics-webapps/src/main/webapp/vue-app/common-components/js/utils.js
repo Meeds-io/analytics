@@ -87,6 +87,19 @@ export function computePeriodDateRange(periodName) {
   return {from, to};
 }
 
+/**
+ * Same as computePeriodDateRange, but never null: an unknown period name (the
+ * stored defaultPeriod is a free string, editable in the settings) falls back
+ * to the given period instead of making the caller dereference null.
+ *
+ * @param {string} periodName period shortcut name
+ * @param {string} fallback period used when periodName is unknown
+ * @returns {Object} {from, to} Dates
+ */
+export function computePeriodDateRangeOrDefault(periodName, fallback = 'thisMonth') {
+  return computePeriodDateRange(periodName) || computePeriodDateRange(fallback);
+}
+
 export function loadUser(users, userId) {
   if (!userId) {
     return Promise.resolve(null);
