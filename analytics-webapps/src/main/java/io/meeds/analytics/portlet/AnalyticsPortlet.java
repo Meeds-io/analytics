@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -152,7 +153,7 @@ public class AnalyticsPortlet extends AbstractAnalyticsPortlet<AnalyticsFilter> 
       }
 
       response.setContentType(XLSX_CONTENT_TYPE);
-      response.addProperty("Content-Disposition", "attachment; filename=" + buildFileName(filter) + ".xlsx");
+      response.addProperty("Content-Disposition", "attachment; filename=" + buildFileName(filter, request.getLocale()) + ".xlsx");
       try (OutputStream outputStream = response.getPortletOutputStream()) {
         workbook.write(outputStream);
       }
@@ -288,9 +289,9 @@ public class AnalyticsPortlet extends AbstractAnalyticsPortlet<AnalyticsFilter> 
                  .orElse(null);
   }
 
-  private String buildFileName(AnalyticsFilter filter) {
+  private String buildFileName(AnalyticsFilter filter, Locale locale) {
     String timestamp = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").format(ZonedDateTime.now(filter.zoneId()));
-    return sanitizeFileName(filter.getTitle()) + "_" + timestamp;
+    return sanitizeFileName(resolveExportTitle(filter.getTitle(), locale)) + "_" + timestamp;
   }
 
   private String sanitizeFileName(String title) {
