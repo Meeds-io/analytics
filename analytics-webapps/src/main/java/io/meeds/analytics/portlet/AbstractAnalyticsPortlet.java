@@ -41,6 +41,8 @@ import org.exoplatform.commons.utils.CommonsUtils;
 import org.exoplatform.commons.utils.PropertyManager;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
+import org.exoplatform.services.resources.LocaleConfig;
+import org.exoplatform.services.resources.LocaleConfigService;
 import org.exoplatform.services.security.*;
 import org.exoplatform.social.core.space.SpaceUtils;
 import org.exoplatform.social.core.space.model.Space;
@@ -172,7 +174,7 @@ public abstract class AbstractAnalyticsPortlet<T> extends GenericPortlet {
     try {
       JSONObject translations = new JSONObject(trimmed);
       String language = locale == null ? null : locale.getLanguage();
-      for (String candidate : new String[] {language, "en"}) {
+      for (String candidate : new String[] {language, getDefaultLanguage()}) {
         if (candidate != null && StringUtils.isNotBlank(translations.optString(candidate))) {
           return translations.getString(candidate);
         }
@@ -186,6 +188,26 @@ public abstract class AbstractAnalyticsPortlet<T> extends GenericPortlet {
       return "";
     } catch (JSONException e) {
       return title;
+    }
+  }
+
+  /**
+   * The portal's own default language, e.g. what a viewer with no matching
+   * translation actually falls back to on screen ({@code resolveTitleTranslation}
+   * in the Vue apps uses {@code eXo.env.portal.defaultLanguage} the same way).
+   * Falls back to {@code "en"} if the service cannot be resolved, which is
+   * also this platform's shipped default.
+   */
+  private static String getDefaultLanguage() {
+    try {
+      LocaleConfigService localeConfigService = CommonsUtils.getService(LocaleConfigService.class);
+      LocaleConfig defaultLocaleConfig = localeConfigService == null ? null : localeConfigService.getDefaultLocaleConfig();
+      String language = defaultLocaleConfig == null || defaultLocaleConfig.getLocale() == null ? null
+                                                                                                : defaultLocaleConfig.getLocale()
+                                                                                                                     .getLanguage();
+      return StringUtils.defaultIfBlank(language, "en");
+    } catch (Exception e) {
+      return "en";
     }
   }
 
