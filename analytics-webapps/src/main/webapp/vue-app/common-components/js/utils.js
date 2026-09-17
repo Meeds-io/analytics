@@ -211,9 +211,39 @@ export async function getProfilePropertySetting(settingName) {
 }
 
 export async function getPropertyOptionTranslatedValue(optionId, lang) {
-  return await getTranslations('propertySettingOption', optionId, 'optionValue').then(translations => {
-    return translations[lang] || translations[eXo.env.portal.defaultLanguage];
-  });
+  try {
+    const translations = await getTranslations('propertySettingOption', optionId, 'optionValue');
+    return translations[lang] || translations[eXo.env.portal.defaultLanguage] || optionId;
+  } catch (e) {
+    return optionId;
+  }
+}
+
+export async function getProfilePropertyValueLabel(fieldName, value) {
+  const propertyName = fieldName?.replace?.('.keyword', '')?.replace?.(/_alt\d*$/, '')?.split?.('.')?.[1];
+  if (!propertyName || value === null || typeof value === 'undefined') {
+    return value;
+  }
+  const setting = await getCachedProfilePropertySetting(propertyName);
+  if (!setting?.dropdownList) {
+    return value;
+  }
+  const option = setting.propertyOptions?.find(propertyOption => `${propertyOption.id}` === `${value}`);
+  return option?.translatedValue || option?.value || value;
+}
+
+const profilePropertySettings = {};
+
+function getCachedProfilePropertySetting(propertyName) {
+  if (!profilePropertySettings[propertyName]) {
+    profilePropertySettings[propertyName] = getProfilePropertySetting(propertyName).then(setting => {
+      if (!setting) {
+        delete profilePropertySettings[propertyName];
+      }
+      return setting;
+    });
+  }
+  return profilePropertySettings[propertyName];
 }
 
 async function getTranslations(objectType, objectId, fieldName) {
