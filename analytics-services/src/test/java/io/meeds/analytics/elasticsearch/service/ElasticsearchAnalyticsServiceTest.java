@@ -25,7 +25,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import java.util.Map;
 import java.util.Set;
@@ -41,7 +40,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.exoplatform.commons.api.settings.SettingService;
 import org.exoplatform.commons.api.settings.SettingValue;
 
-import io.meeds.analytics.elasticsearch.storage.ElasticsearchAnalyticsStorage;
 import io.meeds.analytics.model.StatisticFieldMapping;
 
 @ExtendWith(MockitoExtension.class)
@@ -54,23 +52,18 @@ class ElasticsearchAnalyticsServiceTest {
   private static final String           NEWEST_INDEX  = "analytics_2026-08-13";
 
   @Mock
-  private ElasticsearchAnalyticsStorage storage;
-
-  @Mock
   private SettingService                settingService;
 
   @InjectMocks
   private ElasticsearchAnalyticsService service;
 
   @Test
-  void retrieveMappingMergesAllIndicesPreferringTheExplicitTypeOverADynamicText() {
-    when(storage.retrieveAllAnalyticsIndexesMapping()).thenReturn(indicesMapping(
+  void mergeIndicesMappingsPrefersTheExplicitTypeOverADynamicText() throws Exception {
+    Map<String, StatisticFieldMapping> mappings = byName(service.mergeIndicesMappings(indicesMapping(
         // listed out of date order on purpose: the merge sorts by index date
         MIDDLE_INDEX, properties(text("contentId"), longField("contentUpdatedDate_alt2"), keyword("module")),
         NEWEST_INDEX, properties(text("contentId"), longField("contentUpdatedDate_alt2"), keyword("module"), text("title")),
-        OLDEST_INDEX, properties(keyword("contentId"), keyword("contentUpdatedDate_alt2"), keyword("module"))));
-
-    Map<String, StatisticFieldMapping> mappings = byName(service.retrieveMapping(true));
+        OLDEST_INDEX, properties(keyword("contentId"), keyword("contentUpdatedDate_alt2"), keyword("module")))));
 
     StatisticFieldMapping contentId = mappings.get("contentId");
     assertEquals("keyword", contentId.getType(), "the explicitly pushed type wins over the dynamic text of newer indices");
@@ -91,17 +84,17 @@ class ElasticsearchAnalyticsServiceTest {
     assertFalse(title.isTypeConflict());
 
     assertNotNull(mappings.get("doc['timestamp'].value.year"), "scripted date sub-fields are still added");
+
+    service.storeFieldsMappings();
     verify(settingService).set(any(), any(), any(), any(SettingValue.class));
   }
 
   @Test
-  void retrieveMappingFlagsANewestTextFieldOnlyWhenAggregatableTypesDisagree() {
-    when(storage.retrieveAllAnalyticsIndexesMapping()).thenReturn(indicesMapping(
+  void mergeIndicesMappingsFlagsANewestTextFieldOnlyWhenAggregatableTypesDisagree() {
+    StatisticFieldMapping field = byName(service.mergeIndicesMappings(indicesMapping(
         OLDEST_INDEX, properties(keyword("field")),
         MIDDLE_INDEX, properties(longField("field")),
-        NEWEST_INDEX, properties(text("field"))));
-
-    StatisticFieldMapping field = byName(service.retrieveMapping(true)).get("field");
+        NEWEST_INDEX, properties(text("field"))))).get("field");
 
     assertEquals("text", field.getType(), "no single explicit type to restore: the most recent index wins");
     assertTrue(field.isHasKeywordSubField());

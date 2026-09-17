@@ -227,17 +227,7 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
         return new HashSet<>(esMappings.values());
       }
 
-      ObjectNode indicesMappings = sortByAnalyticsDate(new JSONObject(mappingJsonString));
-      mergeIndicesMappings(indicesMappings);
-
-      // Add other timestamp fields
-      addESDateSubField("hourOfDay");
-      addESDateSubField("dayOfMonth");
-      addESDateSubField("dayOfWeek");
-      addESDateSubField("dayOfYear");
-      addESDateSubField("monthOfYear");
-      addESDateSubField("year");
-
+      mergeIndicesMappings(mappingJsonString);
       storeFieldsMappings();
     } catch (Exception e) {
       LOG.error("Error getting mapping of analytics", e);
@@ -1410,7 +1400,7 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
     }
   }
 
-  private void storeFieldsMappings() throws JSONException {
+  void storeFieldsMappings() throws JSONException {
     JSONObject jsonObject = new JSONObject();
     Set<String> keys = esMappings.keySet();
     for (String key : keys) {
@@ -1450,7 +1440,8 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
     return Objects.toString(value, null);
   }
 
-  private void mergeIndicesMappings(ObjectNode indicesMappings) {
+  Set<StatisticFieldMapping> mergeIndicesMappings(String mappingJsonString) {
+    ObjectNode indicesMappings = sortByAnalyticsDate(new JSONObject(mappingJsonString));
     Map<String, List<StatisticFieldMapping>> mappingsByField = new HashMap<>();
     Iterator<String> indexNames = indicesMappings.fieldNames();
     while (indexNames.hasNext()) {
@@ -1467,6 +1458,15 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
                                                                         .add(fieldMapping));
     }
     mappingsByField.forEach((fieldName, fieldMappings) -> esMappings.put(fieldName, mergeFieldMappings(fieldMappings)));
+
+    // Add other timestamp fields
+    addESDateSubField("hourOfDay");
+    addESDateSubField("dayOfMonth");
+    addESDateSubField("dayOfWeek");
+    addESDateSubField("dayOfYear");
+    addESDateSubField("monthOfYear");
+    addESDateSubField("year");
+    return new HashSet<>(esMappings.values());
   }
 
   private StatisticFieldMapping mergeFieldMappings(List<StatisticFieldMapping> fieldMappingsByIndexDate) {
