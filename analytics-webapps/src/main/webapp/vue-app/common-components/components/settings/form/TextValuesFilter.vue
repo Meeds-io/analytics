@@ -67,7 +67,6 @@ export default {
     }
   },
   data: () => ({
-    lang: eXo.env.portal.language,
     selectedValue: null,
     values: [],
   }),

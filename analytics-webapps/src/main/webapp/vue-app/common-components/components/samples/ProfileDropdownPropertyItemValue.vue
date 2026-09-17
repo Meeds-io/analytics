@@ -30,7 +30,6 @@
 export default {
   data() {
     return {
-      lang: eXo.env.portal.language,
       translatedValue: null
     };
   },
@@ -48,16 +47,13 @@ export default {
     optionLabel() {
       return this.translatedValue || this.propertyOptionValue;
     },
-    option() {
-      return this.propertySetting?.propertyOptions.find(option => `${option.id}` === `${this.propertyOptionValue}`);
-    }
   },
   created() {
     this.getPropertyOptionLabel();
   },
   methods: {
     async getPropertyOptionLabel() {
-      this.translatedValue =  await this.$analyticsUtils.getPropertyOptionTranslatedValue(this.propertyOptionValue, this.lang);
+      this.translatedValue = await this.$analyticsUtils.getProfilePropertyValueLabel(`profileProperties.${this.propertyName}`, this.propertyOptionValue);
     },
   }
 };

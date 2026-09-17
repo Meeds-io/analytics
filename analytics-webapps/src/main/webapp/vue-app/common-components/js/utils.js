@@ -234,7 +234,7 @@ export async function getProfilePropertyValueLabel(fieldName, value) {
 
 const profilePropertySettings = {};
 
-function getCachedProfilePropertySetting(propertyName) {
+export function getCachedProfilePropertySetting(propertyName) {
   if (!profilePropertySettings[propertyName]) {
     profilePropertySettings[propertyName] = getProfilePropertySetting(propertyName).then(setting => {
       if (!setting) {

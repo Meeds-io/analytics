@@ -69,7 +69,7 @@ export default {
   },
   methods: {
     async getPropertySetting() {
-      this.setting = await this.$analyticsUtils.getProfilePropertySetting(this.propertyName) || {};
+      this.setting = await this.$analyticsUtils.getCachedProfilePropertySetting(this.propertyName) || {};
     }
   }
 };
