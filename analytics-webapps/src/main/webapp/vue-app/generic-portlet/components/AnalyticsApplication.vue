@@ -469,9 +469,12 @@ export default {
       return date.toLocaleDateString(this.lang, {day: 'numeric', month: 'short', year: 'numeric'});
     },
     initSelectedPeriod(periodName) {
-      const range = this.$analyticsUtils.computePeriodDateRangeOrDefault(periodName || 'thisMonth');
+      const name = periodName || 'thisMonth';
+      const range = this.$analyticsUtils.computePeriodDateRangeOrDefault(name);
       this.selectedPeriod = {
-        period: periodName || 'thisMonth',
+        // an unknown name would describe a period that does not exist while
+        // the range above already fell back to thisMonth: keep them in sync.
+        period: this.$analyticsUtils.computePeriodDateRange(name) ? name : 'thisMonth',
         min: new Date(range.from.getFullYear(), range.from.getMonth(), range.from.getDate()).getTime(),
         max: new Date(range.to.getFullYear(), range.to.getMonth(), range.to.getDate(), 23, 59, 59, 999).getTime(),
       };
