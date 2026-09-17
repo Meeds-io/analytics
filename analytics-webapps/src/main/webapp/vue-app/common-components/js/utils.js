@@ -211,17 +211,13 @@ export async function getProfilePropertySetting(settingName) {
 }
 
 export async function getPropertyOptionTranslatedValue(optionId, lang) {
-  try {
-    const translations = await getTranslations('propertySettingOption', optionId, 'optionValue');
-    return translations[lang] || translations[eXo.env.portal.defaultLanguage] || optionId;
-  } catch (e) {
-    return optionId;
-  }
+  const translations = await getTranslations('propertySettingOption', optionId, 'optionValue');
+  return translations?.[lang] || translations?.[eXo.env.portal.defaultLanguage] || optionId;
 }
 
 export async function getProfilePropertyValueLabel(fieldName, value) {
   const propertyName = fieldName?.replace?.('.keyword', '')?.replace?.(/_alt\d*$/, '')?.split?.('.')?.[1];
-  if (!propertyName || value === null || typeof value === 'undefined') {
+  if (!propertyName || value == null) {
     return value;
   }
   const setting = await getCachedProfilePropertySetting(propertyName);
@@ -250,13 +246,7 @@ async function getTranslations(objectType, objectId, fieldName) {
   return await fetch(`${eXo.env.portal.context}/${eXo.env.portal.rest}/social/translations/${objectType}/${objectId}/${fieldName}`, {
     method: 'GET',
     credentials: 'include',
-  }).then((resp) => {
-    if (resp?.ok) {
-      return resp.json();
-    } else {
-      throw new Error('Error when getting list of translations of dropdown option value');
-    }
-  });
+  }).then(resp => (resp?.ok ? resp.json() : null));
 }
 
 function getPageRecursively(navigations, pageName) {

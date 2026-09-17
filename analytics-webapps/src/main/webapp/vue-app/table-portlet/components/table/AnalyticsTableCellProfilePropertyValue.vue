@@ -26,7 +26,7 @@
 export default {
   props: {
     value: {
-      type: Object,
+      type: [String, Number, Object],
       default: null,
     },
     column: {
