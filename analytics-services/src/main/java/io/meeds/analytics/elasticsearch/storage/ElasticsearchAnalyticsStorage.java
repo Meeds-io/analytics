@@ -107,10 +107,7 @@ public class ElasticsearchAnalyticsStorage {
   private static final Set<String>      EXPLICIT_MAPPING_TYPES      = Set.of(KEYWORD_MAPPING_TYPE,
                                                                              TEXT_MAPPING_TYPE,
                                                                              LONG_MAPPING_TYPE,
-                                                                             "integer",
-                                                                             "short",
                                                                              FLOAT_MAPPING_TYPE,
-                                                                             "double",
                                                                              BOOLEAN_MAPPING_TYPE);
 
   private static final Log              LOG                         =
@@ -244,9 +241,9 @@ public class ElasticsearchAnalyticsStorage {
       return false;
     } else {
       sendTurnOffWriteOnAllAnalyticsIndexes();
-      sendCreateIndex(index, esMappings);
+      int knownFieldMappingsCount = sendCreateIndex(index, esMappings);
       if (sendIsIndexExistsRequest(index)) {
-        LOG.info("New analytics index {} created.", index);
+        LOG.info("New analytics index {} created with {} known field mappings.", index, knownFieldMappingsCount);
         return true;
       } else {
         throw new IllegalStateException("Error creating index " + index + " on elasticsearch");
@@ -322,13 +319,11 @@ public class ElasticsearchAnalyticsStorage {
   }
 
   @CacheEvict("analytics.indexExists")
-  private void sendCreateIndex(String index, Set<StatisticFieldMapping> esMappings) {
+  private int sendCreateIndex(String index, Set<StatisticFieldMapping> esMappings) {
     JSONObject knownProperties = getKnownFieldMappingProperties(esMappings);
+    int knownFieldMappingsCount = knownProperties.length();
     try {
       sendPutRequest(index, getCreateIndexRequestContent(knownProperties));
-      if (!knownProperties.isEmpty()) {
-        LOG.info("New analytics index {} created with {} known field mappings", index, knownProperties.length());
-      }
     } catch (RuntimeException e) {
       if (knownProperties.isEmpty() || sendGetRequest(index, false).getStatusCode() == HttpStatus.SC_OK) {
         throw e;
@@ -338,8 +333,10 @@ public class ElasticsearchAnalyticsStorage {
                knownProperties.length(),
                e.getMessage());
       sendPutRequest(index, getCreateIndexRequestContent(new JSONObject()));
+      knownFieldMappingsCount = 0;
     }
     CompletableFuture.runAsync(this::sendRolloverRequest);
+    return knownFieldMappingsCount;
   }
 
   private boolean sendIsIndexTemplateExistsRequest() {

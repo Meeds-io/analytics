@@ -567,10 +567,16 @@ public class AnalyticsUtils {
                                             .filter(f -> f.getName().equals(fieldNameNoKeyword))
                                             .findFirst()
                                             .orElse(null);
-    if (mapping == null || (skipTypeConflict && mapping.isTypeConflict())) {
+    if (mapping == null) {
       return false;
     }
-    if (isAggregation && mapping.isHasKeywordSubField() && StringUtils.equals(mapping.getType(), "text")) {
+    boolean keywordSubFieldAggregation = isAggregation
+                                         && mapping.isHasKeywordSubField()
+                                         && StringUtils.equals(mapping.getType(), "text");
+    if (skipTypeConflict && mapping.isTypeConflict() && !keywordSubFieldAggregation) {
+      return false;
+    }
+    if (keywordSubFieldAggregation) {
       consumer.accept(fieldNameNoKeyword + KEYWORD_FIELD_NAME_SUFFIX);
     } else {
       consumer.accept(fieldNameNoKeyword);
