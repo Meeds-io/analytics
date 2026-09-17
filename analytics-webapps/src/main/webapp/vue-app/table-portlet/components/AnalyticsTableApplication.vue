@@ -444,7 +444,7 @@ export default {
       this.showMenu=false;
     },
     initSelectedPeriod(periodName) {
-      const range = this.$analyticsUtils.computePeriodDateRange(periodName || 'thisMonth');
+      const range = this.$analyticsUtils.computePeriodDateRangeOrDefault(periodName || 'thisMonth');
       this.selectedPeriod = {
         period: periodName || 'thisMonth',
         min: new Date(range.from.getFullYear(), range.from.getMonth(), range.from.getDate()).getTime(),
