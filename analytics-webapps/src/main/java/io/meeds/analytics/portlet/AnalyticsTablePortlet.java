@@ -323,7 +323,7 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
                                                             period,
                                                             periodType,
                                                             i,
-                                                            0,
+                                                            EXPORT_MAX_ROWS,
                                                             null,
                                                             new SimpleEntry<>(mainField, rowKeys));
       columnItemsByKey.put(i, indexByKey(columnResult));
