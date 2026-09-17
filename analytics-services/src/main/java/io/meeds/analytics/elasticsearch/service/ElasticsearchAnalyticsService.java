@@ -45,6 +45,7 @@ import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -106,6 +107,8 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
   private static final String                MAPPINGS_SUB_NODE                        = "mappings";
 
   private static final String                PROPERTIES_SUB_NODE                      = "properties";
+
+  private static final String                TEXT_MAPPING_TYPE                        = "text";
 
   private static final String                VALUE_PARAM                              = "value";
 
@@ -232,21 +235,7 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
         return new HashSet<>(esMappings.values());
       }
 
-      ObjectNode result = sortByAnalyticsDate(new JSONObject(mappingJsonString));
-      JsonNode mappingObject = getJsonNode(result, 0, null, MAPPINGS_SUB_NODE, PROPERTIES_SUB_NODE);
-
-      if (mappingObject != null) {
-        processFields(mappingObject, "", esMappings);
-      }
-
-      // Add other timestamp fields
-      addESDateSubField("hourOfDay");
-      addESDateSubField("dayOfMonth");
-      addESDateSubField("dayOfWeek");
-      addESDateSubField("dayOfYear");
-      addESDateSubField("monthOfYear");
-      addESDateSubField("year");
-
+      mergeIndicesMappings(mappingJsonString);
       storeFieldsMappings();
     } catch (Exception e) {
       LOG.error("Error getting mapping of analytics", e);
@@ -1510,7 +1499,7 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
     }
   }
 
-  private void storeFieldsMappings() throws JSONException {
+  void storeFieldsMappings() throws JSONException {
     JSONObject jsonObject = new JSONObject();
     Set<String> keys = esMappings.keySet();
     for (String key : keys) {
@@ -1548,6 +1537,51 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
 
   private String toString(Object value) {
     return Objects.toString(value, null);
+  }
+
+  Set<StatisticFieldMapping> mergeIndicesMappings(String mappingJsonString) {
+    ObjectNode indicesMappings = sortByAnalyticsDate(new JSONObject(mappingJsonString));
+    Map<String, List<StatisticFieldMapping>> mappingsByField = new HashMap<>();
+    Iterator<String> indexNames = indicesMappings.fieldNames();
+    while (indexNames.hasNext()) {
+      JsonNode indexProperties = getJsonNode(indicesMappings.get(indexNames.next()),
+                                             0,
+                                             MAPPINGS_SUB_NODE,
+                                             PROPERTIES_SUB_NODE);
+      if (indexProperties == null) {
+        continue;
+      }
+      Map<String, StatisticFieldMapping> indexMappings = new HashMap<>();
+      processFields(indexProperties, "", indexMappings);
+      indexMappings.forEach((fieldName, fieldMapping) -> mappingsByField.computeIfAbsent(fieldName, k -> new ArrayList<>())
+                                                                        .add(fieldMapping));
+    }
+    mappingsByField.forEach((fieldName, fieldMappings) -> esMappings.put(fieldName, mergeFieldMappings(fieldMappings)));
+
+    // Add other timestamp fields
+    addESDateSubField("hourOfDay");
+    addESDateSubField("dayOfMonth");
+    addESDateSubField("dayOfWeek");
+    addESDateSubField("dayOfYear");
+    addESDateSubField("monthOfYear");
+    addESDateSubField("year");
+    return new HashSet<>(esMappings.values());
+  }
+
+  private StatisticFieldMapping mergeFieldMappings(List<StatisticFieldMapping> fieldMappingsByIndexDate) {
+    List<StatisticFieldMapping> newestFirst = new ArrayList<>(fieldMappingsByIndexDate);
+    Collections.reverse(newestFirst);
+    Set<String> aggregatableTypes = newestFirst.stream()
+                                               .map(StatisticFieldMapping::getType)
+                                               .filter(type -> !StringUtils.equals(type, TEXT_MAPPING_TYPE))
+                                               .collect(Collectors.toSet());
+    StatisticFieldMapping merged = newestFirst.stream()
+                                              .filter(mapping -> aggregatableTypes.size() != 1
+                                                                 || !StringUtils.equals(mapping.getType(), TEXT_MAPPING_TYPE))
+                                              .findFirst()
+                                              .orElse(newestFirst.get(0));
+    merged.setTypeConflict(aggregatableTypes.size() > 1);
+    return merged;
   }
 
   private void processFields(JsonNode fieldsNode,

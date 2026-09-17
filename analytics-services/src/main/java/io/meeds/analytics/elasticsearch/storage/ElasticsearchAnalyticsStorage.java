@@ -20,6 +20,8 @@
 package io.meeds.analytics.elasticsearch.storage;
 
 import static io.meeds.analytics.elasticsearch.listener.ElasticsearchMappingListener.FIELD_MAPPING_CREATED_EVENT;
+import static io.meeds.analytics.utils.AnalyticsUtils.ALTERNATIVE_FIELD_SUFFIX;
+import static io.meeds.analytics.utils.AnalyticsUtils.DEFAULT_FIELDS;
 import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_DURATION;
 import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_ERROR_CODE;
 import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_ERROR_MESSAGE;
@@ -31,6 +33,7 @@ import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_STATUS;
 import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_SUB_MODULE;
 import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_TIMESTAMP;
 import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_USER_ID;
+import static io.meeds.analytics.utils.AnalyticsUtils.MAX_ALTERNATIVE_FIELD_COUNT;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -40,6 +43,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.ResolverStyle;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -100,9 +104,11 @@ public class ElasticsearchAnalyticsStorage {
 
   private static final String           LONG_MAPPING_TYPE           = "long";
 
-  private static final String           ALTERNATIVE_FIELD_SUFFIX    = "_alt";
-
-  private static final int              MAX_ALTERNATIVE_FIELD_COUNT = 4;
+  private static final Set<String>      EXPLICIT_MAPPING_TYPES      = Set.of(KEYWORD_MAPPING_TYPE,
+                                                                             TEXT_MAPPING_TYPE,
+                                                                             LONG_MAPPING_TYPE,
+                                                                             FLOAT_MAPPING_TYPE,
+                                                                             BOOLEAN_MAPPING_TYPE);
 
   private static final Log              LOG                         =
                                             ExoLogger.getExoLogger(ElasticsearchAnalyticsStorage.class);
@@ -145,7 +151,7 @@ public class ElasticsearchAnalyticsStorage {
     }
 
     LOG.debug("Indexing in bulk {} documents", dataQueueEntries.size());
-    sendCreateIndexRequest();
+    sendCreateIndexRequest(esMappings);
 
     StringBuilder request = new StringBuilder();
     for (StatisticDataQueueEntry statisticDataQueueEntry : dataQueueEntries) {
@@ -228,20 +234,69 @@ public class ElasticsearchAnalyticsStorage {
     return handleESResponse(response, uri, content);
   }
 
-  private boolean sendCreateIndexRequest() {
+  private boolean sendCreateIndexRequest(Set<StatisticFieldMapping> esMappings) {
     String index = getIndex();
     if (sendIsIndexExistsRequest(index)) {
       LOG.debug("Index {} already exists. Index creation requests will not be sent.", index);
       return false;
     } else {
       sendTurnOffWriteOnAllAnalyticsIndexes();
-      sendCreateIndex(index);
+      int knownFieldMappingsCount = sendCreateIndex(index, esMappings);
       if (sendIsIndexExistsRequest(index)) {
-        LOG.info("New analytics index {} created.", index);
+        LOG.info("New analytics index {} created with {} known field mappings.", index, knownFieldMappingsCount);
         return true;
       } else {
         throw new IllegalStateException("Error creating index " + index + " on elasticsearch");
       }
+    }
+  }
+
+  private JSONObject getKnownFieldMappingProperties(Set<StatisticFieldMapping> esMappings) {
+    try {
+      return computeKnownFieldMappingProperties(esMappings);
+    } catch (Exception e) {
+      LOG.warn("Error computing known field mappings, the new analytics index will map its fields dynamically", e);
+      return new JSONObject();
+    }
+  }
+
+  private JSONObject computeKnownFieldMappingProperties(Set<StatisticFieldMapping> esMappings) {
+    Map<String, StatisticFieldMapping> knownMappings = new HashMap<>();
+    mappedFieldNames.forEach((name, type) -> knownMappings.put(name, new StatisticFieldMapping(name, type, false)));
+    if (esMappings != null) {
+      esMappings.stream()
+                .filter(mapping -> !mapping.isScriptedField())
+                .forEach(mapping -> knownMappings.put(mapping.getName(), mapping));
+    }
+    Set<String> templateFieldNames = getIndexTemplateFieldNames();
+    JSONObject properties = new JSONObject();
+    knownMappings.values()
+                 .stream()
+                 .filter(mapping -> !StringUtils.contains(mapping.getName(), '.'))
+                 .filter(mapping -> !templateFieldNames.contains(mapping.getName()))
+                 .filter(mapping -> mapping.getType() != null && EXPLICIT_MAPPING_TYPES.contains(mapping.getType()))
+                 .forEach(mapping -> {
+                   JSONObject property = new JSONObject().put("type", mapping.getType());
+                   if (TEXT_MAPPING_TYPE.equals(mapping.getType()) && mapping.isHasKeywordSubField()) {
+                     property.put("fields",
+                                  new JSONObject().put(KEYWORD_MAPPING_TYPE,
+                                                       new JSONObject().put("type", KEYWORD_MAPPING_TYPE)
+                                                                       .put("ignore_above", 256)));
+                   }
+                   properties.put(mapping.getName(), property);
+                 });
+    return properties;
+  }
+
+  private Set<String> getIndexTemplateFieldNames() {
+    try {
+      JSONObject templateProperties = new JSONObject(elasticsearchConfiguration.getIndexTemplateMapping()).getJSONObject("template")
+                                                                                                          .getJSONObject("mappings")
+                                                                                                          .getJSONObject("properties");
+      return new HashSet<>(templateProperties.keySet());
+    } catch (Exception e) {
+      LOG.debug("Error reading index template field names, default fields will be used", e);
+      return new HashSet<>(DEFAULT_FIELDS);
     }
   }
 
@@ -264,9 +319,24 @@ public class ElasticsearchAnalyticsStorage {
   }
 
   @CacheEvict("analytics.indexExists")
-  private void sendCreateIndex(String index) {
-    sendPutRequest(index, getCreateIndexRequestContent());
+  private int sendCreateIndex(String index, Set<StatisticFieldMapping> esMappings) {
+    JSONObject knownProperties = getKnownFieldMappingProperties(esMappings);
+    int knownFieldMappingsCount = knownProperties.length();
+    try {
+      sendPutRequest(index, getCreateIndexRequestContent(knownProperties));
+    } catch (RuntimeException e) {
+      if (knownProperties.isEmpty() || sendGetRequest(index, false).getStatusCode() == HttpStatus.SC_OK) {
+        throw e;
+      }
+      LOG.warn("Error creating analytics index {} with {} known field mappings, retrying without them, its fields will be mapped dynamically. Error: {}",
+               index,
+               knownProperties.length(),
+               e.getMessage());
+      sendPutRequest(index, getCreateIndexRequestContent(new JSONObject()));
+      knownFieldMappingsCount = 0;
+    }
     CompletableFuture.runAsync(this::sendRolloverRequest);
+    return knownFieldMappingsCount;
   }
 
   private boolean sendIsIndexTemplateExistsRequest() {
@@ -319,14 +389,14 @@ public class ElasticsearchAnalyticsStorage {
     return httpClient.execute(httpHeadRequest, this::handleHttpResponse);
   }
 
-  private String getCreateIndexRequestContent() {
-    return " {" +
-        "\"aliases\": {" +
-        "  \"" + elasticsearchConfiguration.getIndexAlias() + "\": {" +
-        "    \"is_write_index\" : true" +
-        "  }" +
-        "}" +
-        "}";
+  private String getCreateIndexRequestContent(JSONObject knownProperties) {
+    JSONObject content = new JSONObject().put("aliases",
+                                              new JSONObject().put(elasticsearchConfiguration.getIndexAlias(),
+                                                                   new JSONObject().put("is_write_index", true)));
+    if (knownProperties != null && !knownProperties.isEmpty()) {
+      content.put("mappings", new JSONObject().put("properties", knownProperties));
+    }
+    return content.toString();
   }
 
   private String getTurnOffWriteOnAllAnalyticsIndexes() {
