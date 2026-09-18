@@ -1,7 +1,7 @@
 <!--
   This file is part of the Meeds project (https://meeds.io/).
 
-  Copyright (C) 2025 Meeds Association contact@meeds.io
+  Copyright (C) 2026 Meeds Association contact@meeds.io
 
   This program is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
@@ -17,44 +17,46 @@
   along with this program; if not, write to the Free Software Foundation,
   Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 -->
-
 <template>
-  <span>
-    {{ optionLabel }}
+  <span class="text-no-wrap">
+    {{ label }}
   </span>
 </template>
-
 <script>
-
-
 export default {
-  data() {
-    return {
-      translatedValue: null
-    };
-  },
   props: {
-    propertyOptionValue: {
-      type: String,
-      default: null
+    value: {
+      type: [String, Number, Object],
+      default: null,
     },
-    propertyName: {
-      type: String,
-      default: null
-    }
+    column: {
+      type: Object,
+      default: null,
+    },
   },
+  data: () => ({
+    resolvedLabel: null,
+  }),
   computed: {
-    optionLabel() {
-      return this.translatedValue || this.propertyOptionValue;
+    fieldName() {
+      return this.column?.valueAggregation?.aggregation?.field;
+    },
+    label() {
+      return this.resolvedLabel || this.value;
+    },
+  },
+  watch: {
+    value() {
+      this.resolveLabel();
     },
   },
   created() {
-    this.getPropertyOptionLabel();
+    this.resolveLabel();
   },
   methods: {
-    async getPropertyOptionLabel() {
-      this.translatedValue = await this.$analyticsUtils.getProfilePropertyValueLabel(`profileProperties.${this.propertyName}`, this.propertyOptionValue);
+    async resolveLabel() {
+      this.resolvedLabel = await this.$analyticsUtils.getProfilePropertyValueLabel(this.fieldName, this.value);
     },
-  }
+  },
 };
 </script>

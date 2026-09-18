@@ -105,6 +105,12 @@ extensionRegistry.registerExtension('AnalyticsChart', 'FieldValueName', {
   },
 });
 
+extensionRegistry.registerExtension('AnalyticsChart', 'FieldValueName', {
+  type: 'profileProperty',
+  match: fieldName => fieldName.startsWith('profileProperties.'),
+  getLabel: (fieldName, fieldValue) => Vue.prototype.$analyticsUtils.getProfilePropertyValueLabel(fieldName, fieldValue),
+});
+
 extensionRegistry.registerExtension('AnalyticsSamples', 'SampleItem', {
   type: 'profileProperty',
   options: {

@@ -67,7 +67,6 @@ export default {
     }
   },
   data: () => ({
-    lang: eXo.env.portal.language,
     selectedValue: null,
     values: [],
   }),
@@ -157,7 +156,7 @@ export default {
       }
     },
     async getProfilePropertyOptionTranslation(value) {
-      return await this.$analyticsUtils.getPropertyOptionTranslatedValue(value.value || value, this.lang);
+      return await this.$analyticsUtils.getProfilePropertyValueLabel(this.filter?.field, value?.value || value);
     },
   },
 };
