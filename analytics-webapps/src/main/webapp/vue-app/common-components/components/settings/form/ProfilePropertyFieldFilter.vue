@@ -20,12 +20,12 @@
 
 <template>
   <analytics-user-field-filter
-    v-if="isUserProperty"
+    v-if="setting && isUserProperty"
     :filter="filter"
     :suggester-labels="suggesterLabels"
     :username-provided="true" />
   <analytics-text-value-filter
-    v-else
+    v-else-if="setting"
     :filter="filter"
     :suggester-labels="suggesterLabels"
     :is-profile-property-option="isDropdownList" />
@@ -69,7 +69,7 @@ export default {
   },
   methods: {
     async getPropertySetting() {
-      this.setting = await this.$analyticsUtils.getProfilePropertySetting(this.propertyName);
+      this.setting = await this.$analyticsUtils.getCachedProfilePropertySetting(this.propertyName) || {};
     }
   }
 };
