@@ -20,9 +20,10 @@
 
 -->
 <template>
-  <exo-drawer
+  <pinneable-drawer
     ref="drawer"
     v-model="drawer"
+    app-name="spacesList"
     :loading="loading"
     :right="!$vuetify.rtl"
     :allow-expand="!profileMode"
@@ -163,7 +164,7 @@
       </v-btn>
       <v-spacer />
     </template>
-  </exo-drawer>
+  </pinneable-drawer>
 </template>
 <script>
 export default {
