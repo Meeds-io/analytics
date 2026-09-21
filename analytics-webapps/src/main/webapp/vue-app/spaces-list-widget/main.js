@@ -39,7 +39,6 @@ export function init(
   canCreateSpace,
   isExternal,
   headerTranslations,
-  listOnlySubSpaces,
   profileOwner,
   profileOwnerExternal) {
   exoi18n.loadLanguageAsync(lang, urls)
@@ -61,9 +60,6 @@ export function init(
           spaceIds: null,
           headerTranslations: headerTranslations,
           defaultLanguage: eXo?.env?.portal?.defaultLanguage,
-          spaceId: eXo?.env?.portal?.spaceId,
-          listOnlySubSpaces: listOnlySubSpaces,
-          isParentSpace: false,
           profileOwner,
           profileOwnerExternal,
         },
@@ -72,13 +68,9 @@ export function init(
             return this.headerTranslations?.[lang] || this.headerTranslations?.[this.defaultLanguage];
           }
         },
-        async created() {
+        created() {
           if (Object.keys(this.headerTranslations).length === 0) {
             this.headerTranslations = {[this.defaultLanguage]: this.$t('analytics.spacesListWidget.header')};
-          }
-          if (this.spaceId) {
-            const space = await this.$spaceService.getSpaceById(this.spaceId);
-            this.isParentSpace = !!space?.isParentSpace;
           }
         },
         template: `<spaces-list-widget id="${appId}" />`,
