@@ -82,7 +82,6 @@
                   v-if="$root.canCreateSpace"
                   :color="'primary'"
                   :elevation="0"
-                  :parent-space-id="$root.isParentSpace && spaceId || null"
                   outlined
                   require-form-drawer
                   display-label />
@@ -172,16 +171,6 @@ export default {
     title() {
       return this.$root.headerTitle;
     },
-    listOnlySubSpaces() {
-      return this.$root.listOnlySubSpaces;
-    },
-    spaceId() {
-      return this.$root.spaceId;
-    },
-    appendParentSpaceParam() {
-      return !!(this.listOnlySubSpaces && this.spaceId);
-    },
-
   },
   watch: {
     loading() {
@@ -219,11 +208,6 @@ export default {
       }
     },
     spacesMemberOf() {
-      if (!this.loading) {
-        this.refresh();
-      }
-    },
-    listOnlySubSpaces() {
       if (!this.loading) {
         this.refresh();
       }
@@ -274,8 +258,7 @@ export default {
         offset: 0,
         limit: this.$root.userSpacesLimit,
         filter: 'member',
-        expand: 'spaceId',
-        parentSpaceId: this.appendParentSpaceParam && this.spaceId || null
+        expand: 'spaceId'
       })
         .then(data => this.$root.spaceIds = data?.spaces?.map(s => s.id) || []);
     },
@@ -299,10 +282,7 @@ export default {
       if (this.$root.spacesMemberOf) {
         queryName += '.memberOnly';
       }
-      let fetchUrl = `${this.$root.resourceURL}&queryName=${queryName}&xLimit=${limit}&fromTimestamp=${this.getPeriodTimestamp(period)}`;
-      if (this.appendParentSpaceParam) {
-        fetchUrl = `${fetchUrl}&parentSpaceId=${this.spaceId}`;
-      }
+      const fetchUrl = `${this.$root.resourceURL}&queryName=${queryName}&xLimit=${limit}&fromTimestamp=${this.getPeriodTimestamp(period)}`;
       return fetch(fetchUrl)
         .then(resp => resp?.ok && resp.json());
     },
