@@ -29,6 +29,7 @@ import AnalyticsTableCellUserValue from './components/table/AnalyticsTableCellUs
 import AnalyticsTableCellSpaceValue from './components/table/AnalyticsTableCellSpaceValue.vue';
 import AnalyticsTableCellSpaceTemplateValue from './components/table/AnalyticsTableCellSpaceTemplateValue.vue';
 import AnalyticsTableCellCategoryValue from './components/table/AnalyticsTableCellCategoryValue.vue';
+import AnalyticsTableCellProfilePropertyValue from './components/table/AnalyticsTableCellProfilePropertyValue.vue';
 
 const components = {
   'analytics-table-application': AnalyticsTableApplication,
@@ -43,6 +44,7 @@ const components = {
   'analytics-table-cell-space-value': AnalyticsTableCellSpaceValue,
   'analytics-table-cell-space-template-value': AnalyticsTableCellSpaceTemplateValue,
   'analytics-table-cell-category-value': AnalyticsTableCellCategoryValue,
+  'analytics-table-cell-profile-property-value': AnalyticsTableCellProfilePropertyValue,
 };
 
 for (const key in components) {

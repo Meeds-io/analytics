@@ -99,7 +99,7 @@ export default {
   },
   methods: {
     async fetchPropertyLabel() {
-      const setting = await this.$analyticsUtils.getProfilePropertySetting(this.propertyName);
+      const setting = await this.$analyticsUtils.getCachedProfilePropertySetting(this.propertyName);
       if (setting) {
         this.settings = {...this.settings, [setting.propertyName]: setting};
         this.translatedLabel = await this.$analyticsUtils.getProfilePropertyLabel(setting.id, this.lang);

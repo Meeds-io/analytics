@@ -58,3 +58,12 @@ extensionRegistry.registerExtension('AnalyticsTable', 'CellValue', {
     match: (fieldName, aggregationType) => aggregationType === 'TERMS' && (fieldName === 'categoryId' || fieldName === 'spaceCategoryIds' || fieldName === 'categoryParentId'),
   },
 });
+
+extensionRegistry.registerExtension('AnalyticsTable', 'CellValue', {
+  type: 'profileProperty',
+  options: {
+    rank: 60,
+    vueComponent: Vue.options.components['analytics-table-cell-profile-property-value'],
+    match: (fieldName, aggregationType) => aggregationType === 'TERMS' && fieldName?.startsWith?.('profileProperties.'),
+  },
+});

@@ -130,22 +130,42 @@ export async function getProfilePropertySetting(settingName) {
 }
 
 export async function getPropertyOptionTranslatedValue(optionId, lang) {
-  return await getTranslations('propertySettingOption', optionId, 'optionValue').then(translations => {
-    return translations[lang] || translations[eXo.env.portal.defaultLanguage];
-  });
+  const translations = await getTranslations('propertySettingOption', optionId, 'optionValue');
+  return translations?.[lang] || translations?.[eXo.env.portal.defaultLanguage] || optionId;
+}
+
+export async function getProfilePropertyValueLabel(fieldName, value) {
+  const propertyName = fieldName?.replace?.('.keyword', '')?.replace?.(/_alt\d*$/, '')?.split?.('.')?.[1];
+  if (!propertyName || value == null) {
+    return value;
+  }
+  const setting = await getCachedProfilePropertySetting(propertyName);
+  if (!setting?.dropdownList) {
+    return value;
+  }
+  const option = setting.propertyOptions?.find(propertyOption => `${propertyOption.id}` === `${value}`);
+  return option?.translatedValue || option?.value || value;
+}
+
+const profilePropertySettings = {};
+
+export function getCachedProfilePropertySetting(propertyName) {
+  if (!profilePropertySettings[propertyName]) {
+    profilePropertySettings[propertyName] = getProfilePropertySetting(propertyName).then(setting => {
+      if (!setting) {
+        delete profilePropertySettings[propertyName];
+      }
+      return setting;
+    });
+  }
+  return profilePropertySettings[propertyName];
 }
 
 async function getTranslations(objectType, objectId, fieldName) {
   return await fetch(`${eXo.env.portal.context}/${eXo.env.portal.rest}/social/translations/${objectType}/${objectId}/${fieldName}`, {
     method: 'GET',
     credentials: 'include',
-  }).then((resp) => {
-    if (resp?.ok) {
-      return resp.json();
-    } else {
-      throw new Error('Error when getting list of translations of dropdown option value');
-    }
-  });
+  }).then(resp => (resp?.ok ? resp.json() : null));
 }
 
 function getPageRecursively(navigations, pageName) {
