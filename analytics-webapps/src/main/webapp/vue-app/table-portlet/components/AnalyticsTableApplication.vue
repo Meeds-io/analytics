@@ -22,7 +22,10 @@
     :id="appId"
     class="analytics-application application-body"
     flat>
-    <div ref="tableHeader" class="d-flex align-center px-3 pb-2 pt-5 analytics-table-header" flat>
+    <div
+      ref="tableHeader"
+      class="d-flex align-center px-3 pb-2 pt-5 analytics-table-header"
+      flat>
       <analytics-period-picker
         :period="selectedPeriod"
         :compact="periodSelectorCompact"

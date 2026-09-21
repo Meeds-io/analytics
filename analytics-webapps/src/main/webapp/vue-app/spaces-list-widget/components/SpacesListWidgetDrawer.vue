@@ -39,7 +39,6 @@
           display-label
           :color="'primary'"
           :elevation="0"
-          :parent-space-id="$root.isParentSpace && $root.spaceId || null"
           :display-icon="false" />
       </div>
     </template>
@@ -235,15 +234,6 @@ export default {
       }
       return this.list && this.list.length > this.limit;
     },
-    listOnlySubSpaces() {
-      return this.$root.listOnlySubSpaces;
-    },
-    parentSpaceId() {
-      return this.$root.spaceId;
-    },
-    appendParentSpaceParam() {
-      return !!(this.listOnlySubSpaces && this.parentSpaceId);
-    },
   },
   watch: {
     tabName() {
@@ -362,8 +352,7 @@ export default {
         offset: 0,
         limit: this.limit +1,
         filter: 'member',
-        expand: 'spaceId',
-        parentSpaceId: this.appendParentSpaceParam && this.parentSpaceId || null
+        expand: 'spaceId'
       })
         .then(data => this.memberSpaces = data?.spaces?.map(s => s.id) || []);
     },
@@ -388,10 +377,7 @@ export default {
         queryName += '.memberOnly';
       }
       const fromTimestamp = this.getPeriodTimestamp(period);
-      let fetchUrl = `${this.$root.resourceURL}&queryName=${queryName}&xLimit=${limit}&fromTimestamp=${fromTimestamp}`;
-      if (this.appendParentSpaceParam) {
-        fetchUrl = `${fetchUrl}&parentSpaceId=${this.parentSpaceId}`;
-      }
+      const fetchUrl = `${this.$root.resourceURL}&queryName=${queryName}&xLimit=${limit}&fromTimestamp=${fromTimestamp}`;
       return fetch(fetchUrl)
         .then(resp => resp?.ok && resp.json());
     },
