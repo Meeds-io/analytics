@@ -19,19 +19,39 @@
  */
 package io.meeds.analytics.elasticsearch.model;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+
+import lombok.Getter;
+
 /**
  * Raised when Elasticsearch refuses a bulk because a document value does not
  * match the type the write index holds for its field. It means the mapping
  * view the documents were built against is stale: the write index acquired a
  * type the view does not know yet, typically right after a weekly rollover
- * (EXO-90504). The caller refreshes the view and retries once.
+ * (EXO-90504). The caller refreshes the view and retries the refused
+ * documents once.
  */
+@Getter
 public class ElasticsearchMappingConflictException extends IllegalStateException {
 
   private static final long serialVersionUID = -2860712344563196152L;
 
+  /** Ids of the refused documents, which are the queue entries' ids */
+  private final transient Set<String>  refusedDocumentIds;
+
+  /** Elasticsearch's own reason per refused document */
+  private final transient List<String> reasons;
+
   public ElasticsearchMappingConflictException(String message) {
+    this(message, Collections.emptySet(), Collections.emptyList());
+  }
+
+  public ElasticsearchMappingConflictException(String message, Set<String> refusedDocumentIds, List<String> reasons) {
     super(message);
+    this.refusedDocumentIds = refusedDocumentIds == null ? Collections.emptySet() : Set.copyOf(refusedDocumentIds);
+    this.reasons = reasons == null ? Collections.emptyList() : List.copyOf(reasons);
   }
 
 }

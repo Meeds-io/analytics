@@ -42,6 +42,7 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.ResolverStyle;
 import java.util.Collection;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -111,7 +112,8 @@ public class ElasticsearchAnalyticsStorage {
   /**
    * Bulk item error types Elasticsearch answers when a value cannot be parsed
    * into the type the index maps for its field: {@code document_parsing_exception}
-   * since 8.x, {@code mapper_parsing_exception} before.
+   * on the engine the platform runs (verified on 9.x); older releases answered
+   * {@code mapper_parsing_exception}.
    */
   private static final Set<String>      MAPPING_CONFLICT_ERROR_TYPES = Set.of("document_parsing_exception",
                                                                               "mapper_parsing_exception");
@@ -849,19 +851,28 @@ public class ElasticsearchAnalyticsStorage {
                                                     content));
     }
     if (StringUtils.contains(response.getMessage(), "\"errors\":true")) {
-      Set<String> errorTypes = getBulkItemErrorTypes(response.getMessage());
-      if (errorTypes.size() == 1 && errorTypes.contains(VERSION_CONFLICT_ERROR_TYPE)) {
+      List<BulkItemError> errors = getBulkItemErrors(response.getMessage());
+      if (!errors.isEmpty() && errors.stream().allMatch(error -> VERSION_CONFLICT_ERROR_TYPE.equals(error.type()))) {
         // A "create" refused for an existing id means the entry is already
         // indexed: a retried bulk, or a queue entry replayed by another node.
-        // Nothing is lost, so this is not an error.
-        LOG.warn("ID conflict in some content: {}", response.getMessage());
+        // Nothing is lost, so this is a designed outcome, not an error.
+        LOG.debug("{} document(s) already indexed, ignored: {}",
+                  errors.size(),
+                  errors.stream().map(BulkItemError::id).toList());
       } else {
         String message = String.format("Error message returned from ES: %s. URI: %s. Content: %s",
                                        response.getMessage(),
                                        uri,
                                        content);
-        if (errorTypes.stream().anyMatch(MAPPING_CONFLICT_ERROR_TYPES::contains)) {
-          throw new ElasticsearchMappingConflictException(message);
+        List<BulkItemError> conflicts = errors.stream()
+                                              .filter(error -> MAPPING_CONFLICT_ERROR_TYPES.contains(error.type()))
+                                              .toList();
+        if (!conflicts.isEmpty()) {
+          throw new ElasticsearchMappingConflictException(message,
+                                                          conflicts.stream()
+                                                                   .map(BulkItemError::id)
+                                                                   .collect(Collectors.toSet()),
+                                                          conflicts.stream().map(BulkItemError::reason).toList());
         } else {
           throw new IllegalStateException(message);
         }
@@ -870,29 +881,36 @@ public class ElasticsearchAnalyticsStorage {
     return response;
   }
 
+  /** One failed item of a {@code _bulk} response */
+  private record BulkItemError(String type, String id, String reason) {
+  }
+
   /**
    * @param bulkResponse the body of a {@code _bulk} response with
    *          {@code "errors":true}
-   * @return the distinct error types of the failed items, empty when the body
-   *         cannot be parsed so that the caller falls back to a generic error
+   * @return the failed items, empty when the body cannot be parsed so that
+   *         the caller falls back to a generic error
    */
-  private Set<String> getBulkItemErrorTypes(String bulkResponse) {
-    Set<String> errorTypes = new HashSet<>();
+  private List<BulkItemError> getBulkItemErrors(String bulkResponse) {
+    List<BulkItemError> errors = new ArrayList<>();
     try {
       JSONArray items = new JSONObject(bulkResponse).optJSONArray("items");
       for (int i = 0; items != null && i < items.length(); i++) {
         JSONObject item = items.getJSONObject(i);
         for (String action : item.keySet()) {
-          JSONObject error = item.getJSONObject(action).optJSONObject("error");
+          JSONObject result = item.getJSONObject(action);
+          JSONObject error = result.optJSONObject("error");
           if (error != null) {
-            errorTypes.add(error.optString("type", "unknown"));
+            errors.add(new BulkItemError(error.optString("type", "unknown"),
+                                         result.optString("_id", null),
+                                         error.optString("reason", null)));
           }
         }
       }
     } catch (JSONException e) {
       LOG.debug("Error parsing ES bulk response, it will be handled as a generic error: {}", bulkResponse, e);
     }
-    return errorTypes;
+    return errors;
   }
 
   /**
@@ -918,7 +936,10 @@ public class ElasticsearchAnalyticsStorage {
       throw e;
     }
     if (exists) {
-      LOG.debug("Index Template {} updated.", indexTemplate);
+      // One line per startup, on purpose: an administrator who edited the
+      // template on the cluster gets the signal that the product re-applied
+      // its own; the supported customisation is analytics.es.index.template.path.
+      LOG.info("Index Template {} re-applied from the product's definition.", indexTemplate);
     } else if (sendIsIndexTemplateExistsRequest()) {
       LOG.info("Index Template {} created.", indexTemplate);
     } else {

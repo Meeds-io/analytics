@@ -94,6 +94,8 @@ class ElasticsearchAnalyticsStorageTest {
 
   private boolean                       templateExists    = true;
 
+  private int                           templateReads;
+
   private int                           createIndexFailures;
 
   private String                        bulkResponse      = "{\"errors\":false,\"items\":[]}";
@@ -171,6 +173,7 @@ class ElasticsearchAnalyticsStorageTest {
 
     assertEquals(1, templateBodies.size(), "an existing template is updated, not left as is");
     assertEquals(new JSONObject(TEMPLATE).toString(), new JSONObject(templateBodies.get(0)).toString());
+    assertEquals(1, templateReads, "an existing template is not read back after the update");
   }
 
   @Test
@@ -180,22 +183,28 @@ class ElasticsearchAnalyticsStorageTest {
     storage.init();
 
     assertEquals(1, templateBodies.size());
-    assertTrue(templateExists, "the creation is verified by reading the template back");
+    assertEquals(2, templateReads, "the creation is verified by reading the template back");
   }
 
   @Test
-  void aBulkRefusedForAFieldTypeConflictRaisesAMappingConflictException() {
+  void aBulkRefusedForAFieldTypeConflictRaisesAMappingConflictExceptionCarryingTheRefusedDocuments() {
     indexExists = true;
     bulkResponse = """
         {"errors":true,"items":[
           {"create":{"_index":"analytics_2026-09-17","_id":"1","status":400,"error":{"type":"document_parsing_exception",
             "reason":"failed to parse field [profileProperties.country] of type [long]"}}},
-          {"create":{"_index":"analytics_2026-09-17","_id":"2","status":201,"result":"created"}}]}
+          {"create":{"_index":"analytics_2026-09-17","_id":"2","status":201,"result":"created"}},
+          {"create":{"_index":"analytics_2026-09-17","_id":"3","status":409,"error":{"type":"version_conflict_engine_exception",
+            "reason":"[3]: version conflict, document already exists (current version [1])"}}}]}
         """;
     List<StatisticDataQueueEntry> entries = List.of(new StatisticDataQueueEntry(statisticData()));
 
-    assertThrows(ElasticsearchMappingConflictException.class,
-                 () -> storage.sendCreateBulkDocumentsRequest(entries, knownMappings()));
+    ElasticsearchMappingConflictException thrown = assertThrows(ElasticsearchMappingConflictException.class,
+                                                                () -> storage.sendCreateBulkDocumentsRequest(entries,
+                                                                                                             knownMappings()));
+
+    assertEquals(Set.of("1"), thrown.getRefusedDocumentIds(), "only the refused document, not the created or the duplicate one");
+    assertEquals(List.of("failed to parse field [profileProperties.country] of type [long]"), thrown.getReasons());
   }
 
   @Test
@@ -237,6 +246,7 @@ class ElasticsearchAnalyticsStorageTest {
     boolean weeklyIndexPath = path.matches("/" + INDEX_PREFIX + "_\\d{4}-\\d{2}-\\d{2}");
     if (path.equals("/_index_template/" + TEMPLATE_NAME)) {
       if ("GET".equals(method)) {
+        templateReads++;
         return templateExists ? ok("{}") : new ElasticsearchResponse("{\"status\":404}", 404);
       }
       templateBodies.add(EntityUtils.toString(request.getEntity()));

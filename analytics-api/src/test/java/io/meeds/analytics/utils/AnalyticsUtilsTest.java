@@ -54,7 +54,11 @@ class AnalyticsUtilsTest {
             "profileProperties":{"properties":{"country":{"type":"keyword"},"city":{"type":"keyword"}}}}}}}
         """);
 
-    JsonNode merged = AnalyticsUtils.getJsonNode(AnalyticsUtils.sortByAnalyticsDate(mappings), 0, null, "mappings", "properties");
+    JsonNode merged = AnalyticsUtils.getJsonNode(AnalyticsUtils.sortByAnalyticsDate(mappings, "analytics"),
+                                                 0,
+                                                 null,
+                                                 "mappings",
+                                                 "properties");
 
     JsonNode properties = merged.get("profileProperties").get("properties");
     assertEquals("long", properties.get("country").get("type").asText(), "the newest index's type must win");
@@ -72,8 +76,8 @@ class AnalyticsUtilsTest {
     assertEquals(2, sorted.size(), "only <prefix>_yyyy-MM-dd indices are kept");
     assertEquals("stats_2026-09-03", sorted.fieldNames().next(), "oldest first");
     assertFalse(sorted.has("analytics_2026-09-10"));
-    assertTrue(AnalyticsUtils.sortByAnalyticsDate(mappings).has("analytics_2026-09-10"), "the default keeps the product prefix");
     assertTrue(AnalyticsUtils.sortByAnalyticsDate(mappings, null).has("analytics_2026-09-10"), "a null prefix means the default");
+    assertTrue(AnalyticsUtils.sortByAnalyticsDate(mappings, " ").has("analytics_2026-09-10"), "a blank prefix means the default");
   }
 
   @Test

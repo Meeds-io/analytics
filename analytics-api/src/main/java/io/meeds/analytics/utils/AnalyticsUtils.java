@@ -678,6 +678,14 @@ public class AnalyticsUtils {
     }
   }
 
+  /**
+   * @deprecated since 7.3.0, for removal: assumes the default index prefix,
+   *             which made the mapping read return nothing on a deployment
+   *             with a custom {@code analytics.es.index.prefix} (EXO-90504).
+   *             Use {@link #sortByAnalyticsDate(JSONObject, String)} with the
+   *             configured prefix.
+   */
+  @Deprecated(since = "7.3.0", forRemoval = true)
   public static ObjectNode sortByAnalyticsDate(JSONObject input) {
     return sortByAnalyticsDate(input, DEFAULT_INDEX_PREFIX);
   }

@@ -180,9 +180,12 @@ class ElasticsearchAnalyticsMappingConflictIT extends AbstractElasticsearchIT {
     switchWriteIndex(OLD_INDEX, false);
     createIndex(currentIndex(), "long", true);
 
-    processor.process(List.of(entry("France")));
+    // A mixed batch: the first bulk creates the event without a country and
+    // refuses the other; only the refused one is retried.
+    processor.process(List.of(entry("France"), entry(null)));
 
     assertEquals(1, countHits(COUNTRY_ALT, "France"), "one refresh and one retry must be enough to index the event");
+    assertEquals(2, countDocuments(), "both events are indexed exactly once");
     assertEquals("long", byName(service.retrieveMapping(false)).get(COUNTRY).getType(), "the view was refreshed");
   }
 
@@ -238,8 +241,17 @@ class ElasticsearchAnalyticsMappingConflictIT extends AbstractElasticsearchIT {
     data.setOperation("login");
     data.setTimestamp(System.currentTimeMillis());
     data.setUserId(1);
-    data.addKeyword(COUNTRY, country);
+    if (country != null) {
+      data.addKeyword(COUNTRY, country);
+    }
     return new StatisticDataQueueEntry(data);
+  }
+
+  private long countDocuments() throws Exception {
+    send("POST", "/" + ALIAS + "/_refresh", null);
+    HttpResponse<String> response = send("GET", "/" + ALIAS + "/_count", null);
+    assertEquals(200, response.statusCode(), response::body);
+    return new JSONObject(response.body()).getLong("count");
   }
 
   private static Map<String, StatisticFieldMapping> byName(Set<StatisticFieldMapping> mappings) {

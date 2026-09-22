@@ -22,8 +22,8 @@ package io.meeds.analytics.elasticsearch.service;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -49,30 +49,37 @@ import io.meeds.analytics.model.StatisticFieldMapping;
 @ExtendWith(MockitoExtension.class)
 class ElasticsearchStatisticDataProcessorServiceTest {
 
-  @Mock
-  private ElasticsearchAnalyticsStorage           storage;
+  private static final String                        REASON         =
+                                                            "failed to parse field [profileProperties.country] of type [long]";
 
   @Mock
-  private ElasticsearchAnalyticsService           analyticsService;
+  private ElasticsearchAnalyticsStorage              storage;
+
+  @Mock
+  private ElasticsearchAnalyticsService              analyticsService;
 
   @InjectMocks
   private ElasticsearchStatisticDataProcessorService processor;
 
-  private final Set<StatisticFieldMapping>         cachedMappings = Set.of(new StatisticFieldMapping("profileProperties.country",
-                                                                                                        "keyword",
-                                                                                                        false));
+  private final Set<StatisticFieldMapping>           cachedMappings = Set.of(new StatisticFieldMapping("profileProperties.country",
+                                                                                                          "keyword",
+                                                                                                          false));
 
   // A mapping's equality is its name (Lombok @Exclude on the other fields),
   // so the refreshed set must differ by a field, not only by a type, for
   // Mockito to tell the two bulks apart.
-  private final Set<StatisticFieldMapping>         freshMappings  = Set.of(new StatisticFieldMapping("profileProperties.country",
-                                                                                                        "long",
-                                                                                                        false),
-                                                                              new StatisticFieldMapping("profileProperties.country_alt",
-                                                                                                        "keyword",
-                                                                                                        false));
+  private final Set<StatisticFieldMapping>           freshMappings  = Set.of(new StatisticFieldMapping("profileProperties.country",
+                                                                                                          "long",
+                                                                                                          false),
+                                                                                new StatisticFieldMapping("profileProperties.country_alt",
+                                                                                                          "keyword",
+                                                                                                          false));
 
-  private final List<StatisticDataQueueEntry>      entries        = List.of(new StatisticDataQueueEntry(new StatisticData()));
+  private final StatisticDataQueueEntry              refused        = entry("login");
+
+  private final StatisticDataQueueEntry              created        = entry("saveUser");
+
+  private final List<StatisticDataQueueEntry>        entries        = List.of(refused, created);
 
   @BeforeEach
   void setUp() {
@@ -80,28 +87,36 @@ class ElasticsearchStatisticDataProcessorServiceTest {
   }
 
   @Test
-  void aTypeConflictRefreshesTheMappingAndRetriesTheBulkOnce() {
+  void aTypeConflictRefreshesTheMappingAndRetriesTheRefusedDocumentsOnly() {
     when(analyticsService.retrieveMapping(true)).thenReturn(freshMappings);
-    doThrow(new ElasticsearchMappingConflictException("failed to parse field [profileProperties.country] of type [long]"))
-                                                                                                                             .doNothing()
-                                                                                                                             .when(storage)
-                                                                                                                             .sendCreateBulkDocumentsRequest(anyList(),
-                                                                                                                                                             eq(cachedMappings));
-    doNothing().when(storage).sendCreateBulkDocumentsRequest(anyList(), eq(freshMappings));
+    doThrow(conflict(Set.of(String.valueOf(refused.getId())))).when(storage)
+                                                                .sendCreateBulkDocumentsRequest(anyList(), eq(cachedMappings));
 
     processor.process(entries);
 
     verify(analyticsService).retrieveMapping(true);
     verify(storage).sendCreateBulkDocumentsRequest(entries, cachedMappings);
+    verify(storage).sendCreateBulkDocumentsRequest(List.of(refused), freshMappings);
+  }
+
+  @Test
+  void aTypeConflictWithoutReadableItemsRetriesTheWholeBatch() {
+    when(analyticsService.retrieveMapping(true)).thenReturn(freshMappings);
+    doThrow(new ElasticsearchMappingConflictException("unparseable")).when(storage)
+                                                                      .sendCreateBulkDocumentsRequest(anyList(),
+                                                                                                      eq(cachedMappings));
+
+    processor.process(entries);
+
     verify(storage).sendCreateBulkDocumentsRequest(entries, freshMappings);
   }
 
   @Test
   void aSecondTypeConflictAfterTheRefreshPropagates() {
     when(analyticsService.retrieveMapping(true)).thenReturn(freshMappings);
-    ElasticsearchMappingConflictException second = new ElasticsearchMappingConflictException("still refused");
-    doThrow(new ElasticsearchMappingConflictException("refused")).when(storage)
-                                                                  .sendCreateBulkDocumentsRequest(anyList(), eq(cachedMappings));
+    ElasticsearchMappingConflictException second = conflict(Set.of(String.valueOf(refused.getId())));
+    doThrow(conflict(Set.of(String.valueOf(refused.getId())))).when(storage)
+                                                                .sendCreateBulkDocumentsRequest(anyList(), eq(cachedMappings));
     doThrow(second).when(storage).sendCreateBulkDocumentsRequest(anyList(), eq(freshMappings));
 
     ElasticsearchMappingConflictException thrown = assertThrows(ElasticsearchMappingConflictException.class,
@@ -123,8 +138,18 @@ class ElasticsearchStatisticDataProcessorServiceTest {
     verify(storage, times(1)).sendCreateBulkDocumentsRequest(anyList(), anySet());
   }
 
-  private static Set<StatisticFieldMapping> anySet() {
-    return org.mockito.ArgumentMatchers.anySet();
+  private static ElasticsearchMappingConflictException conflict(Set<String> refusedIds) {
+    return new ElasticsearchMappingConflictException("refused", refusedIds, List.of(REASON));
+  }
+
+  private static StatisticDataQueueEntry entry(String operation) {
+    StatisticData data = new StatisticData();
+    data.setModule("portal");
+    data.setSubModule("test");
+    data.setOperation(operation);
+    data.setTimestamp(System.currentTimeMillis());
+    data.setUserId(1);
+    return new StatisticDataQueueEntry(data);
   }
 
 }
