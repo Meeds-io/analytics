@@ -78,9 +78,10 @@ public class ElasticsearchStatisticDataProcessorService implements StatisticData
                                                                                                     .filter(entry -> refusedDocumentIds.contains(String.valueOf(entry.getId())))
                                                                                                     .toList();
     if (refusedEntries.isEmpty()) {
-      // The response could not be read item by item, or its ids match no
-      // entry: retry everything, the documents already created answer a
-      // version conflict, which is not an error.
+      // No id carried (a refused item without _id: the storage then carries
+      // none at all) or ids matching no entry: retry everything, the
+      // documents already created answer a version conflict, which is not
+      // an error.
       return processorQueueEntries;
     }
     return refusedEntries;

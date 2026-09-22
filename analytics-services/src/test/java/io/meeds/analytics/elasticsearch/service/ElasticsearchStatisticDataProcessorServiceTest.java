@@ -99,10 +99,17 @@ class ElasticsearchStatisticDataProcessorServiceTest {
     verify(storage).sendCreateBulkDocumentsRequest(List.of(refused), freshMappings);
   }
 
+  /**
+   * Pins the exception's empty-id contract: no id carried means the whole
+   * batch is retried. Reachable today only through a refused item without
+   * {@code _id} (the storage then carries no id at all, see
+   * {@code ElasticsearchAnalyticsStorageTest.aRefusedItemWithoutIdOrReasonIsStillClassifiedAsAConflict});
+   * an unreadable bulk body is a generic error, never a conflict.
+   */
   @Test
-  void aTypeConflictWithoutReadableItemsRetriesTheWholeBatch() {
+  void aTypeConflictCarryingNoIdRetriesTheWholeBatch() {
     when(analyticsService.retrieveMapping(true)).thenReturn(freshMappings);
-    doThrow(new ElasticsearchMappingConflictException("unparseable")).when(storage)
+    doThrow(new ElasticsearchMappingConflictException("refused item without _id")).when(storage)
                                                                       .sendCreateBulkDocumentsRequest(anyList(),
                                                                                                       eq(cachedMappings));
 
