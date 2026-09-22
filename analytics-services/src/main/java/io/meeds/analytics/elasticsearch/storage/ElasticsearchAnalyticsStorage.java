@@ -878,11 +878,18 @@ public class ElasticsearchAnalyticsStorage {
                                                   .allMatch(error -> MAPPING_CONFLICT_ERROR_TYPES.contains(error.type())
                                                                      || VERSION_CONFLICT_ERROR_TYPE.equals(error.type()));
         if (!conflicts.isEmpty() && onlyConflictsOrDuplicates) {
+          Set<String> refusedIds = conflicts.stream()
+                                            .map(BulkItemError::id)
+                                            .filter(StringUtils::isNotBlank)
+                                            .collect(Collectors.toSet());
+          if (refusedIds.size() != conflicts.size()) {
+            // A refused item without an id cannot be matched to its entry:
+            // carry no id at all, so the caller retries the whole batch
+            // rather than the identified documents only.
+            refusedIds = Set.of();
+          }
           throw new ElasticsearchMappingConflictException(message,
-                                                          conflicts.stream()
-                                                                   .map(BulkItemError::id)
-                                                                   .filter(StringUtils::isNotBlank)
-                                                                   .collect(Collectors.toSet()),
+                                                          refusedIds,
                                                           conflicts.stream().map(BulkItemError::reason).toList());
         } else {
           throw new IllegalStateException(message);

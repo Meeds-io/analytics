@@ -267,6 +267,27 @@ class ElasticsearchAnalyticsStorageTest {
   }
 
   @Test
+  void aConflictItemWithoutIdBesideOneWithAnIdCarriesNoIdAtAll() {
+    indexExists = true;
+    bulkResponse = """
+        {"errors":true,"items":[
+          {"create":{"_index":"analytics_2026-09-17","_id":"1","status":400,"error":{"type":"document_parsing_exception",
+            "reason":"failed to parse field [profileProperties.country] of type [long]"}}},
+          {"create":{"_index":"analytics_2026-09-17","status":400,"error":{"type":"document_parsing_exception",
+            "reason":"failed to parse field [profileProperties.city] of type [long]"}}}]}
+        """;
+    List<StatisticDataQueueEntry> entries = List.of(new StatisticDataQueueEntry(statisticData()));
+
+    ElasticsearchMappingConflictException thrown = assertThrows(ElasticsearchMappingConflictException.class,
+                                                                () -> storage.sendCreateBulkDocumentsRequest(entries,
+                                                                                                             knownMappings()));
+
+    assertTrue(thrown.getRefusedDocumentIds().isEmpty(),
+               "a partial id set would retry the identified document only and lose the id-less one");
+    assertEquals(2, thrown.getReasons().size());
+  }
+
+  @Test
   void aBulkWithAnotherErrorStaysAGenericError() {
     indexExists = true;
     bulkResponse = """
