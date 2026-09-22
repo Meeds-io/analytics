@@ -112,6 +112,16 @@ class ElasticsearchStatisticDataProcessorServiceTest {
   }
 
   @Test
+  void refusedIdsMatchingNoEntryRetryTheWholeBatch() {
+    when(analyticsService.retrieveMapping(true)).thenReturn(freshMappings);
+    doThrow(conflict(Set.of("not-an-entry-id"))).when(storage).sendCreateBulkDocumentsRequest(anyList(), eq(cachedMappings));
+
+    processor.process(entries);
+
+    verify(storage).sendCreateBulkDocumentsRequest(entries, freshMappings);
+  }
+
+  @Test
   void aSecondTypeConflictAfterTheRefreshPropagates() {
     when(analyticsService.retrieveMapping(true)).thenReturn(freshMappings);
     ElasticsearchMappingConflictException second = conflict(Set.of(String.valueOf(refused.getId())));

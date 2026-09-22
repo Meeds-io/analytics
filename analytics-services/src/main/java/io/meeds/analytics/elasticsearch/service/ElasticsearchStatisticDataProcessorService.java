@@ -73,15 +73,17 @@ public class ElasticsearchStatisticDataProcessorService implements StatisticData
 
   private List<StatisticDataQueueEntry> getRefusedEntries(List<StatisticDataQueueEntry> processorQueueEntries,
                                                           Set<String> refusedDocumentIds) {
-    if (refusedDocumentIds == null || refusedDocumentIds.isEmpty()) {
-      // The response could not be read item by item: retry everything, the
-      // documents already created answer a version conflict, which is not an
-      // error.
+    List<StatisticDataQueueEntry> refusedEntries = refusedDocumentIds == null ? List.of() :
+                                                                               processorQueueEntries.stream()
+                                                                                                    .filter(entry -> refusedDocumentIds.contains(String.valueOf(entry.getId())))
+                                                                                                    .toList();
+    if (refusedEntries.isEmpty()) {
+      // The response could not be read item by item, or its ids match no
+      // entry: retry everything, the documents already created answer a
+      // version conflict, which is not an error.
       return processorQueueEntries;
     }
-    return processorQueueEntries.stream()
-                                .filter(entry -> refusedDocumentIds.contains(String.valueOf(entry.getId())))
-                                .toList();
+    return refusedEntries;
   }
 
 }

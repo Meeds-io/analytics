@@ -41,8 +41,8 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.ResolverStyle;
-import java.util.Collection;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -867,10 +867,21 @@ public class ElasticsearchAnalyticsStorage {
         List<BulkItemError> conflicts = errors.stream()
                                               .filter(error -> MAPPING_CONFLICT_ERROR_TYPES.contains(error.type()))
                                               .toList();
-        if (!conflicts.isEmpty()) {
+        // A mapping conflict is only reported as such when nothing else
+        // failed: the caller retries the refused documents and returns, so an
+        // item refused for another reason (a 429 under shard pressure, a
+        // 503) in the same bulk would be marked processed and lost. With
+        // another error present the bulk is a generic failure, and the
+        // dispatcher's one-by-one fallback lets each document meet its own
+        // outcome, the conflict path included.
+        boolean onlyConflictsOrDuplicates = errors.stream()
+                                                  .allMatch(error -> MAPPING_CONFLICT_ERROR_TYPES.contains(error.type())
+                                                                     || VERSION_CONFLICT_ERROR_TYPE.equals(error.type()));
+        if (!conflicts.isEmpty() && onlyConflictsOrDuplicates) {
           throw new ElasticsearchMappingConflictException(message,
                                                           conflicts.stream()
                                                                    .map(BulkItemError::id)
+                                                                   .filter(StringUtils::isNotBlank)
                                                                    .collect(Collectors.toSet()),
                                                           conflicts.stream().map(BulkItemError::reason).toList());
         } else {
@@ -901,9 +912,11 @@ public class ElasticsearchAnalyticsStorage {
           JSONObject result = item.getJSONObject(action);
           JSONObject error = result.optJSONObject("error");
           if (error != null) {
+            // Never null: the ids and reasons are collected into Set.copyOf /
+            // List.copyOf, which refuse a null element.
             errors.add(new BulkItemError(error.optString("type", "unknown"),
-                                         result.optString("_id", null),
-                                         error.optString("reason", null)));
+                                         result.optString("_id", ""),
+                                         error.optString("reason", "")));
           }
         }
       }

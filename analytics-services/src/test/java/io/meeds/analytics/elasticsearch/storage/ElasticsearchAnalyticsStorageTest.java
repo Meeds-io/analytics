@@ -225,6 +225,47 @@ class ElasticsearchAnalyticsStorageTest {
                        "documents already indexed by a previous attempt are not a failure of this one");
   }
 
+  /**
+   * Review round 2 (EXO-90504): with the refused-only retry, a conflict
+   * reported alongside another failure would let the caller return normally
+   * and the dispatcher mark the other document processed. Such a bulk is a
+   * generic failure; the one-by-one fallback then handles each document.
+   */
+  @Test
+  void aBulkMixingATypeConflictWithAnotherErrorStaysAGenericError() {
+    indexExists = true;
+    bulkResponse = """
+        {"errors":true,"items":[
+          {"create":{"_index":"analytics_2026-09-17","_id":"1","status":400,"error":{"type":"document_parsing_exception",
+            "reason":"failed to parse field [profileProperties.country] of type [long]"}}},
+          {"create":{"_index":"analytics_2026-09-17","_id":"2","status":429,"error":{"type":"es_rejected_execution_exception",
+            "reason":"rejected execution"}}},
+          {"create":{"_index":"analytics_2026-09-17","_id":"3","status":201,"result":"created"}}]}
+        """;
+    List<StatisticDataQueueEntry> entries = List.of(new StatisticDataQueueEntry(statisticData()));
+
+    IllegalStateException thrown = assertThrows(IllegalStateException.class,
+                                                () -> storage.sendCreateBulkDocumentsRequest(entries, knownMappings()));
+    assertFalse(thrown instanceof ElasticsearchMappingConflictException,
+                "the 429 document must reach the dispatcher's fallback, not be marked processed");
+  }
+
+  @Test
+  void aRefusedItemWithoutIdOrReasonIsStillClassifiedAsAConflict() {
+    indexExists = true;
+    bulkResponse = """
+        {"errors":true,"items":[
+          {"create":{"_index":"analytics_2026-09-17","status":400,"error":{"type":"document_parsing_exception"}}}]}
+        """;
+    List<StatisticDataQueueEntry> entries = List.of(new StatisticDataQueueEntry(statisticData()));
+
+    ElasticsearchMappingConflictException thrown = assertThrows(ElasticsearchMappingConflictException.class,
+                                                                () -> storage.sendCreateBulkDocumentsRequest(entries,
+                                                                                                             knownMappings()));
+    assertTrue(thrown.getRefusedDocumentIds().isEmpty(), "no id to carry: the caller retries the whole batch");
+    assertEquals(List.of(""), thrown.getReasons());
+  }
+
   @Test
   void aBulkWithAnotherErrorStaysAGenericError() {
     indexExists = true;
