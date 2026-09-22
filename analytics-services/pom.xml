@@ -30,6 +30,19 @@
   <properties>
     <exo.test.coverage.ratio>0</exo.test.coverage.ratio>
     <org.elasticsearch.version>5.6.11</org.elasticsearch.version>
+    <!--
+      The *IT classes run the storage's hand-written Elasticsearch requests
+      against a real engine, under the parent's run-its profile only:
+        mvn verify -Prun-its                      (Testcontainers engine)
+        mvn verify -Prun-its -Des.url=http://127.0.0.1:9200   (an engine you already have;
+                                                  the suite uses its own it_analytics* names)
+      Off in a plain build, like ai-rag's, and for the same reason: a green
+      surefire run does not mean these requests ran (backend-spring.md §7).
+      Versions declared here as in ai-rag; this is the second module needing
+      them, which is the point where maven-depmgt-pom should carry them.
+    -->
+    <org.testcontainers.version>1.21.4</org.testcontainers.version>
+    <es.testcontainer.image>docker.elastic.co/elasticsearch/elasticsearch:9.3.4</es.testcontainer.image>
   </properties>
   <dependencies>
     <dependency>
@@ -64,5 +77,32 @@
       <artifactId>mockito-junit-jupiter</artifactId>
       <scope>test</scope>
     </dependency>
+
+    <!-- Runs the hand-written Elasticsearch requests against a real engine (*IT, run-its profile) -->
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>elasticsearch</artifactId>
+      <version>${org.testcontainers.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>${org.testcontainers.version}</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <systemPropertyVariables>
+            <es.testcontainer.image>${es.testcontainer.image}</es.testcontainer.image>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>

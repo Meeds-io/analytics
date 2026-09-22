@@ -7,12 +7,12 @@
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 3 of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
@@ -24,12 +24,18 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import org.exoplatform.services.log.ExoLogger;
+import org.exoplatform.services.log.Log;
+
+import io.meeds.analytics.elasticsearch.model.ElasticsearchMappingConflictException;
 import io.meeds.analytics.elasticsearch.storage.ElasticsearchAnalyticsStorage;
 import io.meeds.analytics.model.StatisticDataQueueEntry;
 import io.meeds.analytics.plugin.StatisticDataProcessorPlugin;
 
 @Component
 public class ElasticsearchStatisticDataProcessorService implements StatisticDataProcessorPlugin {
+
+  private static final Log              LOG = ExoLogger.getLogger(ElasticsearchStatisticDataProcessorService.class);
 
   @Autowired
   private ElasticsearchAnalyticsStorage elasticsearchStorage;
@@ -44,7 +50,21 @@ public class ElasticsearchStatisticDataProcessorService implements StatisticData
 
   @Override
   public void process(List<StatisticDataQueueEntry> processorQueueEntries) {
-    elasticsearchStorage.sendCreateBulkDocumentsRequest(processorQueueEntries, elasticsearchAnalyticsService.retrieveMapping(false));
+    try {
+      elasticsearchStorage.sendCreateBulkDocumentsRequest(processorQueueEntries,
+                                                          elasticsearchAnalyticsService.retrieveMapping(false));
+    } catch (ElasticsearchMappingConflictException e) {
+      // The write index holds a type the cached mapping view does not know
+      // yet (a weekly index mapped a field dynamically after a rollover, and
+      // the periodic refresh has not run). Refresh the view and retry once:
+      // the documents are then built against the real types, and a value
+      // that conflicts is routed to its alternative field instead of being
+      // refused. A second refusal is a real error and propagates.
+      LOG.info("Elasticsearch refused a bulk for a field type conflict, refreshing the mapping and retrying once. Error: {}",
+               e.getMessage());
+      elasticsearchStorage.sendCreateBulkDocumentsRequest(processorQueueEntries,
+                                                          elasticsearchAnalyticsService.retrieveMapping(true));
+    }
   }
 
 }

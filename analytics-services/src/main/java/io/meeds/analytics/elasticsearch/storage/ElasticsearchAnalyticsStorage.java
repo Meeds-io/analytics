@@ -70,6 +70,7 @@ import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.io.entity.StringEntity;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -83,6 +84,7 @@ import org.exoplatform.services.listener.ListenerService;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 
+import io.meeds.analytics.elasticsearch.model.ElasticsearchMappingConflictException;
 import io.meeds.analytics.elasticsearch.model.ElasticsearchResponse;
 import io.meeds.analytics.model.StatisticData;
 import io.meeds.analytics.model.StatisticDataQueueEntry;
@@ -103,6 +105,16 @@ public class ElasticsearchAnalyticsStorage {
   private static final String           FLOAT_MAPPING_TYPE          = "float";
 
   private static final String           LONG_MAPPING_TYPE           = "long";
+
+  private static final String           VERSION_CONFLICT_ERROR_TYPE = "version_conflict_engine_exception";
+
+  /**
+   * Bulk item error types Elasticsearch answers when a value cannot be parsed
+   * into the type the index maps for its field: {@code document_parsing_exception}
+   * since 8.x, {@code mapper_parsing_exception} before.
+   */
+  private static final Set<String>      MAPPING_CONFLICT_ERROR_TYPES = Set.of("document_parsing_exception",
+                                                                              "mapper_parsing_exception");
 
   private static final Set<String>      EXPLICIT_MAPPING_TYPES      = Set.of(KEYWORD_MAPPING_TYPE,
                                                                              TEXT_MAPPING_TYPE,
@@ -137,11 +149,20 @@ public class ElasticsearchAnalyticsStorage {
   @PostConstruct
   public void init() {
     try {
-      checkIndexTemplateExistence();
+      sendIndexTemplateRequest();
       CompletableFuture.runAsync(this::sendRolloverRequest);
     } catch (Exception e) {
       LOG.warn("Error while initializing Elasticsearch connection", e);
     }
+  }
+
+  /**
+   * @return the configured weekly index name prefix
+   *         ({@code analytics.es.index.prefix}), which the mapping reader
+   *         needs to recognise the indices behind the alias
+   */
+  public String getIndexPrefix() {
+    return elasticsearchConfiguration.getIndexPrefix();
   }
 
   public void sendCreateBulkDocumentsRequest(List<StatisticDataQueueEntry> dataQueueEntries,
@@ -828,30 +849,80 @@ public class ElasticsearchAnalyticsStorage {
                                                     content));
     }
     if (StringUtils.contains(response.getMessage(), "\"errors\":true")) {
-      if (StringUtils.contains(response.getMessage(), "\"type\":\"version_conflict_engine_exception\"")
-          && StringUtils.countMatches(response.getMessage(), "{\"create\":{") == 1) {
-        // the ES response is not answer of a bulk, but of a single insert
-        // it means the entry already exists in ES, no need to raise an error
+      Set<String> errorTypes = getBulkItemErrorTypes(response.getMessage());
+      if (errorTypes.size() == 1 && errorTypes.contains(VERSION_CONFLICT_ERROR_TYPE)) {
+        // A "create" refused for an existing id means the entry is already
+        // indexed: a retried bulk, or a queue entry replayed by another node.
+        // Nothing is lost, so this is not an error.
         LOG.warn("ID conflict in some content: {}", response.getMessage());
       } else {
-        throw new IllegalStateException(String.format("Error message returned from ES: %s. URI: %s. Content: %s",
-                                                      response.getMessage(),
-                                                      uri,
-                                                      content));
+        String message = String.format("Error message returned from ES: %s. URI: %s. Content: %s",
+                                       response.getMessage(),
+                                       uri,
+                                       content);
+        if (errorTypes.stream().anyMatch(MAPPING_CONFLICT_ERROR_TYPES::contains)) {
+          throw new ElasticsearchMappingConflictException(message);
+        } else {
+          throw new IllegalStateException(message);
+        }
       }
     }
     return response;
   }
 
-  private void checkIndexTemplateExistence() {
-    if (!sendIsIndexTemplateExistsRequest()) {
-      String indexTemplate = elasticsearchConfiguration.getIndexTemplateName();
-      sendPostRequest("_index_template/" + indexTemplate, elasticsearchConfiguration.getIndexTemplateMapping());
-      if (sendIsIndexTemplateExistsRequest()) {
-        LOG.info("Index Template {} created.", indexTemplate);
-      } else {
-        throw new IllegalStateException("Error while creating Index Template " + indexTemplate);
+  /**
+   * @param bulkResponse the body of a {@code _bulk} response with
+   *          {@code "errors":true}
+   * @return the distinct error types of the failed items, empty when the body
+   *         cannot be parsed so that the caller falls back to a generic error
+   */
+  private Set<String> getBulkItemErrorTypes(String bulkResponse) {
+    Set<String> errorTypes = new HashSet<>();
+    try {
+      JSONArray items = new JSONObject(bulkResponse).optJSONArray("items");
+      for (int i = 0; items != null && i < items.length(); i++) {
+        JSONObject item = items.getJSONObject(i);
+        for (String action : item.keySet()) {
+          JSONObject error = item.getJSONObject(action).optJSONObject("error");
+          if (error != null) {
+            errorTypes.add(error.optString("type", "unknown"));
+          }
+        }
       }
+    } catch (JSONException e) {
+      LOG.debug("Error parsing ES bulk response, it will be handled as a generic error: {}", bulkResponse, e);
+    }
+    return errorTypes;
+  }
+
+  /**
+   * Pushes the index template at every startup, not only when it is missing.
+   * The template is versioned with the product ({@code numeric_detection} was
+   * switched off in MEED-9542) but a cluster provisioned before a change kept
+   * the template it was created with, and every new weekly index inherited
+   * it (EXO-90504). The request is idempotent; a refused update on an
+   * existing template is logged and does not fail the startup.
+   */
+  private void sendIndexTemplateRequest() {
+    String indexTemplate = elasticsearchConfiguration.getIndexTemplateName();
+    boolean exists = sendIsIndexTemplateExistsRequest();
+    try {
+      sendPutRequest("_index_template/" + indexTemplate, elasticsearchConfiguration.getIndexTemplateMapping());
+    } catch (RuntimeException e) {
+      if (exists) {
+        LOG.warn("Error updating Index Template {}, the one already deployed on the cluster is kept. Error: {}",
+                 indexTemplate,
+                 e.getMessage());
+        return;
+      }
+      throw e;
+    }
+    if (exists) {
+      LOG.debug("Index Template {} updated.", indexTemplate);
+    } else if (sendIsIndexTemplateExistsRequest()) {
+      LOG.info("Index Template {} created.", indexTemplate);
+    } else {
+      throw new IllegalStateException("Error while creating Index Template " + indexTemplate);
     }
   }
 

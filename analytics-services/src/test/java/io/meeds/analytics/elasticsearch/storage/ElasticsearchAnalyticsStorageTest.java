@@ -19,8 +19,10 @@
  */
 package io.meeds.analytics.elasticsearch.storage;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -46,6 +48,7 @@ import org.mockito.quality.Strictness;
 
 import org.exoplatform.services.listener.ListenerService;
 
+import io.meeds.analytics.elasticsearch.model.ElasticsearchMappingConflictException;
 import io.meeds.analytics.elasticsearch.model.ElasticsearchResponse;
 import io.meeds.analytics.model.StatisticData;
 import io.meeds.analytics.model.StatisticDataQueueEntry;
@@ -60,6 +63,8 @@ class ElasticsearchAnalyticsStorageTest {
   private static final String           INDEX_PREFIX      = "analytics";
 
   private static final String           INDEX_ALIAS       = "analytics_alias";
+
+  private static final String           TEMPLATE_NAME     = "analytics_template";
 
   private static final String           TEMPLATE          = """
       {"index_patterns": ["analytics*"], "template": {"mappings": {"properties": {
@@ -83,15 +88,22 @@ class ElasticsearchAnalyticsStorageTest {
 
   private final List<String>            createIndexBodies = new ArrayList<>();
 
+  private final List<String>            templateBodies    = new ArrayList<>();
+
   private boolean                       indexExists;
 
+  private boolean                       templateExists    = true;
+
   private int                           createIndexFailures;
+
+  private String                        bulkResponse      = "{\"errors\":false,\"items\":[]}";
 
   @BeforeEach
   void setUp() throws Exception {
     when(configuration.getUrlClient()).thenReturn(ES_URL);
     when(configuration.getIndexPrefix()).thenReturn(INDEX_PREFIX);
     when(configuration.getIndexAlias()).thenReturn(INDEX_ALIAS);
+    when(configuration.getIndexTemplateName()).thenReturn(TEMPLATE_NAME);
     when(configuration.getIndexPerDays()).thenReturn(7L);
     when(configuration.getMaxIndexCount()).thenReturn(500L);
     when(configuration.getIndexTemplateMapping()).thenReturn(TEMPLATE);
@@ -146,11 +158,93 @@ class ElasticsearchAnalyticsStorageTest {
     assertTrue(createIndexBodies.isEmpty());
   }
 
+  /**
+   * EXO-90504: a cluster keeps the template it was provisioned with, so the
+   * {@code numeric_detection} switch of MEED-9542 never reached it. The
+   * template is pushed at every startup, whether or not it exists.
+   */
+  @Test
+  void theIndexTemplateIsPushedAtStartupEvenWhenItAlreadyExists() {
+    templateExists = true;
+
+    storage.init();
+
+    assertEquals(1, templateBodies.size(), "an existing template is updated, not left as is");
+    assertEquals(new JSONObject(TEMPLATE).toString(), new JSONObject(templateBodies.get(0)).toString());
+  }
+
+  @Test
+  void theIndexTemplateIsCreatedWhenMissing() {
+    templateExists = false;
+
+    storage.init();
+
+    assertEquals(1, templateBodies.size());
+    assertTrue(templateExists, "the creation is verified by reading the template back");
+  }
+
+  @Test
+  void aBulkRefusedForAFieldTypeConflictRaisesAMappingConflictException() {
+    indexExists = true;
+    bulkResponse = """
+        {"errors":true,"items":[
+          {"create":{"_index":"analytics_2026-09-17","_id":"1","status":400,"error":{"type":"document_parsing_exception",
+            "reason":"failed to parse field [profileProperties.country] of type [long]"}}},
+          {"create":{"_index":"analytics_2026-09-17","_id":"2","status":201,"result":"created"}}]}
+        """;
+    List<StatisticDataQueueEntry> entries = List.of(new StatisticDataQueueEntry(statisticData()));
+
+    assertThrows(ElasticsearchMappingConflictException.class,
+                 () -> storage.sendCreateBulkDocumentsRequest(entries, knownMappings()));
+  }
+
+  @Test
+  void aBulkWhoseOnlyErrorsAreVersionConflictsIsNotAnError() {
+    indexExists = true;
+    bulkResponse = """
+        {"errors":true,"items":[
+          {"create":{"_index":"analytics_2026-09-17","_id":"1","status":409,"error":{"type":"version_conflict_engine_exception",
+            "reason":"[1]: version conflict, document already exists (current version [1])"}}},
+          {"create":{"_index":"analytics_2026-09-17","_id":"2","status":409,"error":{"type":"version_conflict_engine_exception",
+            "reason":"[2]: version conflict, document already exists (current version [1])"}}},
+          {"create":{"_index":"analytics_2026-09-17","_id":"3","status":201,"result":"created"}}]}
+        """;
+    List<StatisticDataQueueEntry> entries = List.of(new StatisticDataQueueEntry(statisticData()),
+                                                    new StatisticDataQueueEntry(statisticData()));
+
+    assertDoesNotThrow(() -> storage.sendCreateBulkDocumentsRequest(entries, knownMappings()),
+                       "documents already indexed by a previous attempt are not a failure of this one");
+  }
+
+  @Test
+  void aBulkWithAnotherErrorStaysAGenericError() {
+    indexExists = true;
+    bulkResponse = """
+        {"errors":true,"items":[
+          {"create":{"_index":"analytics_2026-09-17","_id":"1","status":429,"error":{"type":"es_rejected_execution_exception",
+            "reason":"rejected execution"}}}]}
+        """;
+    List<StatisticDataQueueEntry> entries = List.of(new StatisticDataQueueEntry(statisticData()));
+
+    IllegalStateException thrown = assertThrows(IllegalStateException.class,
+                                                () -> storage.sendCreateBulkDocumentsRequest(entries, knownMappings()));
+    assertFalse(thrown instanceof ElasticsearchMappingConflictException, "only a type conflict asks for a mapping refresh");
+  }
+
   private ElasticsearchResponse answer(ClassicHttpRequest request) throws Exception {
     String path = request.getUri().getPath();
     String method = request.getMethod();
     boolean weeklyIndexPath = path.matches("/" + INDEX_PREFIX + "_\\d{4}-\\d{2}-\\d{2}");
-    if ("GET".equals(method) && weeklyIndexPath) {
+    if (path.equals("/_index_template/" + TEMPLATE_NAME)) {
+      if ("GET".equals(method)) {
+        return templateExists ? ok("{}") : new ElasticsearchResponse("{\"status\":404}", 404);
+      }
+      templateBodies.add(EntityUtils.toString(request.getEntity()));
+      templateExists = true;
+      return ok("{\"acknowledged\":true}");
+    } else if (path.equals("/_bulk")) {
+      return ok(bulkResponse);
+    } else if ("GET".equals(method) && weeklyIndexPath) {
       return indexExists ? ok("{}") : new ElasticsearchResponse("{\"status\":404}", 404);
     } else if ("GET".equals(method) && path.equals("/" + INDEX_ALIAS)) {
       return new ElasticsearchResponse("{\"status\":404}", 404);

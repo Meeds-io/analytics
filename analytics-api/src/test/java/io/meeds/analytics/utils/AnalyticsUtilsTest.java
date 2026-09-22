@@ -22,15 +22,59 @@ package io.meeds.analytics.utils;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.meeds.analytics.model.StatisticFieldMapping;
 
 class AnalyticsUtilsTest {
+
+  /**
+   * EXO-90504: the two indices hold the same sub-fields under
+   * {@code profileProperties}, and the newest one changed the type of one of
+   * them. The merge used to descend into an object only when the newer index
+   * brought a new sub-field, so this exact shape kept the oldest type.
+   */
+  @Test
+  void getJsonNodeMergesNestedPropertiesWithIdenticalKeysTakingTheNewestType() {
+    JSONObject mappings = new JSONObject("""
+        {"analytics_2026-09-17":{"mappings":{"properties":{
+            "profileProperties":{"properties":{"country":{"type":"long"},"city":{"type":"keyword"}}}}}},
+         "analytics_2026-09-10":{"mappings":{"properties":{
+            "profileProperties":{"properties":{"country":{"type":"keyword"},"city":{"type":"keyword"}}}}}}}
+        """);
+
+    JsonNode merged = AnalyticsUtils.getJsonNode(AnalyticsUtils.sortByAnalyticsDate(mappings), 0, null, "mappings", "properties");
+
+    JsonNode properties = merged.get("profileProperties").get("properties");
+    assertEquals("long", properties.get("country").get("type").asText(), "the newest index's type must win");
+    assertEquals("keyword", properties.get("city").get("type").asText());
+  }
+
+  @Test
+  void sortByAnalyticsDateRecognisesTheConfiguredIndexPrefix() {
+    JSONObject mappings = new JSONObject("""
+        {"stats_2026-09-17":{"a":1},"stats_2026-09-03":{"a":2},"analytics_2026-09-10":{"a":3},"stats_other":{"a":4}}
+        """);
+
+    ObjectNode sorted = AnalyticsUtils.sortByAnalyticsDate(mappings, "stats");
+
+    assertEquals(2, sorted.size(), "only <prefix>_yyyy-MM-dd indices are kept");
+    assertEquals("stats_2026-09-03", sorted.fieldNames().next(), "oldest first");
+    assertFalse(sorted.has("analytics_2026-09-10"));
+    assertTrue(AnalyticsUtils.sortByAnalyticsDate(mappings).has("analytics_2026-09-10"), "the default keeps the product prefix");
+    assertTrue(AnalyticsUtils.sortByAnalyticsDate(mappings, null).has("analytics_2026-09-10"), "a null prefix means the default");
+  }
 
   @Test
   void convertFieldNameRedirectsToTheHighestAlternativeIncludingTheFourth() {
