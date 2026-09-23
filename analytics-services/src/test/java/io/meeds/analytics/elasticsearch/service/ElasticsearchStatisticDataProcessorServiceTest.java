@@ -39,6 +39,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import io.meeds.analytics.elasticsearch.model.ElasticsearchMappingConflictException;
 import io.meeds.analytics.elasticsearch.storage.ElasticsearchAnalyticsStorage;
@@ -118,6 +119,33 @@ class ElasticsearchStatisticDataProcessorServiceTest {
     verify(storage).sendCreateBulkDocumentsRequest(entries, freshMappings);
   }
 
+  /**
+   * Elasticsearch reports every parsing refusal with one error type, so a
+   * refusal a mapping read cannot fix reaches this path too: a field-limit
+   * refusal, verified on 9.5.3 to answer {@code document_parsing_exception}
+   * with the reason pinned below. Each read is a full alias mapping request,
+   * a merge and a settings write, and the dispatcher re-sends every refused
+   * document on its own, so an unthrottled path would pay one per document
+   * and per attempt, every ten seconds. The first refusal still reads the
+   * mapping — a genuinely stale view must always be re-read.
+   */
+  @Test
+  void repeatedRefusalsReadTheMappingOncePerWindow() {
+    ReflectionTestUtils.setField(processor, "mappingRefreshMinIntervalSeconds", 300L);
+    when(analyticsService.retrieveMapping(true)).thenReturn(freshMappings);
+    doThrow(fieldLimitRefusal()).when(storage).sendCreateBulkDocumentsRequest(anyList(), eq(cachedMappings));
+    // A field limit is not a stale view: the retry is refused too.
+    doThrow(fieldLimitRefusal()).when(storage).sendCreateBulkDocumentsRequest(anyList(), eq(freshMappings));
+
+    for (int attempt = 0; attempt < 3; attempt++) {
+      assertThrows(ElasticsearchMappingConflictException.class, () -> processor.process(entries));
+    }
+
+    verify(analyticsService, times(1)).retrieveMapping(true);
+    verify(analyticsService, times(5)).retrieveMapping(false);
+    verify(storage, times(6)).sendCreateBulkDocumentsRequest(anyList(), anySet());
+  }
+
   @Test
   void refusedIdsMatchingNoEntryRetryTheWholeBatch() {
     when(analyticsService.retrieveMapping(true)).thenReturn(freshMappings);
@@ -157,6 +185,12 @@ class ElasticsearchStatisticDataProcessorServiceTest {
 
   private static ElasticsearchMappingConflictException conflict(Set<String> refusedIds) {
     return new ElasticsearchMappingConflictException("refused", refusedIds, List.of(REASON));
+  }
+
+  private ElasticsearchMappingConflictException fieldLimitRefusal() {
+    return new ElasticsearchMappingConflictException("refused",
+                                                     Set.of(String.valueOf(refused.getId())),
+                                                     List.of("failed to parse: Limit of total fields [1000] has been exceeded while adding new fields [1]"));
   }
 
   private static StatisticDataQueueEntry entry(String operation) {

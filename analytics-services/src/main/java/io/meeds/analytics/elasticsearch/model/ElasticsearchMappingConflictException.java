@@ -26,12 +26,17 @@ import java.util.Set;
 import lombok.Getter;
 
 /**
- * Raised when Elasticsearch refuses a bulk because a document value does not
- * match the type the write index holds for its field. It means the mapping
+ * Raised when Elasticsearch refuses a bulk because it cannot parse a document
+ * against the mapping its index holds — most often because a value does not
+ * match the type the write index has for its field, which means the mapping
  * view the documents were built against is stale: the write index acquired a
  * type the view does not know yet, typically right after a weekly rollover
- * (EXO-90504). The caller refreshes the view and retries the refused
- * documents once.
+ * (EXO-90504). The caller re-reads the view and retries the refused documents
+ * once.
+ * <p>
+ * The engine reports other parsing refusals with the same error type, the
+ * field-limit refusal among them, and those no re-read can fix; the caller
+ * throttles its re-reads for that reason.
  */
 @Getter
 public class ElasticsearchMappingConflictException extends IllegalStateException {

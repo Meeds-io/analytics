@@ -110,10 +110,19 @@ public class ElasticsearchAnalyticsStorage {
   private static final String           VERSION_CONFLICT_ERROR_TYPE = "version_conflict_engine_exception";
 
   /**
-   * Bulk item error types Elasticsearch answers when a value cannot be parsed
-   * into the type the index maps for its field: {@code document_parsing_exception}
-   * on the engine the platform runs (verified on 9.x); older releases answered
-   * {@code mapper_parsing_exception}.
+   * Bulk item error types Elasticsearch answers when it cannot parse a
+   * document against the mapping its index holds: {@code document_parsing_exception}
+   * on the engine the platform runs (verified on 9.x); older releases
+   * answered {@code mapper_parsing_exception}.
+   * <p>
+   * The type does not name the cause: a value that does not fit its field's
+   * type and a refusal to add new fields past
+   * {@code index.mapping.total_fields.limit} carry the same one (both
+   * verified on 9.5.3), and only the reason text tells them apart — a text
+   * this code deliberately does not match, since it is the part that moves
+   * between engine versions. The caller therefore treats a refusal as a
+   * possibly stale mapping view and re-reads it under a throttle, rather than
+   * once per refused document.
    */
   private static final Set<String>      MAPPING_CONFLICT_ERROR_TYPES = Set.of("document_parsing_exception",
                                                                               "mapper_parsing_exception");

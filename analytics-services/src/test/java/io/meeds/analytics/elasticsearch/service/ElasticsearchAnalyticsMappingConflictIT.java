@@ -144,6 +144,9 @@ class ElasticsearchAnalyticsMappingConflictIT extends AbstractElasticsearchIT {
     processor = new ElasticsearchStatisticDataProcessorService();
     ReflectionTestUtils.setField(processor, "elasticsearchStorage", storage);
     ReflectionTestUtils.setField(processor, "elasticsearchAnalyticsService", service);
+    // The production default, so the stale-view scenario proves the first
+    // refusal still re-reads the mapping with the throttle in force.
+    ReflectionTestUtils.setField(processor, "mappingRefreshMinIntervalSeconds", 30L);
 
     cleanCluster();
   }
