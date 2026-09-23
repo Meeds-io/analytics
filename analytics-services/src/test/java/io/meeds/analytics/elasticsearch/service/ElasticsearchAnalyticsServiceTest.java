@@ -275,6 +275,36 @@ class ElasticsearchAnalyticsServiceTest {
     assertTrue(field.isTypeConflict());
   }
 
+  /**
+   * EXO-90504, the incident's shape: after a rollover the write index mapped a
+   * profile property as {@code long} while the older indices hold it as
+   * {@code keyword}, and no other sub-field differs. Guards the newest-wins
+   * rule of EXO-90171 against the nested case that the previous merge (a
+   * descent gated on new sub-keys) got wrong; it passed on its first run.
+   */
+  @Test
+  void mergeIndicesMappingsTakesTheNewestTypeOfANestedPropertyWhenTheSubKeysAreIdentical() {
+    Map<String, StatisticFieldMapping> mappings = byName(elasticsearchAnalyticsService.mergeIndicesMappings(indicesMapping(
+                                                                                                                           NEWEST_INDEX,
+                                                                                                                           nested("profileProperties",
+                                                                                                                                  longField("country"),
+                                                                                                                                  keyword("city")),
+                                                                                                                           OLDEST_INDEX,
+                                                                                                                           nested("profileProperties",
+                                                                                                                                  keyword("country"),
+                                                                                                                                  keyword("city")))));
+
+    StatisticFieldMapping country = mappings.get("profileProperties.country");
+    assertEquals("long", country.getType(), "the write index's type must be seen, or its refusals are never explained");
+    assertTrue(country.isTypeConflict());
+    assertEquals("keyword", mappings.get("profileProperties.city").getType());
+    assertFalse(mappings.get("profileProperties.city").isTypeConflict());
+  }
+
+  private static String nested(String name, String... fields) {
+    return "\"" + name + "\":{\"properties\":{" + properties(fields) + "}}";
+  }
+
   private static Map<String, StatisticFieldMapping> byName(Set<StatisticFieldMapping> mappings) {
     return mappings.stream().collect(Collectors.toMap(StatisticFieldMapping::getName, Function.identity()));
   }

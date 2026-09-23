@@ -1540,7 +1540,7 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
   }
 
   Set<StatisticFieldMapping> mergeIndicesMappings(String mappingJsonString) {
-    ObjectNode indicesMappings = sortByAnalyticsDate(new JSONObject(mappingJsonString));
+    ObjectNode indicesMappings = sortByAnalyticsDate(new JSONObject(mappingJsonString), elasticsearchStorage.getIndexPrefix());
     Map<String, List<StatisticFieldMapping>> mappingsByField = new HashMap<>();
     Iterator<String> indexNames = indicesMappings.fieldNames();
     while (indexNames.hasNext()) {
