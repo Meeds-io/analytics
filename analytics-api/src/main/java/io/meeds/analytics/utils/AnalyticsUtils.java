@@ -121,6 +121,9 @@ public class AnalyticsUtils {
 
   public static final String            ALTERNATIVE_FIELD_SUFFIX         = "_alt";
 
+  /** Default of {@code analytics.es.index.prefix}, the weekly index name prefix */
+  public static final String            DEFAULT_INDEX_PREFIX             = "analytics";
+
   public static final int               MAX_ALTERNATIVE_FIELD_COUNT      = 4;
 
   public static final String            FIELD_MODIFIER_USER_SOCIAL_ID    = "modifierSocialId";
@@ -658,12 +661,13 @@ public class AnalyticsUtils {
         JsonNode existingProps = existingObj.get(PROPERTIES);
         JsonNode newProps = newObj.get(PROPERTIES);
         if (existingProps != null && newProps != null && existingProps.isObject() && newProps.isObject()) {
+          // Always descend: an object present in both indices may hold a
+          // sub-field whose type changed between them (EXO-90504). Descending
+          // only when the newer index brought a new sub-field kept the older
+          // index's types for every sub-field the two had in common.
           ObjectNode existingPropsObj = (ObjectNode) existingProps;
-          ObjectNode newPropsObj = (ObjectNode) newProps;
-          if (hasNewKeys(existingPropsObj, newPropsObj)) {
-            mergeObjectNodes(existingPropsObj, newPropsObj);
-            existingObj.set(PROPERTIES, existingPropsObj);
-          }
+          mergeObjectNodes(existingPropsObj, (ObjectNode) newProps);
+          existingObj.set(PROPERTIES, existingPropsObj);
           target.set(key, existingObj);
         } else {
           target.set(key, newValue);
@@ -674,19 +678,31 @@ public class AnalyticsUtils {
     }
   }
 
-  private static boolean hasNewKeys(ObjectNode existing, ObjectNode incoming) {
-    Iterator<String> it = incoming.fieldNames();
-    while (it.hasNext()) {
-      if (!existing.has(it.next())) {
-        return true;
-      }
-    }
-    return false;
+  /**
+   * @deprecated since 7.3.0, for removal: assumes the default index prefix,
+   *             which made the mapping read return nothing on a deployment
+   *             with a custom {@code analytics.es.index.prefix} (EXO-90504).
+   *             Use {@link #sortByAnalyticsDate(JSONObject, String)} with the
+   *             configured prefix.
+   */
+  @Deprecated(since = "7.3.0", forRemoval = true)
+  public static ObjectNode sortByAnalyticsDate(JSONObject input) {
+    return sortByAnalyticsDate(input, DEFAULT_INDEX_PREFIX);
   }
 
-  public static ObjectNode sortByAnalyticsDate(JSONObject input) {
+  /**
+   * Sorts the indices of an Elasticsearch {@code _mapping} response by the
+   * date carried in their name, oldest first.
+   *
+   * @param input the {@code _mapping} response, keyed by index name
+   * @param indexPrefix the configured {@code analytics.es.index.prefix}; an
+   *          index whose name is not {@code <prefix>_yyyy-MM-dd} is left out
+   * @return the same entries, in ascending date order
+   */
+  public static ObjectNode sortByAnalyticsDate(JSONObject input, String indexPrefix) {
     Map<LocalDate, String> dateKeyMap = new TreeMap<>();
-    Pattern pattern = Pattern.compile("analytics_(\\d{4}-\\d{2}-\\d{2})");
+    String prefix = StringUtils.defaultIfBlank(indexPrefix, DEFAULT_INDEX_PREFIX);
+    Pattern pattern = Pattern.compile(Pattern.quote(prefix) + "_(\\d{4}-\\d{2}-\\d{2})");
 
     for (String key : input.keySet()) {
       Matcher matcher = pattern.matcher(key);
