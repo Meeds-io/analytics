@@ -38,7 +38,7 @@
                 class="text-color">
                 <v-icon
                   size="16"
-                  class="text-sub-title iconSubPage">
+                  class="iconSubPage">
                   fa-caret-right
                 </v-icon>
                 {{ page.label }}
