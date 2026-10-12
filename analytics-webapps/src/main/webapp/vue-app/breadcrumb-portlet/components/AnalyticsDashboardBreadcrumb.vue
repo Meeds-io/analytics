@@ -38,7 +38,7 @@
                 class="text-color">
                 <v-icon
                   size="16"
-                  class="text-sub-title iconSubPage">
+                  class="iconSubPage">
                   fa-caret-right
                 </v-icon>
                 {{ page.label }}
@@ -50,7 +50,7 @@
               :title="$t('analytics.navigateToOtherPages')"
               icon
               @click="openDrawer">
-              <i class="uiIconManageApplication iconAnalyticsPage text-color"></i>
+              <i class="uiIconManageApplication iconAnalyticsPage"></i>
             </v-btn>
           </v-list-item-action>
         </v-list-item>
