@@ -69,7 +69,9 @@ export function getSamples(options) {
     credentials: 'include',
   }).then(resp => {
     if (!resp || !resp.ok) {
-      throw new Error('Response code indicates a server error', resp);
+      const error = new Error('Response code indicates a server error', resp);
+      error.status = resp?.status;
+      throw error;
     } else {
       return resp.json();
     }
