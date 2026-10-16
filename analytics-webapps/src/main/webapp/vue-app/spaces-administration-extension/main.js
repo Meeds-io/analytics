@@ -18,4 +18,20 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 import './initComponents.js';
-import './extensions.js';
+import {registerLastActivityColumn} from './extensions.js';
+import {LAST_ACTIVITY_SAMPLES_OPTIONS} from './js/lastActivity.js';
+
+// One probe per page, with the column's own request minus the space: the
+// column exists only for a viewer the analytics endpoints admit (HTTP 403
+// otherwise, and for an expired session)
+Vue.prototype.$analyticsService.getSamples({
+  ...LAST_ACTIVITY_SAMPLES_OPTIONS,
+  operations: Vue.prototype.$analyticsService.SPACE_ACTIVITY_OPERATIONS,
+})
+  .then(() => registerLastActivityColumn())
+  .catch(e => {
+    if (e?.status !== 403) {
+      // eslint-disable-next-line no-console
+      console.error('Error checking the access to the spaces last activity', e);
+    }
+  });
