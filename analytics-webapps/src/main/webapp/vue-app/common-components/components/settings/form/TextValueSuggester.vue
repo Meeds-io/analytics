@@ -33,7 +33,7 @@
       :class="autocompleteClass"
       :prepend-inner-icon="prependInnerIcon"
       append-icon=""
-      menu-props="closeOnClick, maxHeight = 100"
+      :menu-props="{ closeOnClick: true, contentClass: 'application-menu layout-drawer' }"
       class="identitySuggester identitySuggesterInputStyle my-0"
       content-class="identitySuggesterContent"
       width="100%"
