@@ -31,6 +31,14 @@
       </template>
       <date-format :value="spaceLastActivityTime" :format="fullDateFormat" />
     </v-tooltip>
+    <v-icon
+      v-else-if="failed"
+      :title="errorLabel"
+      :aria-label="errorLabel"
+      class="error--text"
+      size="16">
+      fa-exclamation-circle
+    </v-icon>
     <span v-else-if="loading">
       {{ loadingLabel }}
     </span>
@@ -38,6 +46,8 @@
   </div>
 </template>
 <script>
+import {getLastActivityTime} from '../js/lastActivity.js';
+
 export default {
   props: {
     space: {
@@ -48,6 +58,7 @@ export default {
   data: () => ({
     spaceLastActivityTime: 0,
     loading: true,
+    failed: false,
     dateFormat: {
       year: 'numeric',
       month: 'short',
@@ -67,31 +78,24 @@ export default {
         this.$t('social.spaces.administration.manageSpaces.loadingLastActivity')
         : '';
     },
+    errorLabel() {
+      // The screen's own label of a space that could not be processed
+      return this.$t('social.spaces.administration.manageSpaces.errorSpacesBulkOperation');
+    },
   },
   created() {
     this.getLastSpaceActivity();
   },
   methods: {
     async getLastSpaceActivity() {
-      if (!this.$root.analyticsSamples) {
-        this.$root.analyticsSamples = {};
-      }
       this.loading = true;
+      this.failed = false;
       try {
-        if (Object.hasOwn(this.$root.analyticsSamples, this.space.id)) {
-          this.spaceLastActivityTime = this.$root.analyticsSamples[this.space.id];
-        } else {
-          const spaceLastActivities = await this.$analyticsService.getSamples({
-            operations: this.$analyticsService.SPACE_ACTIVITY_OPERATIONS,
-            fieldName: 'spaceId',
-            fieldValues: [this.space.id],
-            sortBy: 'timestamp',
-            sortDirection: 'desc',
-            limit: 1,
-          });
-          this.spaceLastActivityTime = spaceLastActivities?.[0]?.timestamp || 0;
-          this.$root.analyticsSamples[this.space.id] = this.spaceLastActivityTime;
-        }
+        // null when the viewer may not read it: displayed as no activity
+        this.spaceLastActivityTime = await getLastActivityTime(this.space, this.$root) || 0;
+      } catch (e) {
+        // A failure is not displayed as no activity
+        this.failed = true;
       } finally {
         window.setTimeout(() => this.loading = false, 50);
       }
