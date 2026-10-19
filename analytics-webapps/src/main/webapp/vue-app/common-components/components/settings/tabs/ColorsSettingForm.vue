@@ -27,17 +27,20 @@
         <v-list-item-content>
           <v-list-item-title class="text-left">{{ chartColors.length > 1 ? $t('analytics.colorIndex', [index + 1]) : $t('analytics.colors') }}</v-list-item-title>
         </v-list-item-content>
-        <analytics-setting-color-picker
-          v-model="colors[index]"
-          class="ms-auto"
-          @input="setColor($event, index)" />
+        <div class="ms-auto">
+          <color-picker
+            v-model="colors[index]"
+            :swatches="swatches"
+            @input="setColor($event, index)" />
+        </div>
       </v-list-item>
     </v-list>
     <template v-else>
-      <analytics-setting-color-picker
+      <color-picker
         v-for="(color, index) in chartColors"
         :key="index"
         v-model="colors[index]"
+        :swatches="swatches"
         @input="setColor($event, index)" />
     </template>
   </div>
@@ -73,6 +76,12 @@ export default {
       '#ffaacc',
     ],
     colors: [],
+    swatches: [
+      ['#ffaacc', '#f97575', '#98cc81'],
+      ['#4273c8', '#cea6ac', '#bc99e7'],
+      ['#9ee4f5', '#774ea9', '#ffa500'],
+      ['#bed67e', '#0E100F', '#319ab3'],
+    ],
   }),
   computed: {
     multipleCharts() {
