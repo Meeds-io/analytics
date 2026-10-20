@@ -32,7 +32,6 @@ import MultipleValuesSelection from './components/settings/form/MultipleValuesSe
 import XAxisAggregationField from './components/settings/form/XAxisAggregationField.vue';
 import LimitFilterForm from './components/settings/form/LimitFilterForm.vue';
 
-import SettingColorPicker from './components/settings/tabs/SettingColorPicker.vue';
 import ColorsSettingForm from './components/settings/tabs/ColorsSettingForm.vue';
 import SearchFilterForm from './components/settings/tabs/SearchFilterForm.vue';
 import XAxisForm from './components/settings/tabs/XAxisAggregationForm.vue';
@@ -68,7 +67,6 @@ const components = {
   'analytics-duration-sample-item-attribute': DurationSampleItemAttribute,
   'analytics-space-template-sample-item-attribute': SpaceTemplateItemAttribute,
   'analytics-category-sample-item-attribute': CategoryAttribute,
-  'analytics-setting-color-picker': SettingColorPicker,
   'analytics-identity-field-selection': IdentityFieldSelection,
   'analytics-field-selection': FieldSelection,
   'analytics-multiple-values-selection': MultipleValuesSelection,
