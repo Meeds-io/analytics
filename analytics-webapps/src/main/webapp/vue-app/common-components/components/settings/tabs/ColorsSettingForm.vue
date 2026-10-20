@@ -25,11 +25,12 @@
         :key="index"
         class="px-0 mb-1 d-flex align-center">
         <v-list-item-content>
-          <v-list-item-title class="text-left">{{ chartColors.length > 1 ? $t('analytics.colorIndex', [index + 1]) : $t('analytics.colors') }}</v-list-item-title>
+          <v-list-item-title class="text-left">{{ colorLabel(index) }}</v-list-item-title>
         </v-list-item-content>
         <div class="ms-auto">
           <color-picker
             v-model="colors[index]"
+            :aria-label="colorLabel(index)"
             :swatches="swatches"
             @input="setColor($event, index)" />
         </div>
@@ -40,6 +41,7 @@
         v-for="(color, index) in chartColors"
         :key="index"
         v-model="colors[index]"
+        :aria-label="colorLabel(index)"
         :swatches="swatches"
         @input="setColor($event, index)" />
     </template>
@@ -103,6 +105,9 @@ export default {
     this.init();
   },
   methods: {
+    colorLabel(index) {
+      return this.chartColors.length > 1 ? this.$t('analytics.colorIndex', [index + 1]) : this.$t('analytics.colors');
+    },
     init() {
       this.colors = this.settings
         && this.settings.colors
