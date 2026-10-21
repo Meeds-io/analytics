@@ -31,14 +31,13 @@
       </template>
       <date-format :value="spaceLastActivityTime" :format="fullDateFormat" />
     </v-tooltip>
-    <v-icon
-      v-else-if="failed"
-      :title="errorLabel"
-      :aria-label="errorLabel"
-      class="error--text"
-      size="16">
-      fa-exclamation-circle
-    </v-icon>
+    <span v-else-if="failed" :title="errorLabel">
+      <v-icon class="error--text" size="16">
+        fa-exclamation-circle
+      </v-icon>
+      <!-- A Vuetify icon with no click listener is hidden from assistive technology -->
+      <span class="d-sr-only">{{ errorLabel }}</span>
+    </span>
     <span v-else-if="loading">
       {{ loadingLabel }}
     </span>
@@ -79,8 +78,7 @@ export default {
         : '';
     },
     errorLabel() {
-      // The screen's own label of a space that could not be processed
-      return this.$t('social.spaces.administration.manageSpaces.errorSpacesBulkOperation');
+      return this.$t('social.spaces.administration.manageSpaces.lastActivityLoadFailed');
     },
   },
   created() {
