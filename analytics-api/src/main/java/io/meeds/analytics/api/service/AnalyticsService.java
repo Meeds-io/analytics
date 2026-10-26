@@ -131,9 +131,10 @@ public interface AnalyticsService {
    * Whether a page may write the given parameter as a keyword: true when the
    * field is unknown to the mapping, or when its base mapping and every
    * alternative name of it are mapped keyword or text, on the published
-   * mapping view and on the mappings the storage created since the last
-   * refresh. A field a server writer typed otherwise (a long, a boolean, a
-   * date, a float) stays closed to pages whatever variant is the latest.
+   * mapping view and on the mappings the storage created since it started,
+   * which the view may not hold yet. A field a server writer typed otherwise
+   * (a long, a boolean, a date, a float) stays closed to pages whatever
+   * variant is the latest.
    *
    * @param name the parameter name a page sent
    * @return true when the value may be stored as a keyword under that name
