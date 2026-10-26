@@ -20,10 +20,16 @@
 package io.meeds.analytics.elasticsearch.service;
 
 import static io.meeds.analytics.utils.AnalyticsUtils.DEFAULT_FIELDS;
+import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_ACTIVITY_TYPE;
 import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_TIMESTAMP;
+import static io.meeds.analytics.utils.AnalyticsUtils.MAX_ALTERNATIVE_FIELD_COUNT;
+import static io.meeds.analytics.utils.AnalyticsUtils.STATISTIC_ORIGIN;
+import static io.meeds.analytics.utils.AnalyticsUtils.VALUES_SEPARATOR;
 import static io.meeds.analytics.utils.AnalyticsUtils.collectionToJSONString;
 import static io.meeds.analytics.utils.AnalyticsUtils.fixJSONStringFormat;
 import static io.meeds.analytics.utils.AnalyticsUtils.fromJsonString;
+import static io.meeds.analytics.utils.AnalyticsUtils.getAlternativeFieldName;
+import static io.meeds.analytics.utils.AnalyticsUtils.getBaseFieldName;
 import static io.meeds.analytics.utils.AnalyticsUtils.getJsonNode;
 import static io.meeds.analytics.utils.AnalyticsUtils.sortByAnalyticsDate;
 import static io.meeds.analytics.utils.AnalyticsUtils.toJsonString;
@@ -32,6 +38,7 @@ import java.math.BigDecimal;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -94,6 +101,7 @@ import io.meeds.analytics.model.filter.aggregation.AnalyticsAggregation;
 import io.meeds.analytics.model.filter.aggregation.AnalyticsAggregationType;
 import io.meeds.analytics.model.filter.aggregation.AnalyticsPercentageLimit;
 import io.meeds.analytics.model.filter.search.AnalyticsFieldFilter;
+import io.meeds.analytics.model.filter.search.AnalyticsFieldFilterType;
 import io.meeds.analytics.utils.AnalyticsUtils;
 import io.meeds.common.ContainerTransactional;
 
@@ -110,6 +118,11 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
   private static final String                PROPERTIES_SUB_NODE                      = "properties";
 
   private static final String                TEXT_MAPPING_TYPE                        = "text";
+
+  private static final String                KEYWORD_MAPPING_TYPE                     = "keyword";
+
+  /** The condition of a filter that matches no document, as one must element */
+  private static final String                MATCH_NONE_CONDITION                     = "{\"match_none\": {}},\n";
 
   private static final String                VALUE_PARAM                              = "value";
 
@@ -183,9 +196,19 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
   @Autowired
   private SettingService                     settingService;
 
+  @Autowired
+  private CollaborativeActivityService       collaborativeActivityService;
+
   private List<StatisticWatcher>             uiWatchers                               = new ArrayList<>();
 
-  private Map<String, StatisticFieldMapping> esMappings                               = new HashMap<>();
+  /**
+   * The published mapping view: an unmodifiable map replaced in one
+   * assignment by each writer (the stored view read at start, the periodic
+   * refresh), so that a reader on another thread (the websocket listener
+   * through {@link #isKeywordField}) sees the previous view or the new one,
+   * never a map being filled, and the view never shrinks.
+   */
+  private volatile Map<String, StatisticFieldMapping> esMappings                      = Collections.emptyMap();
 
   private ScheduledExecutorService           esMappingUpdater                         = Executors.newScheduledThreadPool(1);
 
@@ -206,6 +229,17 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
 
   @PostConstruct
   public void start() {
+    // The stored view is read once at start, on the same thread the refresh
+    // uses, so that the websocket listener never checks a page parameter
+    // against an empty view on an upgraded platform; on a new installation
+    // nothing is stored yet and the view stays empty until the first refresh.
+    esMappingUpdater.execute(() -> {
+      try {
+        retrieveMapping(false);
+      } catch (Exception e) {
+        LOG.warn("The stored Elasticsearch mapping view could not be read at start, the next refresh will rebuild it", e);
+      }
+    });
     // Can't be job, because the mapping retrival must be executed on each
     // cluster node
     esMappingUpdater.scheduleAtFixedRate(() -> retrieveMapping(true),
@@ -245,7 +279,38 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
   }
 
   @Override
+  public boolean isKeywordField(String name) {
+    if (StringUtils.isBlank(name)) {
+      return false;
+    }
+    String baseName = getBaseFieldName(name);
+    Map<String, StatisticFieldMapping> view = esMappings;
+    Map<String, String> createdSinceLastRefresh = elasticsearchStorage.getMappedFieldNames();
+    for (int i = 0; i <= MAX_ALTERNATIVE_FIELD_COUNT; i++) {
+      String variant = i == 0 ? baseName : getAlternativeFieldName(baseName, i);
+      StatisticFieldMapping mapping = view.get(variant);
+      if (mapping != null && !isKeywordType(mapping.getType())) {
+        return false;
+      }
+      String createdType = createdSinceLastRefresh.get(variant);
+      if (createdType != null && !isKeywordType(createdType)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private boolean isKeywordType(String type) {
+    return StringUtils.equals(type, KEYWORD_MAPPING_TYPE) || StringUtils.equals(type, TEXT_MAPPING_TYPE);
+  }
+
+  @Override
   public List<StatisticFieldValue> retrieveFieldValues(String field, int limit) {
+    if (StringUtils.equals(field, CollaborativeActivityService.FIELD_NAME)) {
+      // The field is virtual: no document carries it, so a terms aggregation
+      // would answer nothing; its one value is known before any query.
+      return List.of(new StatisticFieldValue(CollaborativeActivityService.YES, 0));
+    }
     StatisticFieldMapping fieldMapping = getFieldMapping(field);
     if (fieldMapping == null || !fieldMapping.isAggregation()) {
       return Collections.emptyList();
@@ -567,10 +632,10 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
     return results;
   }
 
-  private void addESDateSubField(String dateFieldName) {
+  private void addESDateSubField(Map<String, StatisticFieldMapping> view, String dateFieldName) {
     StatisticFieldMapping fieldMapping =
                                        new StatisticFieldMapping("doc['timestamp'].value." + dateFieldName, "long", false, true);
-    esMappings.put(fieldMapping.getName(), fieldMapping);
+    view.put(fieldMapping.getName(), fieldMapping);
   }
 
   private String buildAnalyticsQuery(List<AnalyticsAggregation> aggregations,
@@ -647,9 +712,27 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
           "bool" : {
             "must" : [
         """);
+    Map<String, StatisticFieldMapping> view = this.esMappings;
     for (AnalyticsFieldFilter fieldFilter : filters) {
       String esFieldName = fieldFilter.getField();
-      StatisticFieldMapping fieldMapping = this.esMappings.get(esFieldName);
+      if (StringUtils.equals(esFieldName, CollaborativeActivityService.FIELD_NAME)) {
+        appendCollaborativeActivityCondition(esQuery, fieldFilter, view);
+        continue;
+      }
+      StatisticFieldMapping fieldMapping = view.get(esFieldName);
+      if (fieldMapping != null && fieldMapping.isScriptedField()) {
+        // A scripted entry (the date sub-fields) is no field of any document:
+        // a clause on its name would match nothing, or everything when
+        // negated, silently. The request now says so.
+        if (!isNegatedFilter(fieldFilter.getType())) {
+          esQuery.append(MATCH_NONE_CONDITION);
+        }
+        LOG.debug("Filter on the scripted entry '{}' ({}): no document carries it, the condition matches {}",
+                  esFieldName,
+                  fieldFilter.getType(),
+                  isNegatedFilter(fieldFilter.getType()) ? "everything" : "nothing");
+        continue;
+      }
       if (fieldMapping != null) {
         esFieldName = fieldMapping.getAggregationFieldName();
       }
@@ -725,6 +808,48 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
               },
             },
         """);
+  }
+
+  /**
+   * The condition of a filter on the virtual collaborative-activity field: the
+   * definition's clause for {@code EQUAL YES}, {@code IN_SET} holding
+   * {@code YES} and {@code NOT_NULL}, its negation for {@code NOT_EQUAL YES},
+   * {@code NOT_IN_SET} holding {@code YES} and {@code IS_NULL}. The field has
+   * no other value, so a positive filter on another value matches nothing and
+   * a negated one matches everything.
+   */
+  private void appendCollaborativeActivityCondition(StringBuilder esQuery,
+                                                    AnalyticsFieldFilter fieldFilter,
+                                                    Map<String, StatisticFieldMapping> view) {
+    AnalyticsFieldFilterType type = fieldFilter.getType();
+    boolean negated = isNegatedFilter(type);
+    boolean onYes = switch (type) {
+    case NOT_NULL, IS_NULL -> true;
+    case EQUAL, NOT_EQUAL, IN_SET, NOT_IN_SET -> fieldFilter.getValueString() != null
+                                                 && Arrays.asList(fieldFilter.getValueString().split(VALUES_SEPARATOR))
+                                                          .contains(CollaborativeActivityService.YES);
+    default -> false;
+    };
+    if (onYes) {
+      List<String> activityTypeFields = new ArrayList<>();
+      activityTypeFields.add(FIELD_ACTIVITY_TYPE);
+      for (int i = 1; i <= MAX_ALTERNATIVE_FIELD_COUNT; i++) {
+        String variant = getAlternativeFieldName(FIELD_ACTIVITY_TYPE, i);
+        if (view.containsKey(variant)) {
+          activityTypeFields.add(variant);
+        }
+      }
+      collaborativeActivityService.appendFilterClause(esQuery, negated, activityTypeFields);
+      esQuery.append(",\n");
+    } else if (!negated) {
+      esQuery.append(MATCH_NONE_CONDITION);
+    }
+  }
+
+  private boolean isNegatedFilter(AnalyticsFieldFilterType type) {
+    return type == AnalyticsFieldFilterType.NOT_EQUAL
+           || type == AnalyticsFieldFilterType.NOT_IN_SET
+           || type == AnalyticsFieldFilterType.IS_NULL;
   }
 
   private void buildAggregationQuery(StringBuilder esQuery,
@@ -1328,6 +1453,8 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
 
     chartsData.setComputingTime(json.getLong("took"));
     chartsData.setDataCount(hitsResult.getJSONObject("total").getLong(VALUE_PARAM));
+    JSONObject shards = json.optJSONObject("_shards");
+    chartsData.setFailedShards(shards == null ? 0 : shards.optInt("failed", 0));
 
     int level = multipleChartsAggregation == null ? 0 : -1;
     computeAggregatedResultEntry(filter, aggregations, chartsData, multipleChartsAggregation, null, null, level);
@@ -1463,10 +1590,30 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
         String key = (String) remainingKeys.next();
         statisticData.getParameters().put(key, toString(statisticDataJsonObject.get(key)));
       }
+      markCollaborativeActivity(statisticData);
 
       results.add(statisticData);
     }
     return results;
+  }
+
+  /**
+   * Adds the virtual field to a sample read back, with the rule the filter
+   * clause applies, evaluated on the one event. The activity type is read
+   * under the key the document holds: the base name, or the first alternative
+   * name it was written to, never through the mapping's latest variant.
+   */
+  private void markCollaborativeActivity(StatisticData statisticData) {
+    String activityType = null;
+    for (int i = 0; i <= MAX_ALTERNATIVE_FIELD_COUNT && activityType == null; i++) {
+      String key = i == 0 ? FIELD_ACTIVITY_TYPE : getAlternativeFieldName(FIELD_ACTIVITY_TYPE, i);
+      activityType = StringUtils.trimToNull(statisticData.getKeyword(key));
+    }
+    if (collaborativeActivityService.isCollaborative(statisticData.getOperation(),
+                                                     activityType,
+                                                     statisticData.getKeyword(STATISTIC_ORIGIN))) {
+      statisticData.getParameters().put(CollaborativeActivityService.FIELD_NAME, CollaborativeActivityService.YES);
+    }
   }
 
   private StatisticFieldMapping getFieldMapping(String fieldName) {
@@ -1486,7 +1633,12 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
     }
   }
 
-  private void readFieldsMapping() {
+  /**
+   * Reads the stored mapping view and publishes it merged into the current
+   * one. Package-private: the seam a test calls, where
+   * {@link #retrieveMapping(boolean)} is the container-transactional wrapper.
+   */
+  void readFieldsMapping() {
     SettingValue<?> existingMapping = settingService.get(CONTEXT, ES_SCOPE, ES_AGGREGATED_MAPPING);
     if (existingMapping == null) {
       return;
@@ -1495,14 +1647,16 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
     String esMappingSerialized = existingMapping.getValue().toString();
     try {
       JSONObject jsonObject = new JSONObject(esMappingSerialized);
+      Map<String, StatisticFieldMapping> view = new HashMap<>(esMappings);
       @SuppressWarnings("rawtypes")
       Iterator keys = jsonObject.keys();
       while (keys.hasNext()) {
         String key = keys.next().toString();
         String fieldMappingString = toString(jsonObject.get(key));
         StatisticFieldMapping fieldMapping = fromJsonString(fieldMappingString, StatisticFieldMapping.class);
-        esMappings.put(key, fieldMapping);
+        view.put(key, fieldMapping);
       }
+      esMappings = Collections.unmodifiableMap(view);
     } catch (JSONException e) {
       LOG.error("Error reading ES mapped fields", e);
     }
@@ -1510,9 +1664,9 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
 
   void storeFieldsMappings() throws JSONException {
     JSONObject jsonObject = new JSONObject();
-    Set<String> keys = esMappings.keySet();
-    for (String key : keys) {
-      jsonObject.put(key, toJsonString(esMappings.get(key)));
+    Map<String, StatisticFieldMapping> view = esMappings;
+    for (String key : view.keySet()) {
+      jsonObject.put(key, toJsonString(view.get(key)));
     }
     settingService.set(CONTEXT,
                        ES_SCOPE,
@@ -1565,16 +1719,22 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
       indexMappings.forEach((fieldName, fieldMapping) -> mappingsByField.computeIfAbsent(fieldName, k -> new ArrayList<>())
                                                                         .add(fieldMapping));
     }
-    mappingsByField.forEach((fieldName, fieldMappings) -> esMappings.put(fieldName, mergeFieldMappings(fieldMappings)));
+    // The new view starts from the published one: a map rebuilt from the
+    // answer alone would drop the entries no live index holds any more (the
+    // cold-start entries, a field of a deleted index), which the stored view
+    // keeps, and the view must never shrink.
+    Map<String, StatisticFieldMapping> view = new HashMap<>(esMappings);
+    mappingsByField.forEach((fieldName, fieldMappings) -> view.put(fieldName, mergeFieldMappings(fieldMappings)));
 
     // Add other timestamp fields
-    addESDateSubField("hourOfDay");
-    addESDateSubField("dayOfMonth");
-    addESDateSubField("dayOfWeek");
-    addESDateSubField("dayOfYear");
-    addESDateSubField("monthOfYear");
-    addESDateSubField("year");
-    return new HashSet<>(esMappings.values());
+    addESDateSubField(view, "hourOfDay");
+    addESDateSubField(view, "dayOfMonth");
+    addESDateSubField(view, "dayOfWeek");
+    addESDateSubField(view, "dayOfYear");
+    addESDateSubField(view, "monthOfYear");
+    addESDateSubField(view, "year");
+    esMappings = Collections.unmodifiableMap(view);
+    return new HashSet<>(view.values());
   }
 
   private StatisticFieldMapping mergeFieldMappings(List<StatisticFieldMapping> fieldMappingsByIndexDate) {

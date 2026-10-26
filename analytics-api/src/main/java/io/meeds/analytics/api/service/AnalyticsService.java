@@ -120,12 +120,25 @@ public interface AnalyticsService {
 
   /**
    * Retrieve values of a selected field
-   * 
+   *
    * @param field name of esField
    * @param limit limit of results to retrieve
    * @return {@link List} of field values of type {@link StatisticFieldValue}
    */
   List<StatisticFieldValue> retrieveFieldValues(String field, int limit);
+
+  /**
+   * Whether a page may write the given parameter as a keyword: true when the
+   * field is unknown to the mapping, or when its base mapping and every
+   * alternative name of it are mapped keyword or text, on the published
+   * mapping view and on the mappings the storage created since the last
+   * refresh. A field a server writer typed otherwise (a long, a boolean, a
+   * date, a float) stays closed to pages whatever variant is the latest.
+   *
+   * @param name the parameter name a page sent
+   * @return true when the value may be stored as a keyword under that name
+   */
+  boolean isKeywordField(String name);
 
   /**
    * @return the analytics permission expression

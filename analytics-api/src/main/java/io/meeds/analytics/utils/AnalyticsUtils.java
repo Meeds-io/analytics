@@ -126,6 +126,9 @@ public class AnalyticsUtils {
 
   public static final String            FIELD_TIMESTAMP                  = "timestamp";
 
+  /** The activity type a stream post or comment event carries as a parameter. */
+  public static final String            FIELD_ACTIVITY_TYPE              = "activityType";
+
   public static final String            ALTERNATIVE_FIELD_SUFFIX         = "_alt";
 
   /**
@@ -553,7 +556,7 @@ public class AnalyticsUtils {
     String activityId = activity.getParentId() == null ? activity.getId() : activity.getParentId();
     String commentId = activity.getParentCommentId() == null ? activity.getId() : activity.getParentCommentId();
     String subCommentId = activity.getParentCommentId() == null ? null : activity.getId();
-    statisticData.addKeyword("activityType", getActivityType(activity));
+    statisticData.addKeyword(FIELD_ACTIVITY_TYPE, getActivityType(activity));
     if (StringUtils.isNotBlank(activityId)) {
       statisticData.addKeyword("activityId", activityId);
     }

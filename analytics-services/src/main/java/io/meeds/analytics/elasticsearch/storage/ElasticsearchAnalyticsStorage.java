@@ -44,6 +44,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.ResolverStyle;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -173,6 +174,15 @@ public class ElasticsearchAnalyticsStorage {
    *         ({@code analytics.es.index.prefix}), which the mapping reader
    *         needs to recognise the indices behind the alias
    */
+  /**
+   * @return the mappings this storage created since its start, by field name,
+   *         read-only: the fields the published mapping view does not hold
+   *         yet, until the next refresh merges them
+   */
+  public Map<String, String> getMappedFieldNames() {
+    return Collections.unmodifiableMap(mappedFieldNames);
+  }
+
   public String getIndexPrefix() {
     return elasticsearchConfiguration.getIndexPrefix();
   }
