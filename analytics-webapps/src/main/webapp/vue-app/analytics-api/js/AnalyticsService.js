@@ -62,6 +62,9 @@ export function getSamples(options) {
   formData.append('sortBy', options.sortBy);
   formData.append('sortDirection', options.sortDirection);
   formData.append('limit', options.limit || 25);
+  if (options.collaborativeOnly) {
+    formData.append('collaborativeOnly', 'true');
+  }
   const params = decodeURIComponent(new URLSearchParams(formData).toString());
 
   return fetch(`/analytics/rest/samples?${params}`, {
@@ -102,6 +105,12 @@ export function getChart(options) {
     formData.append('yAggregationSortDirection', options.yAggregationSortDirection);
   }
   formData.append('limit', options.limit || 25);
+  if (options.collaborativeOnly) {
+    formData.append('collaborativeOnly', 'true');
+  }
+  if (options.requireAllShards) {
+    formData.append('requireAllShards', 'true');
+  }
   const params = decodeURIComponent(new URLSearchParams(formData).toString());
   return fetch(`/analytics/rest/chart?${params}`, {
     method: 'GET',

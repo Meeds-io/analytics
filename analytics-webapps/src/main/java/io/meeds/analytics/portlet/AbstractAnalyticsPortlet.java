@@ -50,6 +50,7 @@ import org.exoplatform.social.core.space.spi.SpaceService;
 import org.exoplatform.social.webui.Utils;
 
 import io.meeds.analytics.api.service.AnalyticsService;
+import io.meeds.analytics.api.service.CollaborativeActivityService;
 import io.meeds.analytics.model.StatisticFieldMapping;
 import io.meeds.analytics.model.StatisticFieldValue;
 import io.meeds.analytics.model.filter.AbstractAnalyticsFilter;
@@ -107,7 +108,7 @@ public abstract class AbstractAnalyticsPortlet<T> extends GenericPortlet {
     } else if (StringUtils.equals(operation, READ_FILTERS_OPERATION)) {
       readSettings(request, response);
     } else if (StringUtils.equals(operation, READ_MAPPINGS_OPERATION)) {
-      Set<StatisticFieldMapping> mappings = getAnalyticsService().retrieveMapping(false);
+      Set<StatisticFieldMapping> mappings = withVirtualFields(getAnalyticsService().retrieveMapping(false));
       List<JSONObject> objectMappings = mappings.stream().map(JSONObject::new).toList();
       JSONArray jsonArrayResponse = new JSONArray(objectMappings);
       response.setContentType(MediaType.APPLICATION_JSON);
@@ -217,6 +218,21 @@ public abstract class AbstractAnalyticsPortlet<T> extends GenericPortlet {
    * quote) are replaced and the name is cut to 31 characters, instead of
    * letting {@link Workbook#createSheet(String)} throw on them.
    */
+  /**
+   * The field list the settings drawer reads: the mapping view, plus the
+   * virtual collaborative-activity field, a keyword no document carries. The
+   * entry is added to this answer only, never to the view the storage writes
+   * into a new weekly index at a rollover, so the field stays virtual.
+   *
+   * @param mappings the mapping view, left as it is
+   * @return a new set holding the view and the virtual entry
+   */
+  protected static Set<StatisticFieldMapping> withVirtualFields(Set<StatisticFieldMapping> mappings) {
+    Set<StatisticFieldMapping> fields = new HashSet<>(mappings);
+    fields.add(new StatisticFieldMapping(CollaborativeActivityService.FIELD_NAME, "keyword", false, false));
+    return fields;
+  }
+
   protected static String safeSheetName(String title, String fallback) {
     String name = StringUtils.defaultIfBlank(StringUtils.trimToNull(title), fallback);
     return WorkbookUtil.createSafeSheetName(name);
