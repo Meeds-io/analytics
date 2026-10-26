@@ -1,0 +1,19 @@
+{
+  "modules": ["social"],
+  "operations": ["createActivity", "createComment"],
+  "labels": {
+    "counted": [
+      "analytics.collaborativeActivity.help.counted.post",
+      "analytics.collaborativeActivity.help.counted.comment"
+    ],
+    "notCounted": [
+      "analytics.collaborativeActivity.help.notCounted.edit",
+      "analytics.collaborativeActivity.help.notCounted.like",
+      "analytics.collaborativeActivity.help.notCounted.pin",
+      "analytics.collaborativeActivity.help.notCounted.share",
+      "analytics.collaborativeActivity.help.notCounted.spaceMembership",
+      "analytics.collaborativeActivity.help.notCounted.spaceSettings",
+      "analytics.collaborativeActivity.help.notCounted.viewing"
+    ]
+  }
+}
