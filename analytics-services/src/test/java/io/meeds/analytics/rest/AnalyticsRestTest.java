@@ -142,7 +142,7 @@ class AnalyticsRestTest {
                                                                             "timestamp", AnalyticsAggregationType.MAX,
                                                                             "desc", 10, false, true));
     assertEquals(HttpStatus.SERVICE_UNAVAILABLE, refused.getStatusCode());
-    assertEquals("analytics.chart.partialAnswer", refused.getReason(), "a message code, which the client labels");
+    assertEquals("analytics.chart.partialAnswer", refused.getReason(), "a message code, never the engine's text");
 
     List<ChartAggregationResult> results = chartRest.getChart(null, null, null, "spaceId", AnalyticsAggregationType.TERMS,
                                                               "desc", "timestamp", AnalyticsAggregationType.MAX, "desc", 10,

@@ -117,7 +117,11 @@ export function getChart(options) {
     credentials: 'include',
   }).then(resp => {
     if (!resp || !resp.ok) {
-      throw new Error('Response code indicates a server error', resp);
+      // The status is what a caller reads to tell a partial answer (503 under
+      // requireAllShards) from any other failure.
+      const error = new Error('Response code indicates a server error', resp);
+      error.status = resp?.status;
+      throw error;
     } else {
       return resp.json();
     }
