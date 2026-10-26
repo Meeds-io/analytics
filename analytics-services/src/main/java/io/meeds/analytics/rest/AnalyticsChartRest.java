@@ -23,11 +23,13 @@ import java.util.List;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import io.meeds.analytics.api.service.AnalyticsService;
 import io.meeds.analytics.model.chart.ChartAggregationResult;
@@ -55,6 +57,8 @@ public class AnalyticsChartRest {
              description = "This will compute a two dimensions matrix of data useful for chart display")
   @ApiResponses(value = {
                           @ApiResponse(responseCode = "200", description = "Request fulfilled"),
+                          @ApiResponse(responseCode = "503",
+                                       description = "requireAllShards was set and a shard failed to answer: the result is partial"),
   })
   public List<ChartAggregationResult> getChart(
                                                @Parameter(description = "Collected Statistic Operations to consider in query",
@@ -101,7 +105,19 @@ public class AnalyticsChartRest {
                                                @Parameter(description = "Limit of x Axis results to retrieve",
                                                           required = true)
                                                @RequestParam("limit")
-                                               int limit) {
+                                               int limit,
+                                               @Parameter(description = "Keep the collaborative activities only",
+                                                          required = false)
+                                               @RequestParam(name = "collaborativeOnly",
+                                                             required = false,
+                                                             defaultValue = "false")
+                                               boolean collaborativeOnly,
+                                               @Parameter(description = "Answer 503 instead of a partial result when a shard failed",
+                                                          required = false)
+                                               @RequestParam(name = "requireAllShards",
+                                                             required = false,
+                                                             defaultValue = "false")
+                                               boolean requireAllShards) {
     ChartDataList chartData = analyticsService.getChart(operations,
                                                         fieldName,
                                                         fieldValues,
@@ -111,7 +127,11 @@ public class AnalyticsChartRest {
                                                         yAggregationField,
                                                         yAggregationType,
                                                         yAggregationSortDirection,
-                                                        limit);
+                                                        limit,
+                                                        collaborativeOnly);
+    if (requireAllShards && chartData != null && chartData.getFailedShards() > 0) {
+      throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "analytics.chart.partialAnswer");
+    }
     if (chartData != null && CollectionUtils.size(chartData.getCharts()) == 1) {
       return chartData.getCharts().getFirst().getAggregationResults();
     } else {
