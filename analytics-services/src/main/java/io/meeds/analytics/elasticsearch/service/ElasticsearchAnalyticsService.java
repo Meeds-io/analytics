@@ -67,6 +67,7 @@ import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 
 import io.meeds.analytics.api.service.AnalyticsService;
+import io.meeds.analytics.api.service.CollaborativeActivityService;
 import io.meeds.analytics.elasticsearch.storage.ElasticsearchAnalyticsStorage;
 import io.meeds.analytics.model.StatisticData;
 import io.meeds.analytics.model.StatisticData.StatisticStatus;
@@ -481,7 +482,8 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
                                         List<String> fieldValues,
                                         String sortBy,
                                         String sortDirection,
-                                        int limit) {
+                                        int limit,
+                                        boolean collaborativeOnly) {
     AnalyticsFilter searchFilter = new AnalyticsFilter();
     ArrayList<AnalyticsFieldFilter> filters = new ArrayList<>();
     searchFilter.setFilters(filters);
@@ -490,6 +492,9 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
     }
     if (StringUtils.isNotEmpty(fieldName) && CollectionUtils.isNotEmpty(fieldValues)) {
       searchFilter.addInSetFilter(fieldName, fieldValues.toArray(new String[fieldValues.size()]));
+    }
+    if (collaborativeOnly) {
+      searchFilter.addEqualFilter(CollaborativeActivityService.FIELD_NAME, CollaborativeActivityService.YES);
     }
     searchFilter.addXAxisAggregation(new AnalyticsAggregation(AnalyticsAggregationType.TERMS,
                                                               sortBy,
@@ -510,7 +515,8 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
                                 String yAggregationField,
                                 AnalyticsAggregationType yAggregationType,
                                 String yAggregationSortDirection,
-                                int limit) {
+                                int limit,
+                                boolean collaborativeOnly) {
     AnalyticsFilter searchFilter;
     searchFilter = new AnalyticsFilter();
     searchFilter.setFilters(new ArrayList<>());
@@ -519,6 +525,9 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
     }
     if (StringUtils.isNotEmpty(fieldName) && CollectionUtils.isNotEmpty(fieldValues)) {
       searchFilter.addInSetFilter(fieldName, fieldValues.toArray(new String[fieldValues.size()]));
+    }
+    if (collaborativeOnly) {
+      searchFilter.addEqualFilter(CollaborativeActivityService.FIELD_NAME, CollaborativeActivityService.YES);
     }
     searchFilter.addXAxisAggregation(new AnalyticsAggregation(xAggregationType,
                                                               xAggregationField,

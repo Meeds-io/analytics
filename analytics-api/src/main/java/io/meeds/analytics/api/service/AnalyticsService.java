@@ -173,12 +173,36 @@ public interface AnalyticsService {
    * @return {@link List} of {@link StatisticData} representing the collected
    *         data
    */
+  default List<StatisticData> getSamples(List<String> operations,
+                                         String fieldName,
+                                         List<String> fieldValues,
+                                         String sortBy,
+                                         String sortDirection,
+                                         int limit) {
+    return getSamples(operations, fieldName, fieldValues, sortBy, sortDirection, limit, false);
+  }
+
+  /**
+   * @param operations (Optional) {@link List} of collected operations to
+   *          consider
+   * @param fieldName (Optional) Field Name to filter
+   * @param fieldValues (Optional) Field values to filter
+   * @param sortBy Sort field name
+   * @param sortDirection Sort direction: asc or desc
+   * @param limit limit of results to retrieve
+   * @param collaborativeOnly whether to keep the collaborative activities
+   *          only, through a filter on
+   *          {@link CollaborativeActivityService#FIELD_NAME}
+   * @return {@link List} of {@link StatisticData} representing the collected
+   *         data, newest first
+   */
   List<StatisticData> getSamples(List<String> operations,
                                  String fieldName,
                                  List<String> fieldValues,
                                  String sortBy,
                                  String sortDirection,
-                                 int limit);
+                                 int limit,
+                                 boolean collaborativeOnly);
 
   /**
    * @param operations (Optional) {@link List} of collected operations to
@@ -196,15 +220,58 @@ public interface AnalyticsService {
    * @param limit limit of x Axis results to retrieve
    * @return ChartDataList
    */
+  default ChartDataList getChart(List<String> operations, // NOSONAR
+                                 String fieldName,
+                                 List<String> fieldValues,
+                                 String xAggregationField,
+                                 AnalyticsAggregationType xAggregationType,
+                                 String xAggregationSortDirection,
+                                 String yAggregationField,
+                                 AnalyticsAggregationType yAggregationType,
+                                 String yAggregationSortDirection,
+                                 int limit) {
+    return getChart(operations,
+                    fieldName,
+                    fieldValues,
+                    xAggregationField,
+                    xAggregationType,
+                    xAggregationSortDirection,
+                    yAggregationField,
+                    yAggregationType,
+                    yAggregationSortDirection,
+                    limit,
+                    false);
+  }
+
+  /**
+   * @param operations (Optional) {@link List} of collected operations to
+   *          consider
+   * @param fieldName (Optional) Field Name to filter
+   * @param fieldValues (Optional) Field values to filter
+   * @param xAggregationField x axis field
+   * @param xAggregationType x axis aggregation type: MAX, MIN, SUM, COUNT,
+   *          CARDINALITY (COUNT Distinct), TERMS, DATA or HISTOGRAM
+   * @param xAggregationSortDirection sort direction: asc or desc
+   * @param yAggregationField y axis field
+   * @param yAggregationType y axis aggregation type: MAX, MIN, SUM, COUNT,
+   *          CARDINALITY (COUNT Distinct), TERMS, DATA or HISTOGRAM
+   * @param yAggregationSortDirection sort direction: asc or desc
+   * @param limit limit of x Axis results to retrieve
+   * @param collaborativeOnly whether to keep the collaborative activities
+   *          only, through a filter on
+   *          {@link CollaborativeActivityService#FIELD_NAME}
+   * @return ChartDataList
+   */
   ChartDataList getChart(List<String> operations, // NOSONAR
-                             String fieldName,
-                             List<String> fieldValues,
-                             String xAggregationField,
-                             AnalyticsAggregationType xAggregationType,
-                             String xAggregationSortDirection,
-                             String yAggregationField,
-                             AnalyticsAggregationType yAggregationType,
-                             String yAggregationSortDirection,
-                             int limit);
+                         String fieldName,
+                         List<String> fieldValues,
+                         String xAggregationField,
+                         AnalyticsAggregationType xAggregationType,
+                         String xAggregationSortDirection,
+                         String yAggregationField,
+                         AnalyticsAggregationType yAggregationType,
+                         String yAggregationSortDirection,
+                         int limit,
+                         boolean collaborativeOnly);
 
 }
