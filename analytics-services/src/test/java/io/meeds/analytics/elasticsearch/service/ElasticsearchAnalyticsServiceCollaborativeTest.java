@@ -50,6 +50,8 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.exoplatform.commons.api.settings.SettingService;
 import org.exoplatform.commons.api.settings.SettingValue;
 
@@ -87,6 +89,8 @@ class ElasticsearchAnalyticsServiceCollaborativeTest {
   private static final String           YES                = CollaborativeActivityService.YES;
 
   private static final String           SCRIPTED_ENTRY     = "doc['timestamp'].value.dayOfWeek";
+
+  private static final ObjectMapper     STRICT_PARSER      = new ObjectMapper();
 
   private static final String           EMPTY_SEARCH       = """
       {"took": 1, "_shards": {"total": 2, "successful": 2, "failed": 0},
@@ -195,6 +199,28 @@ class ElasticsearchAnalyticsServiceCollaborativeTest {
     service.getChart(null, null, null, "spaceId", AnalyticsAggregationType.TERMS, "desc", "timestamp",
                      AnalyticsAggregationType.MAX, "desc", 10, true);
     assertTrue(captureQuery().contains("minimum_should_match"));
+  }
+
+  /**
+   * The view the processor hands to the storage at a rollover is what
+   * {@code retrieveMapping} returns: the virtual field must never be in it,
+   * or the next weekly index would map it and the field would stop being
+   * virtual. Pinned on the merged view and on the stored one.
+   */
+  @Test
+  void theMappingViewNeverHoldsTheVirtualField() {
+    when(settingService.get(any(), any(), any())).thenAnswer(invocation -> SettingValue.create("""
+        {"module": {"name": "module", "type": "keyword", "hasKeywordSubField": false,
+                    "scriptedField": false, "typeConflict": false}}
+        """));
+    service.readFieldsMapping();
+    java.util.Set<StatisticFieldMapping> merged = service.mergeIndicesMappings(indicesMapping("analytics_2026-10-01",
+                                                                                              keyword("operation")));
+
+    assertTrue(merged.stream().noneMatch(field -> FIELD.equals(field.getName())), merged.toString());
+    assertFalse(publishedView().containsKey(FIELD));
+    assertTrue(service.retrieveFieldValues(FIELD, 1).stream().anyMatch(value -> YES.equals(value.getValue())),
+               "the field exists for the drawer through its values, never through the view");
   }
 
   @Test
@@ -314,11 +340,16 @@ class ElasticsearchAnalyticsServiceCollaborativeTest {
     return new JSONObject(query).getJSONObject("query").getJSONObject("bool").getJSONArray("must");
   }
 
+  /**
+   * The body is checked by a strict parser: org.json accepts a trailing comma
+   * in a list or an object, which Elasticsearch refuses, and the clause is
+   * appended into a hand-built list with its own separators.
+   */
   private String captureQuery() {
     ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
     verify(elasticsearchStorage, org.mockito.Mockito.atLeastOnce()).search(queryCaptor.capture());
     String generatedQuery = queryCaptor.getValue();
-    assertDoesNotThrow(() -> new JSONObject(generatedQuery), () -> "not well-formed JSON:\n" + generatedQuery);
+    assertDoesNotThrow(() -> STRICT_PARSER.readTree(generatedQuery), () -> "not well-formed JSON:\n" + generatedQuery);
     return generatedQuery;
   }
 
