@@ -28,7 +28,7 @@
       :value-comparator="selectedValueComparator"
       :return-object="false"
       :item-value="aggregation ? 'aggregationFieldName' : 'searchFieldName'"
-      :menu-props="menuProps"
+      :menu-props="{ contentClass: 'application-menu layout-drawer' }"
       item-text="label"
       class="operatorInput pa-0"
       outlined
@@ -120,9 +120,6 @@ export default {
     };
   },
   computed: {
-    menuProps() {
-      return this.attach && 'maxHeight = 100' || '';
-    },
     filteredFieldsMappings() {
       return this.selectedFieldMapping ? [this.selectedFieldMapping, ...this.fieldsMappings] : this.fieldsMappings;
     },
