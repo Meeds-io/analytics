@@ -309,18 +309,20 @@ class ElasticsearchAnalyticsServiceCollaborativeTest {
    * it on the starting thread, both fail.
    */
   @Test
-  void startReadsTheStoredViewOnceOnTheRefreshThread() {
+  void startReadsTheStoredViewOnceOnTheRefreshThread() throws Exception {
     ElasticsearchAnalyticsService spied = org.mockito.Mockito.spy(service);
-    java.util.List<Thread> readers = java.util.Collections.synchronizedList(new ArrayList<>());
+    // The answer signals the test itself: Mockito records a call before it
+    // runs the answer, so a verify(timeout) alone could return first.
+    java.util.concurrent.CompletableFuture<Thread> reader = new java.util.concurrent.CompletableFuture<>();
     org.mockito.Mockito.doAnswer(invocation -> {
-      readers.add(Thread.currentThread());
+      reader.complete(Thread.currentThread());
       return java.util.Set.of();
     }).when(spied).retrieveMapping(org.mockito.ArgumentMatchers.anyBoolean());
     try {
       spied.start();
-      verify(spied, org.mockito.Mockito.timeout(5000)).retrieveMapping(false);
-      assertEquals(1, readers.size(), "one read at start");
-      assertNotSame(Thread.currentThread(), readers.getFirst(), "never on the starting thread: the read is transactional");
+      Thread readingThread = reader.get(5, java.util.concurrent.TimeUnit.SECONDS);
+      assertNotSame(Thread.currentThread(), readingThread, "never on the starting thread: the read is transactional");
+      verify(spied).retrieveMapping(false);
     } finally {
       spied.stop();
     }
