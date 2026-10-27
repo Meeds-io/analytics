@@ -263,6 +263,16 @@ class WebSocketUIStatisticListenerTest {
     assertEquals("Chat", notMember.getModule());
     assertEquals(0L, notMember.getSpaceId(), "a non-member's event is stored without a space");
     assertFalse(notMember.getParameters().containsKey("spaceMembersCount"));
+    assertEquals(0L, recorded(message("sendMessage", null, null, params("spaceId", "3"))).getSpaceId(),
+                 "the space named as a parameter, from a non-member");
+    assertEquals(0L, recorded(message("sendMessage", null, "c", Map.of())).getSpaceId(),
+                 "the space named by its pretty name, from a non-member");
+    assertEquals(0L, recorded(message("sendMessage", null, null, params("spaceId", "3,1"))).getSpaceId(),
+                 "a list naming the non-member's space");
+    assertEquals(0L, recorded(message("sendMessage", "3", null, params("spaceId", null))).getSpaceId(),
+                 "a JSON null beside the non-member's space");
+    assertEquals(0L, recorded(message("sendMessage", null, null, params("spaceId_alt", "3"))).getSpaceId(),
+                 "a variant name, dropped before the resolution");
 
     AnalyticsWebSocketMessage undeclared = message("pageDisplay", "3", null, Map.of());
     StatisticData undeclaredStored = recorded(undeclared);
@@ -365,7 +375,11 @@ class WebSocketUIStatisticListenerTest {
   }
 
   private Space byPrettyName(String prettyName) {
-    return "a".equals(prettyName) ? spaceA : null;
+    return switch (prettyName) {
+    case "a" -> spaceA;
+    case "c" -> spaceC;
+    default -> null;
+    };
   }
 
 }
