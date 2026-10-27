@@ -41,6 +41,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
@@ -68,6 +69,8 @@ import io.meeds.analytics.rest.model.CollaborativeActivityHelp;
  */
 @ExtendWith(MockitoExtension.class)
 class AnalyticsRestTest {
+
+  private static final java.util.Set<String> OPTIONAL_SAMPLE_PARAMETERS = java.util.Set.of("sortBy", "sortDirection", "collaborativeOnly");
 
   @Mock
   private AnalyticsService              analyticsService;
@@ -105,14 +108,18 @@ class AnalyticsRestTest {
                                                             String.class,
                                                             int.class,
                                                             boolean.class);
+    // Spring's merged view applies the value/name alias; plain reflection
+    // would read an empty name for @RequestParam("x") and skip the check.
+    int optionalChecked = 0;
     for (Parameter parameter : getSamples.getParameters()) {
-      RequestParam requestParam = parameter.getAnnotation(RequestParam.class);
+      RequestParam requestParam = AnnotatedElementUtils.findMergedAnnotation(parameter, RequestParam.class);
       assertNotNull(requestParam, parameter.getName());
-      if ("sortBy".equals(requestParam.name()) || "sortDirection".equals(requestParam.name())
-          || "collaborativeOnly".equals(requestParam.name())) {
+      if (OPTIONAL_SAMPLE_PARAMETERS.contains(requestParam.name())) {
         assertFalse(requestParam.required(), requestParam.name() + " is optional");
+        optionalChecked++;
       }
     }
+    assertEquals(OPTIONAL_SAMPLE_PARAMETERS.size(), optionalChecked, "every optional parameter was found and checked");
     assertTrue(getSamples.getAnnotation(io.swagger.v3.oas.annotations.Operation.class).description().contains("newest first"));
   }
 
