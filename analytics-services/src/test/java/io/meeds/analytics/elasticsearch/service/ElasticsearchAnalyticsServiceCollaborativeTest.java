@@ -305,15 +305,22 @@ class ElasticsearchAnalyticsServiceCollaborativeTest {
    * The stored view is read once at start, on the refresh thread, so the
    * websocket listener never checks a page parameter against an empty view
    * on an upgraded platform. The advised method is stubbed on a spy, as the
-   * seam the norm names; the mutant that deletes the start-time read fails.
+   * seam the norm names; the mutants that delete the start-time read, or run
+   * it on the starting thread, both fail.
    */
   @Test
   void startReadsTheStoredViewOnceOnTheRefreshThread() {
     ElasticsearchAnalyticsService spied = org.mockito.Mockito.spy(service);
-    org.mockito.Mockito.doReturn(java.util.Set.of()).when(spied).retrieveMapping(org.mockito.ArgumentMatchers.anyBoolean());
+    java.util.List<Thread> readers = java.util.Collections.synchronizedList(new ArrayList<>());
+    org.mockito.Mockito.doAnswer(invocation -> {
+      readers.add(Thread.currentThread());
+      return java.util.Set.of();
+    }).when(spied).retrieveMapping(org.mockito.ArgumentMatchers.anyBoolean());
     try {
       spied.start();
       verify(spied, org.mockito.Mockito.timeout(5000)).retrieveMapping(false);
+      assertEquals(1, readers.size(), "one read at start");
+      assertNotSame(Thread.currentThread(), readers.getFirst(), "never on the starting thread: the read is transactional");
     } finally {
       spied.stop();
     }
