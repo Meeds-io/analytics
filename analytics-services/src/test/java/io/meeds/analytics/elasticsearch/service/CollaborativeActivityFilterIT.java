@@ -266,7 +266,7 @@ class CollaborativeActivityFilterIT extends AbstractElasticsearchIT {
     ChartDataList chart = service.getChart(null,
                                            null,
                                            null,
-                                           "spaceId",
+                                           "module",
                                            AnalyticsAggregationType.TERMS,
                                            "desc",
                                            "timestamp",

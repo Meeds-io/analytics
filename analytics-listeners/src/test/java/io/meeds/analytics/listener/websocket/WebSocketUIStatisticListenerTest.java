@@ -104,13 +104,16 @@ class WebSocketUIStatisticListenerTest {
     spaceA = space("1", "a", USER, "jane");
     spaceB = space("2", "b", USER);
     spaceC = space("3", "c", "jane");
-    utils = mockStatic(AnalyticsUtils.class, Mockito.CALLS_REAL_METHODS);
-    utils.when(() -> AnalyticsUtils.getUserIdentityId(USER)).thenReturn(7L);
-    utils.when(() -> AnalyticsUtils.getUserIdentityId("nobody")).thenReturn(0L);
-    utils.when(() -> AnalyticsUtils.getSpaceById(anyString())).thenAnswer(invocation -> byId(invocation.getArgument(0)));
-    utils.when(() -> AnalyticsUtils.getSpaceByPrettyName(anyString()))
-         .thenAnswer(invocation -> byPrettyName(invocation.getArgument(0)));
-    utils.when(() -> AnalyticsUtils.addStatisticData(any())).thenAnswer(invocation -> null);
+    // The four container-bound helpers are answered by the default answer, so
+    // no stubbing call ever runs the real method (which would boot a Kernel).
+    org.mockito.stubbing.Answer<Object> helpers = invocation -> switch (invocation.getMethod().getName()) {
+      case "getUserIdentityId" -> USER.equals(invocation.getArgument(0)) ? 7L : 0L;
+      case "getSpaceById" -> byId(invocation.getArgument(0));
+      case "getSpaceByPrettyName" -> byPrettyName(invocation.getArgument(0));
+      case "addStatisticData" -> null;
+      default -> invocation.callRealMethod();
+    };
+    utils = mockStatic(AnalyticsUtils.class, helpers);
     when(analyticsService.isKeywordField(anyString())).thenAnswer(invocation -> !TYPED_FIELDS.contains(invocation.<String> getArgument(0)));
     when(collaborativeActivityService.isBrowserOperation("sendMessage")).thenReturn(true);
     when(collaborativeActivityService.getBrowserOperationModule("sendMessage")).thenReturn("Chat");

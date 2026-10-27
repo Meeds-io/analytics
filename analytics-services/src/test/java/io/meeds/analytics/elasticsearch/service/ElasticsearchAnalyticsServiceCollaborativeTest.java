@@ -198,7 +198,7 @@ class ElasticsearchAnalyticsServiceCollaborativeTest {
     assertFalse(captureQuery().contains("minimum_should_match"), "without the option nothing changes");
 
     when(elasticsearchStorage.search(anyString())).thenReturn(chartResponse(0));
-    service.getChart(null, null, null, "spaceId", AnalyticsAggregationType.TERMS, "desc", "timestamp",
+    service.getChart(null, null, null, "module", AnalyticsAggregationType.TERMS, "desc", "timestamp",
                      AnalyticsAggregationType.MAX, "desc", 10, true);
     assertTrue(captureQuery().contains("minimum_should_match"));
   }
@@ -425,7 +425,8 @@ class ElasticsearchAnalyticsServiceCollaborativeTest {
   private AnalyticsFilter chartFilter() {
     AnalyticsFilter filter = new AnalyticsFilter();
     filter.setFilters(new ArrayList<>());
-    filter.addXAxisAggregation(new AnalyticsAggregation(AnalyticsAggregationType.TERMS, "spaceId", "desc", null, 10));
+    // Grouped on module: a spaceId bucket is labelled through the container.
+    filter.addXAxisAggregation(new AnalyticsAggregation(AnalyticsAggregationType.TERMS, "module", "desc", null, 10));
     filter.setYAxisAggregation(new AnalyticsAggregation(AnalyticsAggregationType.MAX, "timestamp", "desc", null, 1));
     return filter;
   }
@@ -436,7 +437,7 @@ class ElasticsearchAnalyticsServiceCollaborativeTest {
          "_shards": {"total": 2, "successful": %d, "failed": %d},
          "hits": {"total": {"value": 42}},
          "aggregations": {"aggregation_result": {"buckets": [
-           {"key": 42, "doc_count": 10, "aggregation_result_value": {"value": 1700000000000}}
+           {"key": "m", "doc_count": 10, "aggregation_result_value": {"value": 1700000000000}}
          ]}}}
         """.formatted(2 - failedShards, failedShards);
   }
