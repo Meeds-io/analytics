@@ -31,7 +31,6 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
@@ -41,7 +40,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -318,27 +316,6 @@ public class StatisticData implements Serializable {
       parameters.put(key, getFieldValue(value));
     }
     resetComputedId();
-  }
-
-  /**
-   * Removes from the parameters and the list parameters every entry whose
-   * name matches the given pattern (a whole-name match).
-   *
-   * @param namePattern the names to remove
-   * @return the names removed, in no particular order
-   */
-  public List<String> removeParameters(Pattern namePattern) {
-    List<String> removed = new ArrayList<>();
-    if (parameters != null) {
-      parameters.keySet().removeIf(key -> namePattern.matcher(key).matches() && removed.add(key));
-    }
-    if (listParameters != null) {
-      listParameters.keySet().removeIf(key -> namePattern.matcher(key).matches() && removed.add(key));
-    }
-    if (!removed.isEmpty()) {
-      resetComputedId();
-    }
-    return removed;
   }
 
   /**

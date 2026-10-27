@@ -20,53 +20,13 @@
 package io.meeds.analytics.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
-import java.util.Set;
-import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.Test;
 
 class StatisticDataTest {
-
-  @Test
-  void removeParametersDropsTheMatchingNamesFromBothMapsAndResetsTheId() {
-    StatisticData data = new StatisticData();
-    data.setOperation("pageDisplay");
-    data.addKeyword("module_alt", "tasks");
-    data.addKeyword("origin", "drawer");
-    data.addKeywords("spaceId_alt2", List.of("1", "2"));
-    data.addKeywords("tags", List.of("a"));
-    long idBefore = data.computeId();
-
-    List<String> removed = data.removeParameters(Pattern.compile(".*_alt\\d*$"));
-
-    assertEquals(Set.of("module_alt", "spaceId_alt2"), Set.copyOf(removed));
-    assertFalse(data.getParameters().containsKey("module_alt"));
-    assertTrue(data.getParameters().containsKey("origin"), "a name the pattern does not match stays");
-    assertFalse(data.getListParameters().containsKey("spaceId_alt2"));
-    assertTrue(data.getListParameters().containsKey("tags"));
-    assertNotEquals(idBefore, data.computeId(), "the id is computed from the parameters, so it changes");
-  }
-
-  @Test
-  void removeParametersMatchesTheWholeNameAndTolerateAbsentMaps() {
-    StatisticData data = new StatisticData();
-    data.setOperation("pageDisplay");
-
-    assertTrue(data.removeParameters(Pattern.compile("^module$")).isEmpty(), "no map yet: nothing removed, no error");
-
-    data.addKeyword("moduleName", "x");
-    data.addKeyword("module", "y");
-    List<String> removed = data.removeParameters(Pattern.compile("^module$"));
-
-    assertEquals(List.of("module"), removed, "the match is on the whole name, so moduleName stays");
-    assertTrue(data.getParameters().containsKey("moduleName"));
-  }
 
   @Test
   void getKeywordReadsAParameterAsAStringAndNothingElse() {
