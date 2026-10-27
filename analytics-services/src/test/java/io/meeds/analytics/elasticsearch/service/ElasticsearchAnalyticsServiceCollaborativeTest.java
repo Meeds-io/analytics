@@ -225,6 +225,21 @@ class ElasticsearchAnalyticsServiceCollaborativeTest {
                "the field exists for the drawer through its values, never through the view");
   }
 
+  /**
+   * The samples endpoint promises the newest first whatever sort is asked:
+   * a sort wired from the request would break that promise with no test
+   * failing. Mutation: sort on sortBy and sortDirection.
+   */
+  @Test
+  void samplesComeNewestFirstWhateverSortIsAsked() {
+    service.getSamples(null, null, null, "userId", "asc", 5, false);
+
+    JSONArray sort = new JSONObject(captureQuery()).getJSONArray("sort");
+    assertEquals(1, sort.length());
+    assertEquals("desc", sort.getJSONObject(0).getJSONObject("timestamp").getString("order"), sort.toString());
+    assertFalse(captureQuery().contains("userId"), "the asked sort reaches neither the sort nor a filter");
+  }
+
   @Test
   void theOneValueOfTheVirtualFieldIsAnsweredWithoutAQuery() {
     List<StatisticFieldValue> values = service.retrieveFieldValues(FIELD, 10);
