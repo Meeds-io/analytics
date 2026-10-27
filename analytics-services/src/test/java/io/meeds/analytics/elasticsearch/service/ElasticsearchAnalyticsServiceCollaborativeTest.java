@@ -207,20 +207,29 @@ class ElasticsearchAnalyticsServiceCollaborativeTest {
    * The view the processor hands to the storage at a rollover is what
    * {@code retrieveMapping} returns: the virtual field must never be in it,
    * or the next weekly index would map it and the field would stop being
-   * virtual. Pinned on the merged view and on the stored one.
+   * virtual. An index created before the name was reserved may hold it (a
+   * page wrote it, the dynamic mapping typed it), and so may a view stored
+   * then: both are read without it.
    */
   @Test
   void theMappingViewNeverHoldsTheVirtualField() {
     when(settingService.get(any(), any(), any())).thenAnswer(invocation -> SettingValue.create("""
         {"module": {"name": "module", "type": "keyword", "hasKeywordSubField": false,
+                    "scriptedField": false, "typeConflict": false},
+         "collaborativeActivity": {"name": "collaborativeActivity", "type": "keyword", "hasKeywordSubField": false,
                     "scriptedField": false, "typeConflict": false}}
         """));
     service.readFieldsMapping();
+    assertFalse(publishedView().containsKey(FIELD), "a stored view saved with the name is read without it");
     java.util.Set<StatisticFieldMapping> merged = service.mergeIndicesMappings(indicesMapping("analytics_2026-10-01",
-                                                                                              keyword("operation")));
+                                                                                              keyword("operation"),
+                                                                                              keyword(FIELD),
+                                                                                              keyword(FIELD + "_alt")));
+    assertTrue(merged.stream().anyMatch(field -> "operation".equals(field.getName())));
 
-    assertTrue(merged.stream().noneMatch(field -> FIELD.equals(field.getName())), merged.toString());
+    assertTrue(merged.stream().noneMatch(field -> field.getName().startsWith(FIELD)), merged.toString());
     assertFalse(publishedView().containsKey(FIELD));
+    assertFalse(publishedView().containsKey(FIELD + "_alt"), "a variant of the name is left out too");
     assertTrue(service.retrieveFieldValues(FIELD, 1).stream().anyMatch(value -> YES.equals(value.getValue())),
                "the field exists for the drawer through its values, never through the view");
   }

@@ -302,6 +302,16 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
     return true;
   }
 
+  /**
+   * The virtual field never enters the mapping view, whatever an index or the
+   * stored view holds under its name: a page could write it before the name
+   * was reserved, and the dynamic mapping typed it; carried into the view, it
+   * would be written into every new weekly index at a rollover.
+   */
+  private boolean isVirtualFieldName(String fieldName) {
+    return StringUtils.equals(getBaseFieldName(fieldName), CollaborativeActivityService.FIELD_NAME);
+  }
+
   private boolean isKeywordType(String type) {
     return StringUtils.equals(type, KEYWORD_MAPPING_TYPE) || StringUtils.equals(type, TEXT_MAPPING_TYPE);
   }
@@ -1667,6 +1677,9 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
       while (keys.hasNext()) {
         String key = keys.next().toString();
         String fieldMappingString = toString(jsonObject.get(key));
+        if (isVirtualFieldName(key)) {
+          continue;
+        }
         StatisticFieldMapping fieldMapping = fromJsonString(fieldMappingString, StatisticFieldMapping.class);
         view.put(key, fieldMapping);
       }
@@ -1738,7 +1751,11 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
     // cold-start entries, a field of a deleted index), which the stored view
     // keeps, and the view must never shrink.
     Map<String, StatisticFieldMapping> view = new HashMap<>(esMappings.get());
-    mappingsByField.forEach((fieldName, fieldMappings) -> view.put(fieldName, mergeFieldMappings(fieldMappings)));
+    mappingsByField.forEach((fieldName, fieldMappings) -> {
+      if (!isVirtualFieldName(fieldName)) {
+        view.put(fieldName, mergeFieldMappings(fieldMappings));
+      }
+    });
 
     // Add other timestamp fields
     addESDateSubField(view, "hourOfDay");
