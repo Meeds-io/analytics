@@ -181,11 +181,11 @@ public interface AnalyticsService {
    *          consider
    * @param fieldName (Optional) Field Name to filter
    * @param fieldValues (Optional) Field values to filter
-   * @param sortBy Sort field name
-   * @param sortDirection Sort direction: asc or desc
+   * @param sortBy ignored, kept for compatibility: the samples come newest first
+   * @param sortDirection ignored, kept for compatibility: the samples come newest first
    * @param limit limit of results to retrieve
    * @return {@link List} of {@link StatisticData} representing the collected
-   *         data
+   *         data, newest first
    */
   default List<StatisticData> getSamples(List<String> operations,
                                          String fieldName,
