@@ -343,9 +343,11 @@ class ElasticsearchAnalyticsServiceCollaborativeTest {
     ChartDataList withFailure = service.computeChartData(chartFilter());
     assertEquals(2, withFailure.getFailedShards());
 
-    when(elasticsearchStorage.search(anyString())).thenReturn(chartResponse(0).replace("\"_shards\": {\"total\": 2, \"successful\": 0, \"failed\": 0},", ""));
-    ChartDataList withoutShards = service.computeChartData(chartFilter());
-    assertEquals(0, withoutShards.getFailedShards(), "an answer with no _shards block is a complete one");
+    String withoutShards = chartResponse(0).replace("\"_shards\": {\"total\": 2, \"successful\": 2, \"failed\": 0},", "");
+    assertFalse(withoutShards.contains("_shards"), "precondition: the answer carries no _shards block");
+    when(elasticsearchStorage.search(anyString())).thenReturn(withoutShards);
+    ChartDataList complete = service.computeChartData(chartFilter());
+    assertEquals(0, complete.getFailedShards(), "an answer with no _shards block is a complete one");
   }
 
   /**
