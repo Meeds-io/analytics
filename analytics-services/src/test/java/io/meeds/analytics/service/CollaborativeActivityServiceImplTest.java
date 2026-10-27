@@ -314,7 +314,6 @@ class CollaborativeActivityServiceImplTest {
 
   @Test
   void withoutTheStreamDeclarationTheStreamBranchIsAbsent() throws IOException {
-    service.load(loaderOver(TASK_DECLARATION, MATRIX_DECLARATION));
     assignLoaded(TASK_DECLARATION, MATRIX_DECLARATION);
     StringBuilder query = new StringBuilder();
 
