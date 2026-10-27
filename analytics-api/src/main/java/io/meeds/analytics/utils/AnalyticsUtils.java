@@ -178,6 +178,31 @@ public class AnalyticsUtils {
   public static final Pattern           SPACE_PARAMETER_NAMES            = Pattern.compile("^(" + FIELD_SPACE_ID
       + "|spacePrettyName)(" + ALTERNATIVE_FIELD_SUFFIX + "\\d*)?$");
 
+  /**
+   * The attributes stamped on an event for its space, the only ones ever
+   * written: a page value sent under one of these names is dropped on the
+   * websocket path, and the typed writer of each keeps its Elasticsearch
+   * mapping (a long for a count or a time, never a keyword).
+   */
+  public static final List<SpaceStatisticAttribute> SPACE_ATTRIBUTES = List.of(
+      new SpaceStatisticAttribute("parentSpaceId", StatisticParameterType.KEYWORD, Space::getParentSpaceId),
+      new SpaceStatisticAttribute("spaceTemplateId", StatisticParameterType.KEYWORD, Space::getTemplateId),
+      new SpaceStatisticAttribute("spaceCategoryIds", StatisticParameterType.KEYWORD, Space::getCategoryIds),
+      new SpaceStatisticAttribute("spaceVisibility", StatisticParameterType.KEYWORD, Space::getVisibility),
+      new SpaceStatisticAttribute("spaceRegistration", StatisticParameterType.KEYWORD, Space::getRegistration),
+      new SpaceStatisticAttribute("spaceCreatedTime", StatisticParameterType.LONG, Space::getCreatedTime),
+      new SpaceStatisticAttribute("spaceMembersCount", StatisticParameterType.LONG, space -> getSize(space.getMembers())),
+      new SpaceStatisticAttribute("spaceManagersCount", StatisticParameterType.LONG, space -> getSize(space.getManagers())),
+      new SpaceStatisticAttribute("spaceRedactorsCount", StatisticParameterType.LONG, space -> getSize(space.getRedactors())),
+      new SpaceStatisticAttribute("spaceInviteesCount", StatisticParameterType.LONG, space -> getSize(space.getInvitedUsers())),
+      new SpaceStatisticAttribute("spacePendingCount", StatisticParameterType.LONG, space -> getSize(space.getPendingUsers())),
+      new SpaceStatisticAttribute("spaceSovereign", StatisticParameterType.BOOLEAN, Space::isSovereign));
+
+  /** The names of {@link #SPACE_ATTRIBUTES}. */
+  public static final Set<String> SPACE_ATTRIBUTE_NAMES = SPACE_ATTRIBUTES.stream()
+                                                                          .map(SpaceStatisticAttribute::name)
+                                                                          .collect(Collectors.toUnmodifiableSet());
+
   /** Default of {@code analytics.es.index.prefix}, the weekly index name prefix */
   public static final String            DEFAULT_INDEX_PREFIX             = "analytics";
 
@@ -515,31 +540,6 @@ public class AnalyticsUtils {
                                                      TimeZone.getDefault().toZoneId());
     return dateTime.format(DATE_FORMATTER);
   }
-
-  /**
-   * The attributes stamped on an event for its space, the only ones ever
-   * written: a page value sent under one of these names is dropped on the
-   * websocket path, and the typed writer of each keeps its Elasticsearch
-   * mapping (a long for a count or a time, never a keyword).
-   */
-  public static final List<SpaceStatisticAttribute> SPACE_ATTRIBUTES = List.of(
-      new SpaceStatisticAttribute("parentSpaceId", StatisticParameterType.KEYWORD, Space::getParentSpaceId),
-      new SpaceStatisticAttribute("spaceTemplateId", StatisticParameterType.KEYWORD, Space::getTemplateId),
-      new SpaceStatisticAttribute("spaceCategoryIds", StatisticParameterType.KEYWORD, Space::getCategoryIds),
-      new SpaceStatisticAttribute("spaceVisibility", StatisticParameterType.KEYWORD, Space::getVisibility),
-      new SpaceStatisticAttribute("spaceRegistration", StatisticParameterType.KEYWORD, Space::getRegistration),
-      new SpaceStatisticAttribute("spaceCreatedTime", StatisticParameterType.LONG, Space::getCreatedTime),
-      new SpaceStatisticAttribute("spaceMembersCount", StatisticParameterType.LONG, space -> getSize(space.getMembers())),
-      new SpaceStatisticAttribute("spaceManagersCount", StatisticParameterType.LONG, space -> getSize(space.getManagers())),
-      new SpaceStatisticAttribute("spaceRedactorsCount", StatisticParameterType.LONG, space -> getSize(space.getRedactors())),
-      new SpaceStatisticAttribute("spaceInviteesCount", StatisticParameterType.LONG, space -> getSize(space.getInvitedUsers())),
-      new SpaceStatisticAttribute("spacePendingCount", StatisticParameterType.LONG, space -> getSize(space.getPendingUsers())),
-      new SpaceStatisticAttribute("spaceSovereign", StatisticParameterType.BOOLEAN, Space::isSovereign));
-
-  /** The names of {@link #SPACE_ATTRIBUTES}. */
-  public static final Set<String> SPACE_ATTRIBUTE_NAMES = SPACE_ATTRIBUTES.stream()
-                                                                          .map(SpaceStatisticAttribute::name)
-                                                                          .collect(Collectors.toUnmodifiableSet());
 
   public static void addSpaceStatistics(StatisticData statisticData, Space space) {
     if (space == null || StringUtils.isBlank(space.getId())) {
