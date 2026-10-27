@@ -44,9 +44,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.stubbing.Answer;
 import org.mockito.quality.Strictness;
 
 import org.exoplatform.services.listener.Event;
@@ -106,7 +106,7 @@ class WebSocketUIStatisticListenerTest {
     spaceC = space("3", "c", "jane");
     // The four container-bound helpers are answered by the default answer, so
     // no stubbing call ever runs the real method (which would boot a Kernel).
-    org.mockito.stubbing.Answer<Object> helpers = invocation -> switch (invocation.getMethod().getName()) {
+    Answer<Object> helpers = invocation -> switch (invocation.getMethod().getName()) {
       case "getUserIdentityId" -> USER.equals(invocation.getArgument(0)) ? 7L : 0L;
       case "getSpaceById" -> byId(invocation.getArgument(0));
       case "getSpaceByPrettyName" -> byPrettyName(invocation.getArgument(0));
