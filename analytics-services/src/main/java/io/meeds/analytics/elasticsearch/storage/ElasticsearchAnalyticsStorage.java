@@ -171,8 +171,7 @@ public class ElasticsearchAnalyticsStorage {
 
   /**
    * @return the mappings this storage created since its start, by field name,
-   *         read-only: the fields the published mapping view does not hold
-   *         yet, until the next refresh merges them
+   *         read-only, which the published mapping view may not hold yet
    */
   public Map<String, String> getMappedFieldNames() {
     return Collections.unmodifiableMap(mappedFieldNames);

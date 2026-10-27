@@ -287,14 +287,14 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
     }
     String baseName = getBaseFieldName(name);
     Map<String, StatisticFieldMapping> view = esMappings.get();
-    Map<String, String> createdSinceLastRefresh = elasticsearchStorage.getMappedFieldNames();
+    Map<String, String> createdSinceStart = elasticsearchStorage.getMappedFieldNames();
     for (int i = 0; i <= MAX_ALTERNATIVE_FIELD_COUNT; i++) {
       String variant = i == 0 ? baseName : getAlternativeFieldName(baseName, i);
       StatisticFieldMapping mapping = view.get(variant);
       if (mapping != null && !isKeywordType(mapping.getType())) {
         return false;
       }
-      String createdType = createdSinceLastRefresh.get(variant);
+      String createdType = createdSinceStart.get(variant);
       if (createdType != null && !isKeywordType(createdType)) {
         return false;
       }
