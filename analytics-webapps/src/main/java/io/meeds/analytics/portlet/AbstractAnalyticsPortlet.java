@@ -213,12 +213,6 @@ public abstract class AbstractAnalyticsPortlet<T> extends GenericPortlet {
   }
 
   /**
-   * Builds a sheet name POI accepts from a user-typed title: the characters
-   * a sheet name cannot contain (: / \ ? * [ ] and a leading or trailing
-   * quote) are replaced and the name is cut to 31 characters, instead of
-   * letting {@link Workbook#createSheet(String)} throw on them.
-   */
-  /**
    * The field list the settings drawer reads: the mapping view, plus the
    * virtual collaborative-activity field, a keyword no document carries. The
    * entry is added to this answer only, never to the view the storage writes
@@ -233,6 +227,12 @@ public abstract class AbstractAnalyticsPortlet<T> extends GenericPortlet {
     return fields;
   }
 
+  /**
+   * Builds a sheet name POI accepts from a user-typed title: the characters
+   * a sheet name cannot contain (: / \ ? * [ ] and a leading or trailing
+   * quote) are replaced and the name is cut to 31 characters, instead of
+   * letting {@link Workbook#createSheet(String)} throw on them.
+   */
   protected static String safeSheetName(String title, String fallback) {
     String name = StringUtils.defaultIfBlank(StringUtils.trimToNull(title), fallback);
     return WorkbookUtil.createSafeSheetName(name);

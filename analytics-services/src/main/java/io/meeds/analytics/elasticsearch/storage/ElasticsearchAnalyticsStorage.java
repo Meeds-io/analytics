@@ -170,11 +170,6 @@ public class ElasticsearchAnalyticsStorage {
   }
 
   /**
-   * @return the configured weekly index name prefix
-   *         ({@code analytics.es.index.prefix}), which the mapping reader
-   *         needs to recognise the indices behind the alias
-   */
-  /**
    * @return the mappings this storage created since its start, by field name,
    *         read-only: the fields the published mapping view does not hold
    *         yet, until the next refresh merges them
@@ -183,6 +178,11 @@ public class ElasticsearchAnalyticsStorage {
     return Collections.unmodifiableMap(mappedFieldNames);
   }
 
+  /**
+   * @return the configured weekly index name prefix
+   *         ({@code analytics.es.index.prefix}), which the mapping reader
+   *         needs to recognise the indices behind the alias
+   */
   public String getIndexPrefix() {
     return elasticsearchConfiguration.getIndexPrefix();
   }
