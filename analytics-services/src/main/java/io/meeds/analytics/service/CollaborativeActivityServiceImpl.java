@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -89,16 +90,17 @@ public class CollaborativeActivityServiceImpl implements CollaborativeActivitySe
 
   private static final String                     KEYWORD_SUB_FIELD_SUFFIX   = ".keyword";
 
-  private volatile CollaborativeActivityDefinition definition                 = CollaborativeActivityDefinition.empty();
+  private final AtomicReference<CollaborativeActivityDefinition> definition  =
+                                                                             new AtomicReference<>(CollaborativeActivityDefinition.empty());
 
   @PostConstruct
   public void init() {
-    definition = load(getClass().getClassLoader());
+    definition.set(load(getClass().getClassLoader()));
   }
 
   @Override
   public CollaborativeActivityDefinition getDefinition() {
-    return definition;
+    return definition.get();
   }
 
   @Override
@@ -115,7 +117,7 @@ public class CollaborativeActivityServiceImpl implements CollaborativeActivitySe
     if (StringUtils.isBlank(operation)) {
       return false;
     }
-    CollaborativeActivityDefinition currentDefinition = definition;
+    CollaborativeActivityDefinition currentDefinition = definition.get();
     if (currentDefinition.getBrowserOperations().containsKey(operation)) {
       return true;
     }
@@ -129,12 +131,12 @@ public class CollaborativeActivityServiceImpl implements CollaborativeActivitySe
 
   @Override
   public boolean isBrowserOperation(String operation) {
-    return operation != null && definition.getBrowserOperations().containsKey(operation);
+    return operation != null && definition.get().getBrowserOperations().containsKey(operation);
   }
 
   @Override
   public String getBrowserOperationModule(String operation) {
-    return operation == null ? null : definition.getBrowserOperations().get(operation);
+    return operation == null ? null : definition.get().getBrowserOperations().get(operation);
   }
 
   /**
@@ -295,7 +297,7 @@ public class CollaborativeActivityServiceImpl implements CollaborativeActivitySe
    * {@code exists}, never a script.
    */
   private JSONObject buildClause(List<String> activityTypeFields) {
-    CollaborativeActivityDefinition currentDefinition = definition;
+    CollaborativeActivityDefinition currentDefinition = definition.get();
     Set<String> serverOperations = new LinkedHashSet<>(currentDefinition.getServerOperations());
     Set<String> streamOperations = new LinkedHashSet<>(serverOperations);
     streamOperations.retainAll(STREAM_OPERATIONS);

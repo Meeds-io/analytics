@@ -52,6 +52,7 @@ import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.CollectionUtils;
@@ -208,7 +209,8 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
    * through {@link #isKeywordField}) sees the previous view or the new one,
    * never a map being filled, and the view never shrinks.
    */
-  private volatile Map<String, StatisticFieldMapping> esMappings                      = Collections.emptyMap();
+  private final AtomicReference<Map<String, StatisticFieldMapping>> esMappings       =
+                                                                                 new AtomicReference<>(Collections.emptyMap());
 
   private ScheduledExecutorService           esMappingUpdater                         = Executors.newScheduledThreadPool(1);
 
@@ -258,16 +260,16 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
   @ContainerTransactional
   public Set<StatisticFieldMapping> retrieveMapping(boolean forceRefresh) {
     if (!forceRefresh) {
-      if (esMappings.isEmpty()) {
+      if (esMappings.get().isEmpty()) {
         readFieldsMapping();
       }
-      return new HashSet<>(esMappings.values());
+      return new HashSet<>(esMappings.get().values());
     }
     try {
       LOG.debug("Retrieve Elasticsearch Field Mappings");
       String mappingJsonString = elasticsearchStorage.retrieveAllAnalyticsIndexesMapping();
       if (StringUtils.isBlank(mappingJsonString)) {
-        return new HashSet<>(esMappings.values());
+        return new HashSet<>(esMappings.get().values());
       }
 
       mergeIndicesMappings(mappingJsonString);
@@ -275,7 +277,7 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
     } catch (Exception e) {
       LOG.error("Error getting mapping of analytics", e);
     }
-    return new HashSet<>(esMappings.values());
+    return new HashSet<>(esMappings.get().values());
   }
 
   @Override
@@ -284,7 +286,7 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
       return false;
     }
     String baseName = getBaseFieldName(name);
-    Map<String, StatisticFieldMapping> view = esMappings;
+    Map<String, StatisticFieldMapping> view = esMappings.get();
     Map<String, String> createdSinceLastRefresh = elasticsearchStorage.getMappedFieldNames();
     for (int i = 0; i <= MAX_ALTERNATIVE_FIELD_COUNT; i++) {
       String variant = i == 0 ? baseName : getAlternativeFieldName(baseName, i);
@@ -712,95 +714,16 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
           "bool" : {
             "must" : [
         """);
-    Map<String, StatisticFieldMapping> view = this.esMappings;
+    Map<String, StatisticFieldMapping> view = this.esMappings.get();
     for (AnalyticsFieldFilter fieldFilter : filters) {
       String esFieldName = fieldFilter.getField();
+      StatisticFieldMapping fieldMapping = view.get(esFieldName);
       if (StringUtils.equals(esFieldName, CollaborativeActivityService.FIELD_NAME)) {
         appendCollaborativeActivityCondition(esQuery, fieldFilter, view);
-        continue;
-      }
-      StatisticFieldMapping fieldMapping = view.get(esFieldName);
-      if (fieldMapping != null && fieldMapping.isScriptedField()) {
-        // A scripted entry (the date sub-fields) is no field of any document:
-        // a clause on its name would match nothing, or everything when
-        // negated, silently. The request now says so.
-        if (!isNegatedFilter(fieldFilter.getType())) {
-          esQuery.append(MATCH_NONE_CONDITION);
-        }
-        LOG.debug("Filter on the scripted entry '{}' ({}): no document carries it, the condition matches {}",
-                  esFieldName,
-                  fieldFilter.getType(),
-                  isNegatedFilter(fieldFilter.getType()) ? "everything" : "nothing");
-        continue;
-      }
-      if (fieldMapping != null) {
-        esFieldName = fieldMapping.getAggregationFieldName();
-      }
-
-      String esQueryValue = fieldMapping == null ? StatisticFieldMapping.computeESQueryValue(fieldFilter.getValueString()) :
-                                                 fieldMapping.getESQueryValue(fieldFilter.getValueString());
-      switch (fieldFilter.getType()) {
-      case NOT_NULL:
-        esQuery.append("""
-            {"exists" : {"field": "$name"}},
-            """.replace(NAME_REQUEST_BODY_PARAM, esFieldName));
-        break;
-      case IS_NULL:
-        esQuery.append("""
-            {"bool" : {"must_not": {"exists": {"field": "$name"}}}},
-            """.replace(NAME_REQUEST_BODY_PARAM, esFieldName));
-        break;
-      case EQUAL:
-        esQuery.append("""
-            {"match" : {"$name": $value}},
-            """.replace(NAME_REQUEST_BODY_PARAM, esFieldName)
-               .replace(VALUE_REQUEST_BODY_PARAM, esQueryValue));
-        break;
-      case NOT_EQUAL:
-        esQuery.append("""
-            {"bool": {"must_not": {"match" : {"$name": $value}}}},
-            """.replace(NAME_REQUEST_BODY_PARAM, esFieldName)
-               .replace(VALUE_REQUEST_BODY_PARAM, esQueryValue));
-        break;
-      case GREATER:
-        esQuery.append("""
-            {"range": {"$name": {"gte": $value}}},
-            """.replace(NAME_REQUEST_BODY_PARAM, esFieldName)
-               .replace(VALUE_REQUEST_BODY_PARAM, esQueryValue));
-        break;
-      case LESS:
-        esQuery.append("""
-            {"range": {"$name": {"lte": $value}}},
-            """.replace(NAME_REQUEST_BODY_PARAM, esFieldName)
-               .replace(VALUE_REQUEST_BODY_PARAM, esQueryValue));
-        break;
-      case RANGE:
-        Range range = fieldFilter.getRange();
-        esQuery.append("""
-            {"range": {
-              "$name": {
-                "gte": $min,
-                "lte": $max
-              }
-            }},
-            """.replace(NAME_REQUEST_BODY_PARAM, esFieldName)
-               .replace(MIN_REQUEST_BODY_PARAM, range.getMin())
-               .replace(MAX_REQUEST_BODY_PARAM, range.getMax()));
-        break;
-      case IN_SET:
-        esQuery.append("""
-            {"terms": {"$name": $value}},
-            """.replace(NAME_REQUEST_BODY_PARAM, esFieldName)
-               .replace(VALUE_REQUEST_BODY_PARAM, collectionToJSONString(fieldFilter.getValueString())));
-        break;
-      case NOT_IN_SET:
-        esQuery.append("""
-            {"bool": {"must_not": {"terms": {"$name": $value}}}},
-            """.replace(NAME_REQUEST_BODY_PARAM, esFieldName)
-               .replace(VALUE_REQUEST_BODY_PARAM, collectionToJSONString(fieldFilter.getValueString())));
-        break;
-      default:
-        break;
+      } else if (fieldMapping != null && fieldMapping.isScriptedField()) {
+        appendScriptedEntryCondition(esQuery, fieldFilter, esFieldName);
+      } else {
+        appendFieldCondition(esQuery, fieldFilter, fieldMapping, esFieldName);
       }
     }
     esQuery.append("""
@@ -808,6 +731,94 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
               },
             },
         """);
+  }
+
+  /**
+   * A scripted entry (the date sub-fields) is no field of any document: a
+   * clause on its name would match nothing, or everything when negated,
+   * silently. The request now says so.
+   */
+  private void appendScriptedEntryCondition(StringBuilder esQuery, AnalyticsFieldFilter fieldFilter, String esFieldName) {
+    boolean negated = isNegatedFilter(fieldFilter.getType());
+    if (!negated) {
+      esQuery.append(MATCH_NONE_CONDITION);
+    }
+    LOG.debug("Filter on the scripted entry '{}' ({}): no document carries it, the condition matches {}",
+              esFieldName,
+              fieldFilter.getType(),
+              negated ? "everything" : "nothing");
+  }
+
+  private void appendFieldCondition(StringBuilder esQuery,
+                                    AnalyticsFieldFilter fieldFilter,
+                                    StatisticFieldMapping fieldMapping,
+                                    String fieldName) {
+    String esFieldName = fieldMapping == null ? fieldName : fieldMapping.getAggregationFieldName();
+    String esQueryValue = fieldMapping == null ? StatisticFieldMapping.computeESQueryValue(fieldFilter.getValueString()) :
+                                               fieldMapping.getESQueryValue(fieldFilter.getValueString());
+    switch (fieldFilter.getType()) {
+    case NOT_NULL:
+      esQuery.append("""
+          {"exists" : {"field": "$name"}},
+          """.replace(NAME_REQUEST_BODY_PARAM, esFieldName));
+      break;
+    case IS_NULL:
+      esQuery.append("""
+          {"bool" : {"must_not": {"exists": {"field": "$name"}}}},
+          """.replace(NAME_REQUEST_BODY_PARAM, esFieldName));
+      break;
+    case EQUAL:
+      esQuery.append("""
+          {"match" : {"$name": $value}},
+          """.replace(NAME_REQUEST_BODY_PARAM, esFieldName)
+             .replace(VALUE_REQUEST_BODY_PARAM, esQueryValue));
+      break;
+    case NOT_EQUAL:
+      esQuery.append("""
+          {"bool": {"must_not": {"match" : {"$name": $value}}}},
+          """.replace(NAME_REQUEST_BODY_PARAM, esFieldName)
+             .replace(VALUE_REQUEST_BODY_PARAM, esQueryValue));
+      break;
+    case GREATER:
+      esQuery.append("""
+          {"range": {"$name": {"gte": $value}}},
+          """.replace(NAME_REQUEST_BODY_PARAM, esFieldName)
+             .replace(VALUE_REQUEST_BODY_PARAM, esQueryValue));
+      break;
+    case LESS:
+      esQuery.append("""
+          {"range": {"$name": {"lte": $value}}},
+          """.replace(NAME_REQUEST_BODY_PARAM, esFieldName)
+             .replace(VALUE_REQUEST_BODY_PARAM, esQueryValue));
+      break;
+    case RANGE:
+      Range range = fieldFilter.getRange();
+      esQuery.append("""
+          {"range": {
+            "$name": {
+              "gte": $min,
+              "lte": $max
+            }
+          }},
+          """.replace(NAME_REQUEST_BODY_PARAM, esFieldName)
+             .replace(MIN_REQUEST_BODY_PARAM, range.getMin())
+             .replace(MAX_REQUEST_BODY_PARAM, range.getMax()));
+      break;
+    case IN_SET:
+      esQuery.append("""
+          {"terms": {"$name": $value}},
+          """.replace(NAME_REQUEST_BODY_PARAM, esFieldName)
+             .replace(VALUE_REQUEST_BODY_PARAM, collectionToJSONString(fieldFilter.getValueString())));
+      break;
+    case NOT_IN_SET:
+      esQuery.append("""
+          {"bool": {"must_not": {"terms": {"$name": $value}}}},
+          """.replace(NAME_REQUEST_BODY_PARAM, esFieldName)
+             .replace(VALUE_REQUEST_BODY_PARAM, collectionToJSONString(fieldFilter.getValueString())));
+      break;
+    default:
+      break;
+    }
   }
 
   /**
@@ -1617,7 +1628,7 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
   }
 
   private StatisticFieldMapping getFieldMapping(String fieldName) {
-    return esMappings.get(fieldName);
+    return esMappings.get().get(fieldName);
   }
 
   private String getBucketAggregationType(AnalyticsAggregationType percentageAggregationType) {
@@ -1647,7 +1658,7 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
     String esMappingSerialized = existingMapping.getValue().toString();
     try {
       JSONObject jsonObject = new JSONObject(esMappingSerialized);
-      Map<String, StatisticFieldMapping> view = new HashMap<>(esMappings);
+      Map<String, StatisticFieldMapping> view = new HashMap<>(esMappings.get());
       @SuppressWarnings("rawtypes")
       Iterator keys = jsonObject.keys();
       while (keys.hasNext()) {
@@ -1656,7 +1667,7 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
         StatisticFieldMapping fieldMapping = fromJsonString(fieldMappingString, StatisticFieldMapping.class);
         view.put(key, fieldMapping);
       }
-      esMappings = Collections.unmodifiableMap(view);
+      esMappings.set(Collections.unmodifiableMap(view));
     } catch (JSONException e) {
       LOG.error("Error reading ES mapped fields", e);
     }
@@ -1664,9 +1675,9 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
 
   void storeFieldsMappings() throws JSONException {
     JSONObject jsonObject = new JSONObject();
-    Map<String, StatisticFieldMapping> view = esMappings;
-    for (String key : view.keySet()) {
-      jsonObject.put(key, toJsonString(view.get(key)));
+    Map<String, StatisticFieldMapping> view = esMappings.get();
+    for (Map.Entry<String, StatisticFieldMapping> entry : view.entrySet()) {
+      jsonObject.put(entry.getKey(), toJsonString(entry.getValue()));
     }
     settingService.set(CONTEXT,
                        ES_SCOPE,
@@ -1723,7 +1734,7 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
     // answer alone would drop the entries no live index holds any more (the
     // cold-start entries, a field of a deleted index), which the stored view
     // keeps, and the view must never shrink.
-    Map<String, StatisticFieldMapping> view = new HashMap<>(esMappings);
+    Map<String, StatisticFieldMapping> view = new HashMap<>(esMappings.get());
     mappingsByField.forEach((fieldName, fieldMappings) -> view.put(fieldName, mergeFieldMappings(fieldMappings)));
 
     // Add other timestamp fields
@@ -1733,7 +1744,7 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
     addESDateSubField(view, "dayOfYear");
     addESDateSubField(view, "monthOfYear");
     addESDateSubField(view, "year");
-    esMappings = Collections.unmodifiableMap(view);
+    esMappings.set(Collections.unmodifiableMap(view));
     return new HashSet<>(view.values());
   }
 

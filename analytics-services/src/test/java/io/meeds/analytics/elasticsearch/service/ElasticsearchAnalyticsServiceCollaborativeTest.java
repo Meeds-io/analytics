@@ -37,6 +37,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -117,9 +118,10 @@ class ElasticsearchAnalyticsServiceCollaborativeTest {
     others.setLegacyOperations(List.of("noteCreated"));
     others.setExcludedActivityTypes(List.of("ks-wiki:spaces", "news"));
     others.setBrowserOperations(List.of(new CollaborativeActivityBrowserOperation("sendMessage", "Chat")));
-    ReflectionTestUtils.setField(collaborativeActivityService,
-                                 "definition",
-                                 new CollaborativeActivityDefinition(List.of(stream, others), List.of(), List.of(), List.of()));
+    definitionOf(collaborativeActivityService).set(new CollaborativeActivityDefinition(List.of(stream, others),
+                                                                                       List.of(),
+                                                                                       List.of(),
+                                                                                       List.of()));
     service = new ElasticsearchAnalyticsService();
     ReflectionTestUtils.setField(service, "elasticsearchStorage", elasticsearchStorage);
     ReflectionTestUtils.setField(service, "settingService", settingService);
@@ -305,7 +307,7 @@ class ElasticsearchAnalyticsServiceCollaborativeTest {
                          "scriptedField": false, "typeConflict": false}}
         """));
     service.readFieldsMapping();
-    Object viewBefore = ReflectionTestUtils.getField(service, "esMappings");
+    Object viewBefore = publishedView();
     assertNotNull(publishedView().get("legacyField"), "precondition: the stored entry is in the view");
 
     service.mergeIndicesMappings(indicesMapping("analytics_2026-10-01", keyword("module")));
@@ -313,11 +315,10 @@ class ElasticsearchAnalyticsServiceCollaborativeTest {
     Map<String, StatisticFieldMapping> view = publishedView();
     assertNotNull(view.get("legacyField"), "the view never shrinks");
     assertNotNull(view.get("module"));
-    assertNotSame(viewBefore, ReflectionTestUtils.getField(service, "esMappings"), "a refresh publishes a new map");
-    @SuppressWarnings("unchecked")
-    Map<String, StatisticFieldMapping> published = (Map<String, StatisticFieldMapping>) ReflectionTestUtils.getField(service,
-                                                                                                                     "esMappings");
-    assertThrows(UnsupportedOperationException.class, () -> published.put("x", keyword("x")), "the published view is immutable");
+    assertNotSame(viewBefore, publishedView(), "a refresh publishes a new map");
+    Map<String, StatisticFieldMapping> published = publishedView();
+    StatisticFieldMapping extra = keyword("x");
+    assertThrows(UnsupportedOperationException.class, () -> published.put("x", extra), "the published view is immutable");
 
     assertDoesNotThrow(() -> service.storeFieldsMappings());
     ArgumentCaptor<SettingValue<?>> saved = ArgumentCaptor.forClass(SettingValue.class);
@@ -354,7 +355,17 @@ class ElasticsearchAnalyticsServiceCollaborativeTest {
   }
 
   private void setView(Map<String, StatisticFieldMapping> view) {
-    ReflectionTestUtils.setField(service, "esMappings", new HashMap<>(view));
+    viewOf(service).set(new HashMap<>(view));
+  }
+
+  @SuppressWarnings("unchecked")
+  static AtomicReference<Map<String, StatisticFieldMapping>> viewOf(ElasticsearchAnalyticsService service) {
+    return (AtomicReference<Map<String, StatisticFieldMapping>>) ReflectionTestUtils.getField(service, "esMappings");
+  }
+
+  @SuppressWarnings("unchecked")
+  static AtomicReference<CollaborativeActivityDefinition> definitionOf(CollaborativeActivityServiceImpl service) {
+    return (AtomicReference<CollaborativeActivityDefinition>) ReflectionTestUtils.getField(service, "definition");
   }
 
   private AnalyticsFilter chartFilter() {
@@ -395,9 +406,8 @@ class ElasticsearchAnalyticsServiceCollaborativeTest {
    * The published view, read from the field: {@code retrieveMapping} is the
    * container-transactional wrapper, whose aspect would boot a Kernel here.
    */
-  @SuppressWarnings("unchecked")
   private Map<String, StatisticFieldMapping> publishedView() {
-    return (Map<String, StatisticFieldMapping>) ReflectionTestUtils.getField(service, "esMappings");
+    return viewOf(service).get();
   }
 
   private static String indicesMapping(String indexName, StatisticFieldMapping... fields) {

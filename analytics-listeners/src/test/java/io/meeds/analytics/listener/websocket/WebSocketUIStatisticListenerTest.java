@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
@@ -127,7 +127,7 @@ class WebSocketUIStatisticListenerTest {
 
   @Test
   void aPageEventKeepsItsOwnParametersAndGetsTheOrigin() throws Exception {
-    StatisticData stored = record(message("pageDisplay", null, null, Map.of("deviceType", "mobile", "origin", "drawer")));
+    StatisticData stored = recorded(message("pageDisplay", null, null, Map.of("deviceType", "mobile", "origin", "drawer")));
 
     assertEquals("portal", stored.getModule());
     assertEquals("ui", stored.getSubModule());
@@ -145,31 +145,31 @@ class WebSocketUIStatisticListenerTest {
     AnalyticsWebSocketMessage message = message("pageDisplay", null, null, Map.of());
     message.setUserName("nobody");
 
-    listener.onEvent(new Event<>("x", Mockito.mock(AnalyticsWebSocketService.class), message));
+    listener.onEvent(new Event<>("x", mock(AnalyticsWebSocketService.class), message));
 
     utils.verify(() -> AnalyticsUtils.addStatisticData(any()), never());
   }
 
   @Test
   void theSpaceIsResolvedOnceFromEveryPlaceThePageNamesIt() throws Exception {
-    assertEquals(1L, record(message("pageDisplay", "1", null, params("spaceId", "1"))).getSpaceId(), "the same space named twice");
-    assertEquals(1L, record(message("pageDisplay", "1", "a", Map.of())).getSpaceId(), "by id and by pretty name");
-    assertEquals(2L, record(message("pageDisplay", null, null, params("spaceId", "2"))).getSpaceId(), "the parameter alone");
+    assertEquals(1L, recorded(message("pageDisplay", "1", null, params("spaceId", "1"))).getSpaceId(), "the same space named twice");
+    assertEquals(1L, recorded(message("pageDisplay", "1", "a", Map.of())).getSpaceId(), "by id and by pretty name");
+    assertEquals(2L, recorded(message("pageDisplay", null, null, params("spaceId", "2"))).getSpaceId(), "the parameter alone");
 
-    assertEquals(0L, record(message("pageDisplay", "1", null, params("spaceId", "2"))).getSpaceId(), "two different spaces");
-    assertEquals(0L, record(message("sendMessage", "1", null, params("spaceId", "2"))).getSpaceId(),
+    assertEquals(0L, recorded(message("pageDisplay", "1", null, params("spaceId", "2"))).getSpaceId(), "two different spaces");
+    assertEquals(0L, recorded(message("sendMessage", "1", null, params("spaceId", "2"))).getSpaceId(),
                  "two different spaces, on a declared browser operation of a member of both");
-    assertEquals(0L, record(message("pageDisplay", "9", null, Map.of())).getSpaceId(), "an unknown id");
-    assertEquals(0L, record(message("pageDisplay", null, null, params("spaceId", "1,2"))).getSpaceId(), "a list");
-    assertEquals(0L, record(message("sendMessage", null, null, params("spaceId", "1,2"))).getSpaceId(), "a list, as the chat sends");
-    assertEquals(0L, record(message("pageDisplay", "1", null, params("spaceId", null))).getSpaceId(), "a JSON null");
-    assertEquals(0L, record(message("sendMessage", null, null, params("spaceId", null))).getSpaceId(), "a direct message");
-    assertEquals(0L, record(message("pageDisplay", null, null, params("spaceId_alt", "1"))).getSpaceId(), "a variant name");
+    assertEquals(0L, recorded(message("pageDisplay", "9", null, Map.of())).getSpaceId(), "an unknown id");
+    assertEquals(0L, recorded(message("pageDisplay", null, null, params("spaceId", "1,2"))).getSpaceId(), "a list");
+    assertEquals(0L, recorded(message("sendMessage", null, null, params("spaceId", "1,2"))).getSpaceId(), "a list, as the chat sends");
+    assertEquals(0L, recorded(message("pageDisplay", "1", null, params("spaceId", null))).getSpaceId(), "a JSON null");
+    assertEquals(0L, recorded(message("sendMessage", null, null, params("spaceId", null))).getSpaceId(), "a direct message");
+    assertEquals(0L, recorded(message("pageDisplay", null, null, params("spaceId_alt", "1"))).getSpaceId(), "a variant name");
   }
 
   @Test
   void theResolvedSpaceIsWrittenWithItsRealAttributesAndThePageSentOnesAreDropped() throws Exception {
-    StatisticData stored = record(message("pageDisplay", "1", null, params("spaceMembersCount", "9999999",
+    StatisticData stored = recorded(message("pageDisplay", "1", null, params("spaceMembersCount", "9999999",
                                                                            "spaceVisibility", "open",
                                                                            "spaceCreatedTime", "1",
                                                                            "spaceId", "1")));
@@ -180,16 +180,16 @@ class WebSocketUIStatisticListenerTest {
     assertEquals(1700000000000L, stored.getParameters().get("spaceCreatedTime"));
     assertFalse(stored.getParameters().containsKey("spaceId"), "the space family is dropped once resolved");
 
-    StatisticData withParameterOnly = record(message("pageDisplay", null, null, params("spaceId", "2",
+    StatisticData withParameterOnly = recorded(message("pageDisplay", null, null, params("spaceId", "2",
                                                                                        "spaceMembersCount", "9999999")));
     assertEquals(2L, withParameterOnly.getSpaceId());
     assertEquals(1L, withParameterOnly.getParameters().get("spaceMembersCount"));
 
-    StatisticData withList = record(message("pageDisplay", "1", null, params("spaceMembersCount", "1,2")));
+    StatisticData withList = recorded(message("pageDisplay", "1", null, params("spaceMembersCount", "1,2")));
     assertNull(withList.getListParameters(), "the list form is dropped too");
     assertEquals(2L, withList.getParameters().get("spaceMembersCount"));
 
-    StatisticData noSpace = record(message("pageDisplay", null, null, params("spaceMembersCount", "9999999",
+    StatisticData noSpace = recorded(message("pageDisplay", null, null, params("spaceMembersCount", "9999999",
                                                                              "spaceVisibility", "open")));
     assertEquals(0L, noSpace.getSpaceId());
     assertFalse(noSpace.getParameters().containsKey("spaceMembersCount"), "with no space nothing of the family is written");
@@ -204,7 +204,7 @@ class WebSocketUIStatisticListenerTest {
                                         "statisticOrigin", "server", "collaborativeActivity", "YES",
                                         "module_alt", "tasks", "operation_alt2", "taskCreated", "kept", "yes");
 
-    StatisticData stored = record(message("pageDisplay", null, null, forged));
+    StatisticData stored = recorded(message("pageDisplay", null, null, forged));
 
     assertEquals("portal", stored.getModule());
     assertEquals("ui", stored.getSubModule());
@@ -222,7 +222,7 @@ class WebSocketUIStatisticListenerTest {
 
     Map<String, String> asLists = new HashMap<>();
     forged.forEach((name, value) -> asLists.put(name, value + "," + value));
-    StatisticData storedLists = record(message("pageDisplay", null, null, asLists));
+    StatisticData storedLists = recorded(message("pageDisplay", null, null, asLists));
     for (String name : forged.keySet()) {
       if (!"kept".equals(name)) {
         assertTrue(storedLists.getListParameters() == null || !storedLists.getListParameters().containsKey(name), name);
@@ -234,7 +234,7 @@ class WebSocketUIStatisticListenerTest {
 
   @Test
   void everyAlternativeNameIsDroppedWhateverTheOperation() throws Exception {
-    StatisticData stored = record(message("pageDisplay", null, null, params("activityType_alt", "x",
+    StatisticData stored = recorded(message("pageDisplay", null, null, params("activityType_alt", "x",
                                                                             "spaceMembersCount_alt3", "9",
                                                                             "deviceType", "mobile")));
 
@@ -247,29 +247,29 @@ class WebSocketUIStatisticListenerTest {
   void aDeclaredBrowserOperationIsStoredUnderItsModuleAndWithTheSpaceOfAMemberOnly() throws Exception {
     AnalyticsWebSocketMessage asTasks = message("sendMessage", "1", null, Map.of());
     asTasks.setModule("tasks");
-    StatisticData member = record(asTasks);
+    StatisticData member = recorded(asTasks);
     assertEquals("Chat", member.getModule(), "the declared module, whatever the page sends");
     assertEquals(1L, member.getSpaceId(), "a member keeps the space");
     assertEquals(2L, member.getParameters().get("spaceMembersCount"));
 
-    StatisticData parameterOnly = record(message("sendMessage", null, null, params("spaceId", "2", "module", "tasks")));
+    StatisticData parameterOnly = recorded(message("sendMessage", null, null, params("spaceId", "2", "module", "tasks")));
     assertEquals("Chat", parameterOnly.getModule());
     assertEquals(2L, parameterOnly.getSpaceId());
 
-    StatisticData notMember = record(message("sendMessage", "3", null, Map.of()));
+    StatisticData notMember = recorded(message("sendMessage", "3", null, Map.of()));
     assertEquals("Chat", notMember.getModule());
     assertEquals(0L, notMember.getSpaceId(), "a non-member's event is stored without a space");
     assertFalse(notMember.getParameters().containsKey("spaceMembersCount"));
 
     AnalyticsWebSocketMessage undeclared = message("pageDisplay", "3", null, Map.of());
-    StatisticData undeclaredStored = record(undeclared);
+    StatisticData undeclaredStored = recorded(undeclared);
     assertEquals(3L, undeclaredStored.getSpaceId(), "an undeclared operation keeps its resolved space, no membership check");
     assertEquals("portal", undeclaredStored.getModule());
   }
 
   @Test
   void aParameterWhoseFieldIsNotAKeywordIsDroppedInBothForms() throws Exception {
-    StatisticData stored = record(message("pageDisplay", null, null, params("pageLoadMillis", "12",
+    StatisticData stored = recorded(message("pageDisplay", null, null, params("pageLoadMillis", "12",
                                                                             "countType", "enabledUsers",
                                                                             "count", "9999999",
                                                                             "deviceType", "mobile")));
@@ -278,7 +278,7 @@ class WebSocketUIStatisticListenerTest {
     assertEquals("enabledUsers", stored.getKeyword("countType"));
     assertEquals("mobile", stored.getKeyword("deviceType"));
 
-    StatisticData lists = record(message("pageDisplay", null, null, params("pageLoadMillis", "1,2", "tags", "a,b")));
+    StatisticData lists = recorded(message("pageDisplay", null, null, params("pageLoadMillis", "1,2", "tags", "a,b")));
     assertTrue(lists.getListParameters() == null || !lists.getListParameters().containsKey("pageLoadMillis"),
                "the list branch applies the rule too");
     assertEquals(List.of("a", "b"), List.copyOf(lists.getListParameters().get("tags")));
@@ -297,7 +297,7 @@ class WebSocketUIStatisticListenerTest {
     message.setModule(null);
     message.setSubModule(null);
 
-    StatisticData stored = record(message);
+    StatisticData stored = recorded(message);
 
     assertEquals("documents", stored.getModule());
     assertEquals("ui", stored.getSubModule());
@@ -308,9 +308,9 @@ class WebSocketUIStatisticListenerTest {
     assertFalse(stored.getParameters().containsKey("spaceMembersCount_alt"), "a variant is dropped on a watcher event too");
   }
 
-  private StatisticData record(AnalyticsWebSocketMessage message) throws Exception {
+  private StatisticData recorded(AnalyticsWebSocketMessage message) throws Exception {
     utils.clearInvocations();
-    listener.onEvent(new Event<>("x", Mockito.mock(AnalyticsWebSocketService.class), message));
+    listener.onEvent(new Event<>("x", mock(AnalyticsWebSocketService.class), message));
     ArgumentCaptor<StatisticData> captor = ArgumentCaptor.forClass(StatisticData.class);
     utils.verify(() -> AnalyticsUtils.addStatisticData(captor.capture()));
     return captor.getValue();

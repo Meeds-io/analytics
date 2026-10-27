@@ -37,6 +37,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -298,7 +299,7 @@ class CollaborativeActivityServiceImplTest {
   }
 
   @Test
-  void aBranchWithNothingDeclaredIsLeftOut() throws IOException {
+  void aBranchWithNothingDeclaredIsLeftOut() {
     service.init(); // analytics' own declaration only: the stream operations, nothing else
     StringBuilder query = new StringBuilder();
 
@@ -361,12 +362,13 @@ class CollaborativeActivityServiceImplTest {
   }
 
   /** Loads the declarations and applies them, as init does with the classpath. */
+  @SuppressWarnings("unchecked")
   private void assignLoaded(String... declarations) throws IOException {
     CollaborativeActivityDefinition definition = service.load(loaderOver(declarations));
     try {
       Field field = CollaborativeActivityServiceImpl.class.getDeclaredField("definition");
       field.setAccessible(true);
-      field.set(service, definition);
+      ((AtomicReference<CollaborativeActivityDefinition>) field.get(service)).set(definition);
     } catch (ReflectiveOperationException e) {
       throw new IllegalStateException(e);
     }

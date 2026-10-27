@@ -206,7 +206,7 @@ class CollaborativeActivityFilterIT extends AbstractElasticsearchIT {
     // the variant clauses are for.
     Map<String, StatisticFieldMapping> withoutVariant = new HashMap<>(publishedView());
     withoutVariant.remove("activityType_alt");
-    ReflectionTestUtils.setField(service, "esMappings", withoutVariant);
+    ElasticsearchAnalyticsServiceCollaborativeTest.viewOf(service).set(withoutVariant);
     assertTrue(ids(service.retrieveData(List.of(COLLABORATIVE), 0, 100, null)).contains("109"));
   }
 
@@ -283,13 +283,12 @@ class CollaborativeActivityFilterIT extends AbstractElasticsearchIT {
     assertTrue(publishedView().containsKey("activityType_alt"), "precondition: the view holds the variant of the new index");
   }
 
-  @SuppressWarnings("unchecked")
   private Map<String, StatisticFieldMapping> publishedView() {
-    return (Map<String, StatisticFieldMapping>) ReflectionTestUtils.getField(service, "esMappings");
+    return ElasticsearchAnalyticsServiceCollaborativeTest.viewOf(service).get();
   }
 
   private void applyDefinition(CollaborativeActivityDefinition definition) {
-    ReflectionTestUtils.setField(collaborativeActivityService, "definition", definition);
+    ElasticsearchAnalyticsServiceCollaborativeTest.definitionOf(collaborativeActivityService).set(definition);
   }
 
   private static CollaborativeActivityDefinition fullDefinition() {
