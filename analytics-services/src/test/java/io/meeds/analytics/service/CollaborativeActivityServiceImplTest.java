@@ -377,7 +377,7 @@ class CollaborativeActivityServiceImplTest {
   /**
    * A class loader over one directory per declaration, each holding the file
    * under its reserved name, or nothing for a null entry (a jar without a
-   * declaration). The parent is the platform loader, so the test classpath's
+   * declaration). The parent is the bootstrap loader (null), so the test classpath's
    * own declaration is not seen.
    */
   private ClassLoader loaderOver(String... declarations) throws IOException {
