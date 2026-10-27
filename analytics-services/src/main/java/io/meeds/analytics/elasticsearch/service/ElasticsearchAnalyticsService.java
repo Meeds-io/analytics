@@ -1612,7 +1612,9 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
    * Adds the virtual field to a sample read back, with the rule the filter
    * clause applies, evaluated on the one event. The activity type is read
    * under the key the document holds: the base name, or the first alternative
-   * name it was written to, never through the mapping's latest variant.
+   * name it was written to, never through the mapping's latest variant. A value
+   * stored under the field's name by a page before it was reserved is dropped
+   * first: the field is computed, never read from the document.
    */
   private void markCollaborativeActivity(StatisticData statisticData) {
     String activityType = null;
@@ -1620,6 +1622,7 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
       String key = i == 0 ? FIELD_ACTIVITY_TYPE : getAlternativeFieldName(FIELD_ACTIVITY_TYPE, i);
       activityType = StringUtils.trimToNull(statisticData.getKeyword(key));
     }
+    statisticData.getParameters().remove(CollaborativeActivityService.FIELD_NAME);
     if (collaborativeActivityService.isCollaborative(statisticData.getOperation(),
                                                      activityType,
                                                      statisticData.getKeyword(STATISTIC_ORIGIN))) {

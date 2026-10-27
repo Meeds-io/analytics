@@ -252,7 +252,8 @@ class ElasticsearchAnalyticsServiceCollaborativeTest {
   @Test
   void aSampleReadBackCarriesTheVirtualFieldByTheRuleOnItsOwnKeys() {
     when(elasticsearchStorage.search(anyString())).thenReturn("""
-        {"took": 1, "hits": {"total": {"value": 5}, "hits": [
+        {"took": 1, "hits": {"total": {"value": 6}, "hits": [
+          {"_source": %s},
           {"_source": %s},
           {"_source": %s},
           {"_source": %s},
@@ -263,17 +264,19 @@ class ElasticsearchAnalyticsServiceCollaborativeTest {
                       source("createActivity", "\"statisticOrigin\": \"websocket\""),
                       source("sendMessage", "\"statisticOrigin\": \"websocket\", \"watcher\": \"chat\""),
                       source("createActivity", "\"activityType_alt\": \"ks-wiki:spaces\""),
-                      source("createComment", "\"activityType\": \"\", \"activityType_alt2\": \"files:spaces\"")));
+                      source("createComment", "\"activityType\": \"\", \"activityType_alt2\": \"files:spaces\""),
+                      source("likeActivity", "\"collaborativeActivity\": \"YES\"")));
 
     List<StatisticData> samples = service.retrieveData(List.of(), 0, 10, null);
 
-    assertEquals(5, samples.size());
+    assertEquals(6, samples.size());
     assertEquals(YES, samples.get(0).getKeyword(FIELD), "a declared server operation");
     assertNull(samples.get(1).getKeyword(FIELD), "a post forged from a page shows no value");
     assertEquals("websocket", samples.get(1).getKeyword(AnalyticsUtils.STATISTIC_ORIGIN), "the origin is read back as a parameter");
     assertEquals(YES, samples.get(2).getKeyword(FIELD), "a declared browser operation");
     assertNull(samples.get(3).getKeyword(FIELD), "the type is read under the alternative key the document holds");
     assertEquals(YES, samples.get(4).getKeyword(FIELD), "an empty base key is skipped for the first non-empty variant");
+    assertNull(samples.get(5).getKeyword(FIELD), "a value a page stored under the field's name before it was reserved is dropped");
   }
 
   @Test
