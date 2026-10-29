@@ -42,10 +42,10 @@ public interface CollaborativeActivityService {
   /** Classpath resource name of an addon's declaration */
   String DECLARATION_FILE          = "analytics-collaborative-activities.json";
 
-  /** Operation recorded for a stream post, declared by analytics itself */
+  /** Operation recorded for a stream post, declared by Social */
   String STREAM_ACTIVITY_OPERATION = "createActivity";
 
-  /** Operation recorded for a stream comment, declared by analytics itself */
+  /** Operation recorded for a stream comment, declared by Social */
   String STREAM_COMMENT_OPERATION  = "createComment";
 
   /**

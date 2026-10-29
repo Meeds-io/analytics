@@ -46,7 +46,7 @@ public class CollaborativeActivityDefinition implements Serializable {
 
   /**
    * Every declared operation and legacy operation emitted from the server,
-   * the stream operations analytics declares included
+   * the stream operations Social declares included
    */
   private final Set<String>                           serverOperations;
 
