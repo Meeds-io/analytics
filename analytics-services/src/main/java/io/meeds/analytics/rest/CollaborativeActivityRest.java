@@ -50,8 +50,8 @@ public class CollaborativeActivityRest {
   @Secured("users")
   @Operation(summary = "Retrieve the collaborative activity definition for the help",
              method = "GET",
-             description = "Per installed addon, the i18n keys of the actions that count as a collaborative activity"
-                 + " and of the actions that do not. The answer is not cached by the browser: the definition"
+             description = "Per installed addon, the i18n keys of its help group's title and of the actions that count"
+                 + " as a collaborative activity. The answer is not cached by the browser: the definition"
                  + " changes with the installed addons.")
   @ApiResponses(value = {
                           @ApiResponse(responseCode = "200", description = "Request fulfilled"),
