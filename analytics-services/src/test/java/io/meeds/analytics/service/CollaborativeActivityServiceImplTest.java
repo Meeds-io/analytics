@@ -300,8 +300,8 @@ class CollaborativeActivityServiceImplTest {
   }
 
   @Test
-  void aBranchWithNothingDeclaredIsLeftOut() {
-    service.init(); // the test classpath holds Social's declaration only: the stream operations, nothing else
+  void aBranchWithNothingDeclaredIsLeftOut() throws IOException {
+    assignLoaded(STREAM_DECLARATION); // the stream operations, nothing else: no excluded type, no browser operation
     StringBuilder query = new StringBuilder();
 
     service.appendFilterClause(query, false, List.of("activityType"));
