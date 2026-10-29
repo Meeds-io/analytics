@@ -200,8 +200,8 @@ class CollaborativeActivityServiceImplTest {
   /**
    * The load reads the jars only: the service has no collaborator, so nothing
    * of it can reach Elasticsearch, and it is wired by {@link PostConstruct},
-   * synchronously, on the class loader that holds analytics' own declaration.
-   * The mutant that removes the annotation, or moves the load to another
+   * synchronously, on the test classpath, which holds a declaration in Social's
+   * shape ({@code src/test/resources}). The mutant that removes the annotation, or moves the load to another
    * thread, fails here.
    */
   @Test
