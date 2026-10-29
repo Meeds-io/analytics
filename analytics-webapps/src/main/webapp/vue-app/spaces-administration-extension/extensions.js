@@ -35,6 +35,9 @@ export function registerLastActivityColumn() {
       width: '150px',
     },
     componentName: 'spaces-administration-last-activity',
+    // The "?" beside the header label, before the sort arrow, which opens
+    // the "What counts as activity?" help
+    headerComponentName: 'spaces-administration-last-activity-help',
     export: {
       type: 'date',
       value: getLastActivityTime,

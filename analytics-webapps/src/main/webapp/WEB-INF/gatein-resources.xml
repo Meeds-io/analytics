@@ -318,6 +318,9 @@
     <depends>
       <module>analyticsApi</module>
     </depends>
+    <depends>
+      <module>analyticsCollaborativeActivityHelp</module>
+    </depends>
   </module>
 
   <module>
