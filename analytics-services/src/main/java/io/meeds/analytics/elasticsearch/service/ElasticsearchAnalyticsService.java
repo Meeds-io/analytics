@@ -318,11 +318,6 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
 
   @Override
   public List<StatisticFieldValue> retrieveFieldValues(String field, int limit) {
-    if (StringUtils.equals(field, CollaborativeActivityService.FIELD_NAME)) {
-      // The field is virtual: no document carries it, so a terms aggregation
-      // would answer nothing; its one value is known before any query.
-      return List.of(new StatisticFieldValue(CollaborativeActivityService.YES, 0));
-    }
     StatisticFieldMapping fieldMapping = getFieldMapping(field);
     if (fieldMapping == null || !fieldMapping.isAggregation()) {
       return Collections.emptyList();
@@ -1611,33 +1606,9 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
         String key = (String) remainingKeys.next();
         statisticData.getParameters().put(key, toString(statisticDataJsonObject.get(key)));
       }
-      markCollaborativeActivity(statisticData);
-
       results.add(statisticData);
     }
     return results;
-  }
-
-  /**
-   * Adds the virtual field to a sample read back, with the rule the filter
-   * clause applies, evaluated on the one event. The activity type is read
-   * under the key the document holds: the base name, or the first alternative
-   * name it was written to, never through the mapping's latest variant. A value
-   * stored under the field's name by a page before it was reserved is dropped
-   * first: the field is computed, never read from the document.
-   */
-  private void markCollaborativeActivity(StatisticData statisticData) {
-    String activityType = null;
-    for (int i = 0; i <= MAX_ALTERNATIVE_FIELD_COUNT && activityType == null; i++) {
-      String key = i == 0 ? FIELD_ACTIVITY_TYPE : getAlternativeFieldName(FIELD_ACTIVITY_TYPE, i);
-      activityType = StringUtils.trimToNull(statisticData.getKeyword(key));
-    }
-    statisticData.getParameters().remove(CollaborativeActivityService.FIELD_NAME);
-    if (collaborativeActivityService.isCollaborative(statisticData.getOperation(),
-                                                     activityType,
-                                                     statisticData.getKeyword(STATISTIC_ORIGIN))) {
-      statisticData.getParameters().put(CollaborativeActivityService.FIELD_NAME, CollaborativeActivityService.YES);
-    }
   }
 
   private StatisticFieldMapping getFieldMapping(String fieldName) {

@@ -24,12 +24,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -60,7 +58,6 @@ import io.meeds.analytics.api.service.CollaborativeActivityService;
 import io.meeds.analytics.elasticsearch.storage.ElasticsearchAnalyticsStorage;
 import io.meeds.analytics.model.StatisticData;
 import io.meeds.analytics.model.StatisticFieldMapping;
-import io.meeds.analytics.model.StatisticFieldValue;
 import io.meeds.analytics.model.chart.ChartDataList;
 import io.meeds.analytics.model.collaborative.CollaborativeActivityBrowserOperation;
 import io.meeds.analytics.model.collaborative.CollaborativeActivityDeclaration;
@@ -71,7 +68,6 @@ import io.meeds.analytics.model.filter.aggregation.AnalyticsAggregationType;
 import io.meeds.analytics.model.filter.search.AnalyticsFieldFilter;
 import io.meeds.analytics.model.filter.search.AnalyticsFieldFilterType;
 import io.meeds.analytics.service.CollaborativeActivityServiceImpl;
-import io.meeds.analytics.utils.AnalyticsUtils;
 
 /**
  * The virtual collaborative-activity field in {@link ElasticsearchAnalyticsService}:
@@ -230,8 +226,6 @@ class ElasticsearchAnalyticsServiceCollaborativeTest {
     assertTrue(merged.stream().noneMatch(field -> field.getName().startsWith(FIELD)), merged.toString());
     assertFalse(publishedView().containsKey(FIELD));
     assertFalse(publishedView().containsKey(FIELD + "_alt"), "a variant of the name is left out too");
-    assertTrue(service.retrieveFieldValues(FIELD, 1).stream().anyMatch(value -> YES.equals(value.getValue())),
-               "the field exists for the drawer through its values, never through the view");
   }
 
   /**
@@ -247,45 +241,6 @@ class ElasticsearchAnalyticsServiceCollaborativeTest {
     assertEquals(1, sort.length());
     assertEquals("desc", sort.getJSONObject(0).getJSONObject("timestamp").getString("order"), sort.toString());
     assertFalse(captureQuery().contains("userId"), "the asked sort reaches neither the sort nor a filter");
-  }
-
-  @Test
-  void theOneValueOfTheVirtualFieldIsAnsweredWithoutAQuery() {
-    List<StatisticFieldValue> values = service.retrieveFieldValues(FIELD, 10);
-
-    assertEquals(1, values.size());
-    assertEquals(YES, values.getFirst().getValue());
-    verify(elasticsearchStorage, never()).search(anyString());
-  }
-
-  @Test
-  void aSampleReadBackCarriesTheVirtualFieldByTheRuleOnItsOwnKeys() {
-    when(elasticsearchStorage.search(anyString())).thenReturn("""
-        {"took": 1, "hits": {"total": {"value": 6}, "hits": [
-          {"_source": %s},
-          {"_source": %s},
-          {"_source": %s},
-          {"_source": %s},
-          {"_source": %s},
-          {"_source": %s}
-        ]}}
-        """.formatted(source("taskCreated", "\"watcher\": \"x\""),
-                      source("createActivity", "\"statisticOrigin\": \"websocket\""),
-                      source("sendMessage", "\"statisticOrigin\": \"websocket\", \"watcher\": \"chat\""),
-                      source("createActivity", "\"activityType_alt\": \"ks-wiki:spaces\""),
-                      source("createComment", "\"activityType\": \"\", \"activityType_alt2\": \"files:spaces\""),
-                      source("likeActivity", "\"collaborativeActivity\": \"YES\"")));
-
-    List<StatisticData> samples = service.retrieveData(List.of(), 0, 10, null);
-
-    assertEquals(6, samples.size());
-    assertEquals(YES, samples.get(0).getKeyword(FIELD), "a declared server operation");
-    assertNull(samples.get(1).getKeyword(FIELD), "a post forged from a page shows no value");
-    assertEquals("websocket", samples.get(1).getKeyword(AnalyticsUtils.STATISTIC_ORIGIN), "the origin is read back as a parameter");
-    assertEquals(YES, samples.get(2).getKeyword(FIELD), "a declared browser operation");
-    assertNull(samples.get(3).getKeyword(FIELD), "the type is read under the alternative key the document holds");
-    assertEquals(YES, samples.get(4).getKeyword(FIELD), "an empty base key is skipped for the first non-empty variant");
-    assertNull(samples.get(5).getKeyword(FIELD), "a value a page stored under the field's name before it was reserved is dropped");
   }
 
   @Test
@@ -444,12 +399,6 @@ class ElasticsearchAnalyticsServiceCollaborativeTest {
         """.formatted(2 - failedShards, failedShards);
   }
 
-  private static String source(String operation, String extraFields) {
-    return """
-        {"id": 1, "timestamp": 1700000000000, "userId": 1, "spaceId": 0, "module": "m", "subModule": "s",
-         "operation": "%s", "status": 0, "errorCode": 0, "duration": 0, "isAnalytics": true, %s}
-        """.formatted(operation, extraFields);
-  }
 
   private static StatisticFieldMapping keyword(String name) {
     return new StatisticFieldMapping(name, "keyword", false);

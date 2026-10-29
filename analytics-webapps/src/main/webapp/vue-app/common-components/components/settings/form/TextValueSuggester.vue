@@ -82,11 +82,9 @@
           :style="menuItemStyle"
           class="text-truncate"
           v-text="data.item.label" />
-        <v-list-item-action
-          v-if="data.item.count"
-          class="ma-0 pe-2 text-no-wrap">
+        <v-list-item-action class="ma-0 pe-2 text-no-wrap">
           <v-list-item-action-text>
-            ({{ $t('analytics.itemsCount', { 0: data.item.count }) }})
+            ({{ $t('analytics.itemsCount', { 0: data.item.count || 0 }) }})
           </v-list-item-action-text>
         </v-list-item-action>
       </template>
