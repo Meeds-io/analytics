@@ -23,7 +23,6 @@ import static io.meeds.analytics.utils.AnalyticsUtils.DEFAULT_FIELDS;
 import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_ACTIVITY_TYPE;
 import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_TIMESTAMP;
 import static io.meeds.analytics.utils.AnalyticsUtils.MAX_ALTERNATIVE_FIELD_COUNT;
-import static io.meeds.analytics.utils.AnalyticsUtils.STATISTIC_ORIGIN;
 import static io.meeds.analytics.utils.AnalyticsUtils.VALUES_SEPARATOR;
 import static io.meeds.analytics.utils.AnalyticsUtils.collectionToJSONString;
 import static io.meeds.analytics.utils.AnalyticsUtils.fixJSONStringFormat;
