@@ -219,10 +219,10 @@ class CollaborativeActivityServiceImplTest {
 
     CollaborativeActivityDefinition definition = service.getDefinition();
     assertTrue(definition.getServerOperations().containsAll(Set.of("createActivity", "createComment")),
-               "analytics' own declaration is on the classpath: " + definition);
+               "the test classpath carries Social's declaration, in src/test/resources: " + definition);
     assertTrue(definition.getDeclarations()
                          .stream()
-                         .anyMatch(declaration -> declaration.getLabels().getCounted().size() == 2
+                         .anyMatch(declaration -> "social.collaborativeActivity.help.title".equals(declaration.getLabels().getTitle())
                                                   && declaration.getModules().equals(List.of("social"))));
     assertTrue(service.isCollaborative("createActivity", null, null), "the definition is applied once init returns");
   }
@@ -301,7 +301,7 @@ class CollaborativeActivityServiceImplTest {
 
   @Test
   void aBranchWithNothingDeclaredIsLeftOut() {
-    service.init(); // analytics' own declaration only: the stream operations, nothing else
+    service.init(); // the test classpath holds Social's declaration only: the stream operations, nothing else
     StringBuilder query = new StringBuilder();
 
     service.appendFilterClause(query, false, List.of("activityType"));
