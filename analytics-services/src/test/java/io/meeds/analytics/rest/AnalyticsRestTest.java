@@ -154,7 +154,7 @@ class AnalyticsRestTest {
     List<ChartAggregationResult> results = chartRest.getChart(null, null, null, "spaceId", AnalyticsAggregationType.TERMS,
                                                               "desc", "timestamp", AnalyticsAggregationType.MAX, "desc", 10,
                                                               false, false);
-    assertEquals(1, results.size(), "without the option a partial answer is today's list");
+    assertEquals(1, results.size(), "without the option a partial answer is returned as the list");
   }
 
   @Test
