@@ -48,7 +48,8 @@ public class AnalyticsSampleRest {
   @Secured("analytics")
   @Operation(summary = "Retrieve Analytics Samples",
              method = "GET",
-             description = "This will allow for an administrator to retrieve collected statistics without user ACL retrictions")
+             description = "This will allow for an administrator to retrieve collected statistics without user ACL retrictions."
+                 + " Samples come newest first, whatever sort is asked.")
   @ApiResponses(value = {
                           @ApiResponse(responseCode = "200", description = "Request fulfilled"),
   })
@@ -68,24 +69,33 @@ public class AnalyticsSampleRest {
                                         @RequestParam(name = "fieldValue",
                                                       required = false)
                                         List<String> fieldValues,
-                                        @Parameter(description = "Sort field name",
-                                                   required = true)
-                                        @RequestParam("sortBy")
+                                        @Parameter(description = "Accepted for compatibility: samples always come newest first",
+                                                   required = false)
+                                        @RequestParam(name = "sortBy",
+                                                      required = false)
                                         String sortBy,
-                                        @Parameter(description = "Sort direction: asc or desc",
-                                                   required = true)
-                                        @RequestParam("sortDirection")
+                                        @Parameter(description = "Accepted for compatibility: samples always come newest first",
+                                                   required = false)
+                                        @RequestParam(name = "sortDirection",
+                                                      required = false)
                                         String sortDirection,
                                         @Parameter(description = "Limit of samples to retrieve",
                                                    required = true)
                                         @RequestParam("limit")
-                                        int limit) {
+                                        int limit,
+                                        @Parameter(description = "Keep the collaborative activities only",
+                                                   required = false)
+                                        @RequestParam(name = "collaborativeOnly",
+                                                      required = false,
+                                                      defaultValue = "false")
+                                        boolean collaborativeOnly) {
     return analyticsService.getSamples(operations,
                                        fieldName,
                                        fieldValues,
                                        sortBy,
                                        sortDirection,
-                                       limit);
+                                       limit,
+                                       collaborativeOnly);
   }
 
 }

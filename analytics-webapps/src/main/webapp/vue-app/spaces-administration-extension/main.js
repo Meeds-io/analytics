@@ -36,7 +36,7 @@ extensionRegistry.registerExtension('spaces-administration', 'export-gate', {
 // otherwise, and for an expired session)
 Vue.prototype.$analyticsService.getSamples({
   ...LAST_ACTIVITY_SAMPLES_OPTIONS,
-  operations: Vue.prototype.$analyticsService.SPACE_ACTIVITY_OPERATIONS,
+  collaborativeOnly: true,
 })
   .then(() => registerLastActivityColumn())
   .catch(e => {

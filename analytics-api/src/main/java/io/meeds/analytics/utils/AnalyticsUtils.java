@@ -48,6 +48,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
@@ -79,7 +80,10 @@ import org.exoplatform.ws.frameworks.json.impl.JsonGeneratorImpl;
 import org.exoplatform.ws.frameworks.json.impl.JsonParserImpl;
 import org.exoplatform.ws.frameworks.json.impl.ObjectBuilder;
 
+import io.meeds.analytics.api.service.CollaborativeActivityService;
 import io.meeds.analytics.api.service.StatisticDataQueueService;
+import io.meeds.analytics.constant.StatisticParameterType;
+import io.meeds.analytics.model.SpaceStatisticAttribute;
 import io.meeds.analytics.model.StatisticData;
 import io.meeds.analytics.model.StatisticData.StatisticStatus;
 import io.meeds.analytics.model.StatisticFieldMapping;
@@ -96,6 +100,9 @@ public class AnalyticsUtils {
   public static final short             MAX_BULK_DOCUMENTS               = 100;
 
   public static final String            VALUES_SEPARATOR                 = ",";
+
+  /** The document id, written by the storage as a fixed field. */
+  public static final String            FIELD_ID                         = "id";
 
   public static final String            FIELD_IS_ANALYTICS               = "isAnalytics";
 
@@ -119,7 +126,82 @@ public class AnalyticsUtils {
 
   public static final String            FIELD_TIMESTAMP                  = "timestamp";
 
+  /** The activity type a stream post or comment event carries as a parameter. */
+  public static final String            FIELD_ACTIVITY_TYPE              = "activityType";
+
   public static final String            ALTERNATIVE_FIELD_SUFFIX         = "_alt";
+
+  /**
+   * Keyword parameter the websocket path stamps on every event it records, so
+   * that a query tells a browser event from a server one; a server emitter
+   * never sets it.
+   */
+  public static final String            STATISTIC_ORIGIN                 = "statisticOrigin";
+
+  /** The one value of {@link #STATISTIC_ORIGIN}. */
+  public static final String            STATISTIC_ORIGIN_WEBSOCKET       = "websocket";
+
+  /**
+   * The parameter names a page may never set on a websocket event: every
+   * field the storage writes as a fixed field but the space, which the
+   * listener resolves itself, the origin and the collaborative-activity field,
+   * each with its alternative names.
+   */
+  public static final Pattern           RESERVED_PARAMETER_NAMES         =
+                                                                 Pattern.compile("^(" + String.join("|",
+                                                                                                    FIELD_ID,
+                                                                                                    FIELD_TIMESTAMP,
+                                                                                                    FIELD_USER_ID,
+                                                                                                    FIELD_MODULE,
+                                                                                                    FIELD_SUB_MODULE,
+                                                                                                    FIELD_OPERATION,
+                                                                                                    FIELD_STATUS,
+                                                                                                    FIELD_ERROR_CODE,
+                                                                                                    FIELD_ERROR_MESSAGE,
+                                                                                                    FIELD_DURATION,
+                                                                                                    FIELD_IS_ANALYTICS,
+                                                                                                    STATISTIC_ORIGIN,
+                                                                                                    CollaborativeActivityService.FIELD_NAME)
+                                                                     + ")(" + ALTERNATIVE_FIELD_SUFFIX + "\\d*)?$");
+
+  /**
+   * Every parameter name carrying the storage's own alternative-name suffix,
+   * which no page has a reason to send.
+   */
+  public static final Pattern           ALTERNATIVE_PARAMETER_NAMES      = Pattern.compile(".*" + ALTERNATIVE_FIELD_SUFFIX
+      + "\\d*$");
+
+  /**
+   * The parameters of the space family a page may send, read once by the
+   * websocket listener to resolve the space, then dropped.
+   */
+  public static final Pattern           SPACE_PARAMETER_NAMES            = Pattern.compile("^(" + FIELD_SPACE_ID
+      + "|spacePrettyName)(" + ALTERNATIVE_FIELD_SUFFIX + "\\d*)?$");
+
+  /**
+   * The attributes stamped on an event for its space, the only ones ever
+   * written: a page value sent under one of these names is dropped on the
+   * websocket path, and the typed writer of each keeps its Elasticsearch
+   * mapping (a long for a count or a time, never a keyword).
+   */
+  public static final List<SpaceStatisticAttribute> SPACE_ATTRIBUTES = List.of(
+      new SpaceStatisticAttribute("parentSpaceId", StatisticParameterType.KEYWORD, Space::getParentSpaceId),
+      new SpaceStatisticAttribute("spaceTemplateId", StatisticParameterType.KEYWORD, Space::getTemplateId),
+      new SpaceStatisticAttribute("spaceCategoryIds", StatisticParameterType.KEYWORD, Space::getCategoryIds),
+      new SpaceStatisticAttribute("spaceVisibility", StatisticParameterType.KEYWORD, Space::getVisibility),
+      new SpaceStatisticAttribute("spaceRegistration", StatisticParameterType.KEYWORD, Space::getRegistration),
+      new SpaceStatisticAttribute("spaceCreatedTime", StatisticParameterType.LONG, Space::getCreatedTime),
+      new SpaceStatisticAttribute("spaceMembersCount", StatisticParameterType.LONG, space -> getSize(space.getMembers())),
+      new SpaceStatisticAttribute("spaceManagersCount", StatisticParameterType.LONG, space -> getSize(space.getManagers())),
+      new SpaceStatisticAttribute("spaceRedactorsCount", StatisticParameterType.LONG, space -> getSize(space.getRedactors())),
+      new SpaceStatisticAttribute("spaceInviteesCount", StatisticParameterType.LONG, space -> getSize(space.getInvitedUsers())),
+      new SpaceStatisticAttribute("spacePendingCount", StatisticParameterType.LONG, space -> getSize(space.getPendingUsers())),
+      new SpaceStatisticAttribute("spaceSovereign", StatisticParameterType.BOOLEAN, Space::isSovereign));
+
+  /** The names of {@link #SPACE_ATTRIBUTES}. */
+  public static final Set<String> SPACE_ATTRIBUTE_NAMES = SPACE_ATTRIBUTES.stream()
+                                                                          .map(SpaceStatisticAttribute::name)
+                                                                          .collect(Collectors.toUnmodifiableSet());
 
   /** Default of {@code analytics.es.index.prefix}, the weekly index name prefix */
   public static final String            DEFAULT_INDEX_PREFIX             = "analytics";
@@ -464,18 +546,7 @@ public class AnalyticsUtils {
       return;
     }
     statisticData.setSpaceId(Long.parseLong(space.getId()));
-    statisticData.addKeyword("parentSpaceId", space.getParentSpaceId());
-    statisticData.addKeyword("spaceTemplateId", space.getTemplateId());
-    statisticData.addKeyword("spaceCategoryIds", space.getCategoryIds());
-    statisticData.addKeyword("spaceVisibility", space.getVisibility());
-    statisticData.addKeyword("spaceRegistration", space.getRegistration());
-    statisticData.addLong("spaceCreatedTime", space.getCreatedTime());
-    statisticData.addLong("spaceMembersCount", getSize(space.getMembers()));
-    statisticData.addLong("spaceManagersCount", getSize(space.getManagers()));
-    statisticData.addLong("spaceRedactorsCount", getSize(space.getRedactors()));
-    statisticData.addLong("spaceInviteesCount", getSize(space.getInvitedUsers()));
-    statisticData.addLong("spacePendingCount", getSize(space.getPendingUsers()));
-    statisticData.addBoolean("spaceSovereign", space.isSovereign());
+    SPACE_ATTRIBUTES.forEach(attribute -> attribute.write(statisticData, space));
   }
 
   public static void addActivityStatisticsData(StatisticData statisticData, ExoSocialActivity activity) {
@@ -485,7 +556,7 @@ public class AnalyticsUtils {
     String activityId = activity.getParentId() == null ? activity.getId() : activity.getParentId();
     String commentId = activity.getParentCommentId() == null ? activity.getId() : activity.getParentCommentId();
     String subCommentId = activity.getParentCommentId() == null ? null : activity.getId();
-    statisticData.addKeyword("activityType", getActivityType(activity));
+    statisticData.addKeyword(FIELD_ACTIVITY_TYPE, getActivityType(activity));
     if (StringUtils.isNotBlank(activityId)) {
       statisticData.addKeyword("activityId", activityId);
     }

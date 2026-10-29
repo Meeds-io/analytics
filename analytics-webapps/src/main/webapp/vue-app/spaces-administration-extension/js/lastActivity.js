@@ -42,7 +42,7 @@ export function getLastActivityTime(space, root) {
   if (!Object.hasOwn(root.analyticsSamples, space.id)) {
     const lastActivityTime = Vue.prototype.$analyticsService.getSamples({
       ...LAST_ACTIVITY_SAMPLES_OPTIONS,
-      operations: Vue.prototype.$analyticsService.SPACE_ACTIVITY_OPERATIONS,
+      collaborativeOnly: true,
       fieldName: 'spaceId',
       fieldValues: [space.id],
     })

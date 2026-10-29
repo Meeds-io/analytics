@@ -55,7 +55,7 @@ export function registerLastActivityColumn() {
       const validSpacesResult = [];
       while (validSpacesResult.length < limit) {  /* eslint-disable no-await-in-loop */
         const aggregationResults = await Vue.prototype.$analyticsService.getChart({
-          operations: Vue.prototype.$analyticsService.SPACE_ACTIVITY_OPERATIONS,
+          collaborativeOnly: true,
           fieldName: templateId && 'spaceTemplateId' || null,
           fieldValues: templateId && [templateId] || null,
           xAggregationField: 'spaceId',

@@ -318,6 +318,16 @@ public class StatisticData implements Serializable {
     resetComputedId();
   }
 
+  /**
+   * @param key a parameter name
+   * @return the parameter's value as a string, or null when the event carries
+   *         no parameter of that name (a list parameter is not read here)
+   */
+  public String getKeyword(String key) {
+    Object value = parameters == null ? null : parameters.get(key);
+    return value == null ? null : String.valueOf(value);
+  }
+
   public long computeId() {
     Long localComputedId = computedId;
     if (localComputedId == null) {
