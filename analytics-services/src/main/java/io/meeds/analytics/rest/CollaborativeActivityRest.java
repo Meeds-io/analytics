@@ -50,9 +50,9 @@ public class CollaborativeActivityRest {
   @Secured("users")
   @Operation(summary = "Retrieve the collaborative activity definition for the help",
              method = "GET",
-             description = "Per installed addon, the i18n keys of its help group's title and of the actions that count"
-                 + " as a collaborative activity. The answer is not cached by the browser: the definition"
-                 + " changes with the installed addons.")
+             description = "Per installed addon that declares a help group, the i18n keys of the group's title and of"
+                 + " the actions that count as a collaborative activity. The answer is not cached by the browser:"
+                 + " the definition changes with the installed addons.")
   @ApiResponses(value = {
                           @ApiResponse(responseCode = "200", description = "Request fulfilled"),
   })
@@ -60,11 +60,21 @@ public class CollaborativeActivityRest {
     List<CollaborativeActivityHelp> help = collaborativeActivityService.getDefinition()
                                                                        .getDeclarations()
                                                                        .stream()
+                                                                       .filter(CollaborativeActivityRest::hasHelpGroup)
                                                                        .map(CollaborativeActivityRest::toHelp)
                                                                        .toList();
     return ResponseEntity.ok()
                          .cacheControl(CacheControl.noStore().cachePrivate())
                          .body(help);
+  }
+
+  /**
+   * A declaration without a group title has no entry in the help: an addon
+   * that only excludes activity types, or whose group another addon's
+   * declaration carries, has nothing to show
+   */
+  private static boolean hasHelpGroup(CollaborativeActivityDeclaration declaration) {
+    return declaration.getLabels().getTitle() != null;
   }
 
   private static CollaborativeActivityHelp toHelp(CollaborativeActivityDeclaration declaration) {
