@@ -17,37 +17,6 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-export const SPACE_ACTIVITY_OPERATIONS = [
-  'spaceCreated',
-  'spaceRemoved',
-  'spaceRenamed',
-  'spaceDescriptionEdited',
-  'spaceAccessEdited',
-  'spaceRegistrationEdited',
-  'spaceAvatarEdited',
-  'spaceBannerEdited',
-  'joined',
-  'left',
-  'pinActivity',
-  'createActivity',
-  'createComment',
-  'likeActivity',
-  'likeComment',
-  'sendKudos',
-  'taskCreated',
-  'taskUpdated',
-  'taskCommented',
-  'taskTitleChanged',
-  'taskDescriptionChanged',
-  'taskStatusChanged',
-  'taskCompleted',
-  'noteCreated',
-  'noteUpdated',
-  'createRealization',
-  'createRule',
-  'exo.news.postArticle',
-];
-
 export function getSamples(options) {
   const formData = new FormData();
   if (options.operations?.length) {
