@@ -68,9 +68,7 @@ public class CollaborativeActivityRest {
   }
 
   private static CollaborativeActivityHelp toHelp(CollaborativeActivityDeclaration declaration) {
-    return new CollaborativeActivityHelp(declaration.getModules(),
-                                         declaration.getLabels().getCounted(),
-                                         declaration.getLabels().getNotCounted());
+    return new CollaborativeActivityHelp(declaration.getModules(), declaration.getLabels().getCounted());
   }
 
 }

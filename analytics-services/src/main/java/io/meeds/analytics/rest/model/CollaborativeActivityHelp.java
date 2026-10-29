@@ -23,12 +23,11 @@ import java.util.List;
 
 /**
  * What the help drawer shows for one installed addon: the modules its events
- * belong to and the i18n keys of its counted and not counted actions. The
- * declaration's source and operation names stay on the server.
+ * belong to and the i18n keys of its counted actions. The declaration's
+ * source and operation names stay on the server.
  *
  * @param modules the analytics modules of the addon's events
  * @param counted the i18n keys of the actions that count
- * @param notCounted the i18n keys of the actions that do not count
  */
-public record CollaborativeActivityHelp(List<String> modules, List<String> counted, List<String> notCounted) {
+public record CollaborativeActivityHelp(List<String> modules, List<String> counted) {
 }

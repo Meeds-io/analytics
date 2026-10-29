@@ -163,7 +163,7 @@ class AnalyticsRestTest {
     tasks.setSource("jar:file:/lib/task-services.jar!/analytics-collaborative-activities.json");
     tasks.setModules(List.of("tasks"));
     tasks.setOperations(List.of("taskCreated"));
-    tasks.setLabels(new CollaborativeActivityLabels(List.of("task.help.create"), List.of("task.help.rank")));
+    tasks.setLabels(new CollaborativeActivityLabels(List.of("task.help.create")));
     CollaborativeActivityDeclaration kudos = new CollaborativeActivityDeclaration();
     when(collaborativeActivityService.getDefinition()).thenReturn(new CollaborativeActivityDefinition(List.of(tasks, kudos),
                                                                                                       List.of("skipped"),
@@ -182,7 +182,6 @@ class AnalyticsRestTest {
     assertEquals(2, help.size(), "one entry per installed addon, an empty declaration included");
     assertEquals(List.of("tasks"), help.get(0).modules());
     assertEquals(List.of("task.help.create"), help.get(0).counted());
-    assertEquals(List.of("task.help.rank"), help.get(0).notCounted());
     assertTrue(help.get(1).counted().isEmpty());
     assertFalse(response.toString().contains("task-services.jar"), "the declaration's source stays on the server");
     assertFalse(response.toString().contains("taskCreated"), "operation names stay on the server");

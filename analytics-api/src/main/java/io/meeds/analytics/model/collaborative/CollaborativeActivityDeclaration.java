@@ -65,7 +65,7 @@ public class CollaborativeActivityDeclaration implements Serializable {
    */
   private List<CollaborativeActivityBrowserOperation> browserOperations     = new ArrayList<>();
 
-  /** The i18n keys of the counted and not counted actions, for the help */
+  /** The i18n keys of the counted actions, for the help drawer */
   private CollaborativeActivityLabels                labels                = new CollaborativeActivityLabels();
 
 }

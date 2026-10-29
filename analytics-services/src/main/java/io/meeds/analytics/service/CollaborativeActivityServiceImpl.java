@@ -80,8 +80,6 @@ public class CollaborativeActivityServiceImpl implements CollaborativeActivitySe
 
   private static final String                     KEY_COUNTED                = "counted";
 
-  private static final String                     KEY_NOT_COUNTED            = "notCounted";
-
   private static final String                     KEY_OPERATION              = "operation";
 
   private static final String                     KEY_MODULE                 = "module";
@@ -275,7 +273,6 @@ public class CollaborativeActivityServiceImpl implements CollaborativeActivitySe
     for (String key : labelsJson.keySet()) {
       switch (key) {
       case KEY_COUNTED -> labels.setCounted(stringList(labelsJson, key));
-      case KEY_NOT_COUNTED -> labels.setNotCounted(stringList(labelsJson, key));
       default -> ignoreKey(source, KEY_LABELS + "." + key, ignoredKeys);
       }
     }

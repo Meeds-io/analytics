@@ -57,7 +57,7 @@ class CollaborativeActivityServiceImplTest {
   private static final String             TASK_DECLARATION    = """
       {"modules": ["tasks"],
        "operations": ["taskCreated", "taskCommented"],
-       "labels": {"counted": ["task.help.create"], "notCounted": ["task.help.rank"]}}
+       "labels": {"counted": ["task.help.create"]}}
       """;
 
   private static final String             STREAM_DECLARATION  = """
@@ -104,7 +104,6 @@ class CollaborativeActivityServiceImplTest {
     CollaborativeActivityDeclaration task = definition.getDeclarations().getFirst();
     assertEquals(List.of("tasks"), task.getModules());
     assertEquals(List.of("task.help.create"), task.getLabels().getCounted());
-    assertEquals(List.of("task.help.rank"), task.getLabels().getNotCounted());
     assertTrue(task.getSource().endsWith(CollaborativeActivityService.DECLARATION_FILE));
   }
 
