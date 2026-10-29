@@ -28,9 +28,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * The i18n keys of an addon's user-facing actions that count as a
- * collaborative activity, one entry per action. The texts live in the addon's
- * own {@code Portlets} bundle.
+ * The i18n keys of an addon's group in the help drawer: the group's title and
+ * the sentences naming the actions that count as a collaborative activity.
+ * The texts live in the addon's own {@code Portlets} bundle.
  */
 @Data
 @NoArgsConstructor
@@ -38,6 +38,8 @@ import lombok.NoArgsConstructor;
 public class CollaborativeActivityLabels implements Serializable {
 
   private static final long serialVersionUID = 7325884139162040785L;
+
+  private String            title;
 
   private List<String>      counted          = new ArrayList<>();
 

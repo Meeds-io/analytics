@@ -22,6 +22,7 @@ package io.meeds.analytics.rest;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -163,7 +164,7 @@ class AnalyticsRestTest {
     tasks.setSource("jar:file:/lib/task-services.jar!/analytics-collaborative-activities.json");
     tasks.setModules(List.of("tasks"));
     tasks.setOperations(List.of("taskCreated"));
-    tasks.setLabels(new CollaborativeActivityLabels(List.of("task.help.create")));
+    tasks.setLabels(new CollaborativeActivityLabels("task.help.title", List.of("task.help.create")));
     CollaborativeActivityDeclaration kudos = new CollaborativeActivityDeclaration();
     when(collaborativeActivityService.getDefinition()).thenReturn(new CollaborativeActivityDefinition(List.of(tasks, kudos),
                                                                                                       List.of("skipped"),
@@ -181,7 +182,9 @@ class AnalyticsRestTest {
     assertNotNull(help);
     assertEquals(2, help.size(), "one entry per installed addon, an empty declaration included");
     assertEquals(List.of("tasks"), help.get(0).modules());
+    assertEquals("task.help.title", help.get(0).title());
     assertEquals(List.of("task.help.create"), help.get(0).counted());
+    assertNull(help.get(1).title(), "a declaration with no labels has no group");
     assertTrue(help.get(1).counted().isEmpty());
     assertFalse(response.toString().contains("task-services.jar"), "the declaration's source stays on the server");
     assertFalse(response.toString().contains("taskCreated"), "operation names stay on the server");

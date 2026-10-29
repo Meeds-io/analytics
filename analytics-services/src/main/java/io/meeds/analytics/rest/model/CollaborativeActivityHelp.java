@@ -27,7 +27,8 @@ import java.util.List;
  * source and operation names stay on the server.
  *
  * @param modules the analytics modules of the addon's events
+ * @param title the i18n key of the group's title
  * @param counted the i18n keys of the actions that count
  */
-public record CollaborativeActivityHelp(List<String> modules, List<String> counted) {
+public record CollaborativeActivityHelp(List<String> modules, String title, List<String> counted) {
 }

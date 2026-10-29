@@ -57,7 +57,7 @@ class CollaborativeActivityServiceImplTest {
   private static final String             TASK_DECLARATION    = """
       {"modules": ["tasks"],
        "operations": ["taskCreated", "taskCommented"],
-       "labels": {"counted": ["task.help.create"]}}
+       "labels": {"title": "task.help.title", "counted": ["task.help.create"]}}
       """;
 
   private static final String             STREAM_DECLARATION  = """
@@ -103,6 +103,7 @@ class CollaborativeActivityServiceImplTest {
     assertTrue(definition.getIgnoredKeys().isEmpty());
     CollaborativeActivityDeclaration task = definition.getDeclarations().getFirst();
     assertEquals(List.of("tasks"), task.getModules());
+    assertEquals("task.help.title", task.getLabels().getTitle());
     assertEquals(List.of("task.help.create"), task.getLabels().getCounted());
     assertTrue(task.getSource().endsWith(CollaborativeActivityService.DECLARATION_FILE));
   }
@@ -157,12 +158,13 @@ class CollaborativeActivityServiceImplTest {
     CollaborativeActivityDefinition definition = service.load(loaderOver("{\"operations\": null}",
                                                                          "{\"operations\": [\"taskCreated\", null]}",
                                                                          "{\"labels\": {\"counted\": [null]}}",
+                                                                         "{\"labels\": {\"title\": null}}",
                                                                          "{\"labels\": null}",
                                                                          "{\"browserOperations\": [null]}",
                                                                          STREAM_DECLARATION));
 
     assertEquals(1, definition.getDeclarations().size());
-    assertEquals(5, definition.getSkippedFiles().size(), definition.getSkippedFiles().toString());
+    assertEquals(6, definition.getSkippedFiles().size(), definition.getSkippedFiles().toString());
     assertEquals(Set.of("createActivity", "createComment"), definition.getServerOperations());
   }
 

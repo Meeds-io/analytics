@@ -78,6 +78,8 @@ public class CollaborativeActivityServiceImpl implements CollaborativeActivitySe
 
   private static final String                     KEY_LABELS                 = "labels";
 
+  private static final String                     KEY_TITLE                  = "title";
+
   private static final String                     KEY_COUNTED                = "counted";
 
   private static final String                     KEY_OPERATION              = "operation";
@@ -218,6 +220,13 @@ public class CollaborativeActivityServiceImpl implements CollaborativeActivitySe
     return declaration;
   }
 
+  private String string(JSONObject json, String key) {
+    if (!(json.get(key) instanceof String value)) {
+      throw new IllegalArgumentException("'" + key + "' must be a string");
+    }
+    return value;
+  }
+
   private List<String> stringList(JSONObject json, String key) {
     if (!(json.get(key) instanceof JSONArray array)) {
       throw new IllegalArgumentException("'" + key + "' must be a list of strings");
@@ -272,6 +281,7 @@ public class CollaborativeActivityServiceImpl implements CollaborativeActivitySe
     CollaborativeActivityLabels labels = new CollaborativeActivityLabels();
     for (String key : labelsJson.keySet()) {
       switch (key) {
+      case KEY_TITLE -> labels.setTitle(string(labelsJson, key));
       case KEY_COUNTED -> labels.setCounted(stringList(labelsJson, key));
       default -> ignoreKey(source, KEY_LABELS + "." + key, ignoredKeys);
       }
