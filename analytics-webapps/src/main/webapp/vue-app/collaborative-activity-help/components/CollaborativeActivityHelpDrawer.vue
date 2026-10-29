@@ -41,12 +41,12 @@
         <div
           v-for="group in groups"
           :key="group.title"
-          class="mb-3">
-          <div class="text-subtitle-2">{{ group.title }}</div>
+          class="analytics-collaborative-activity-help-group mb-3">
+          <div class="analytics-collaborative-activity-help-group-title text-subtitle-2">{{ group.title }}</div>
           <div
             v-for="(sentence, index) in group.counted"
             :key="index"
-            class="text-caption text-color">
+            class="analytics-collaborative-activity-help-group-action text-caption text-color">
             {{ sentence }}
           </div>
         </div>
