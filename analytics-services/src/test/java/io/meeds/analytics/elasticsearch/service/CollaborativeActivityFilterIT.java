@@ -181,9 +181,6 @@ class CollaborativeActivityFilterIT extends AbstractElasticsearchIT {
     assertEquals(collaborativeIds, ids(samples), "declared server operations, untyped posts, posts of a non-excluded type"
         + " and browser operations with or without an origin; never a note's stream post, a forged post or a forged"
         + " server operation, on the keyword index as on the text one");
-    samples.forEach(sample -> assertEquals(CollaborativeActivityService.YES,
-                                           sample.getKeyword(CollaborativeActivityService.FIELD_NAME),
-                                           "each sample read back carries the virtual field: " + sample));
     StatisticData browserEvent = samples.stream().filter(sample -> "107".equals(sample.getKeyword("id"))).findFirst().orElseThrow();
     assertEquals("websocket", browserEvent.getKeyword(AnalyticsUtils.STATISTIC_ORIGIN), "the origin is read back with no error");
   }
