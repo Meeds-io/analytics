@@ -71,9 +71,9 @@ import io.meeds.analytics.service.CollaborativeActivityServiceImpl;
 
 /**
  * The virtual collaborative-activity field in {@link ElasticsearchAnalyticsService}:
- * the translation of a filter on it, the scripted-entry filters, the value
- * list, the per-sample value, the keyword rule a page parameter must pass,
- * the published mapping view and the failed-shards count. The request body
+ * the translation of a filter on it, the scripted-entry filters, the keyword
+ * rule a page parameter must pass, the published mapping view and the
+ * failed-shards count. The request body
  * is parsed, not matched as text, so that a misplaced brace is caught here;
  * what the engine does with the composed query is the IT's job.
  */
