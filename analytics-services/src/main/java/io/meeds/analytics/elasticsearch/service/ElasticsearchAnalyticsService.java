@@ -740,7 +740,8 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
   /**
    * A scripted entry (the date sub-fields) is no field of any document: a
    * clause on its name would match nothing, or everything when negated,
-   * silently. The request now says so.
+   * silently, so a positive filter on it emits match_none and a negated one
+   * emits no condition.
    */
   private void appendScriptedEntryCondition(StringBuilder esQuery, AnalyticsFieldFilter fieldFilter, String esFieldName) {
     boolean negated = isNegatedFilter(fieldFilter.getType());

@@ -253,7 +253,7 @@ class ElasticsearchAnalyticsServiceCollaborativeTest {
                    "deviceType", keyword("deviceType")));
     when(elasticsearchStorage.getMappedFieldNames()).thenReturn(Map.of("deviceType_alt", "long", "isPwa", "keyword"));
 
-    assertTrue(service.isKeywordField("unknownParameter"), "an unknown field is kept as a keyword, as today");
+    assertTrue(service.isKeywordField("unknownParameter"), "an unknown field is kept as a keyword");
     assertTrue(service.isKeywordField("module"));
     assertTrue(service.isKeywordField("title"), "text is what dynamic mapping gave string parameters before the explicit mappings");
     assertTrue(service.isKeywordField("isPwa"), "a keyword the storage created since the last refresh");

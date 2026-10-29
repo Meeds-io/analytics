@@ -63,7 +63,7 @@ import io.meeds.analytics.rest.model.CollaborativeActivityHelp;
 /**
  * The REST parameters of the collaborative activity: they reach the service,
  * a partial chart answer becomes a 503 only when asked, the samples endpoint
- * no longer requires the sort it never applies, and the help endpoint is not
+ * does not require the sort it never applies, and the help endpoint is not
  * cached by the browser. The controllers are called directly, with the
  * binding checked on the annotations: no Spring context is booted.
  */
