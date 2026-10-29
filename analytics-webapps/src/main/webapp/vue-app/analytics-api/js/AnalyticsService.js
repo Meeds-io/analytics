@@ -17,37 +17,6 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-export const SPACE_ACTIVITY_OPERATIONS = [
-  'spaceCreated',
-  'spaceRemoved',
-  'spaceRenamed',
-  'spaceDescriptionEdited',
-  'spaceAccessEdited',
-  'spaceRegistrationEdited',
-  'spaceAvatarEdited',
-  'spaceBannerEdited',
-  'joined',
-  'left',
-  'pinActivity',
-  'createActivity',
-  'createComment',
-  'likeActivity',
-  'likeComment',
-  'sendKudos',
-  'taskCreated',
-  'taskUpdated',
-  'taskCommented',
-  'taskTitleChanged',
-  'taskDescriptionChanged',
-  'taskStatusChanged',
-  'taskCompleted',
-  'noteCreated',
-  'noteUpdated',
-  'createRealization',
-  'createRule',
-  'exo.news.postArticle',
-];
-
 export function getSamples(options) {
   const formData = new FormData();
   if (options.operations?.length) {
@@ -62,6 +31,9 @@ export function getSamples(options) {
   formData.append('sortBy', options.sortBy);
   formData.append('sortDirection', options.sortDirection);
   formData.append('limit', options.limit || 25);
+  if (options.collaborativeOnly) {
+    formData.append('collaborativeOnly', 'true');
+  }
   const params = decodeURIComponent(new URLSearchParams(formData).toString());
 
   return fetch(`/analytics/rest/samples?${params}`, {
@@ -102,13 +74,23 @@ export function getChart(options) {
     formData.append('yAggregationSortDirection', options.yAggregationSortDirection);
   }
   formData.append('limit', options.limit || 25);
+  if (options.collaborativeOnly) {
+    formData.append('collaborativeOnly', 'true');
+  }
+  if (options.requireAllShards) {
+    formData.append('requireAllShards', 'true');
+  }
   const params = decodeURIComponent(new URLSearchParams(formData).toString());
   return fetch(`/analytics/rest/chart?${params}`, {
     method: 'GET',
     credentials: 'include',
   }).then(resp => {
     if (!resp || !resp.ok) {
-      throw new Error('Response code indicates a server error', resp);
+      // The status is what a caller reads to tell a partial answer (503 under
+      // requireAllShards) from any other failure.
+      const error = new Error('Response code indicates a server error', resp);
+      error.status = resp?.status;
+      throw error;
     } else {
       return resp.json();
     }
