@@ -28,7 +28,6 @@
           v-on="on"
           v-bind="attrs"
           :aria-label="tooltip"
-          :title="tooltip"
           class="analytics-collaborative-activity-help-button"
           icon
           small
