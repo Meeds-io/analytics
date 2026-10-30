@@ -24,11 +24,12 @@
     title-key="analytics.collaborativeActivity.help.title"
     @closed="$emit('closed')">
     <!-- Sizes and gaps are the design's: 16px texts in the text colour, 12px
-         sentences in the sub-title grey, 28px before the heading, 20px before
-         the groups, 18px between groups, 32px above the divider and 20px below,
+         sentences in the sub-title grey, 20px around the content with the 16px
+         the help drawer already gives, 28px before the heading, 20px before the
+         groups, 20px between groups, 32px above the divider and 20px below,
          16px between the two Good to know lines. The skin gives every heading
          a 10px top margin, which the design has not -->
-    <div slot="content" class="analytics-collaborative-activity-help px-3 pt-2 text-color">
+    <div slot="content" class="px-1 pt-1 text-color">
       <p class="text-subtitle-1 mb-7">{{ $t('analytics.collaborativeActivity.help.intro') }}</p>
       <h4 class="text-subtitle-1 font-weight-bold mt-0 mb-5">
         {{ $t('analytics.collaborativeActivity.help.counted') }}
@@ -46,13 +47,12 @@
         <div
           v-for="group in groups"
           :key="group.title"
-          class="analytics-collaborative-activity-help-group"
-          style="margin-bottom: 18px">
-          <div class="analytics-collaborative-activity-help-group-title text-subtitle-1">{{ group.title }}</div>
+          class="mb-5">
+          <div class="text-subtitle-1">{{ group.title }}</div>
           <div
             v-for="(sentence, index) in group.counted"
             :key="index"
-            class="analytics-collaborative-activity-help-group-action text-caption text-sub-title">
+            class="text-caption text-sub-title">
             {{ sentence }}
           </div>
         </div>

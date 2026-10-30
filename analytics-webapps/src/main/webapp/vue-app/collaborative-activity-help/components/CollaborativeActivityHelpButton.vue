@@ -25,7 +25,6 @@
       ref="button"
       :title="tooltip"
       :aria-label="tooltip"
-      class="analytics-collaborative-activity-help-button"
       icon
       small
       @click.stop="open">
