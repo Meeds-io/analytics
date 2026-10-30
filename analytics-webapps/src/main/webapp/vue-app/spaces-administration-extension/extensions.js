@@ -31,8 +31,11 @@ export function registerLastActivityColumn() {
       value: 'lastActivityTime',
       align: 'center',
       sortable: true,
-      class: 'space-last-activity-header px-1',
-      width: '150px',
+      // The header stays on one line: the table's layout is fixed, so the
+      // width holds the label, the help icon, the sort arrow and their gaps
+      // in the longest translation (195px in French)
+      class: 'space-last-activity-header px-1 text-no-wrap',
+      width: '200px',
     },
     componentName: 'spaces-administration-last-activity',
     // The "?" beside the header label, before the sort arrow, which opens
