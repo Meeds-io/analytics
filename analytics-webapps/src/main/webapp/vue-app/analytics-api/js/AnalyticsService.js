@@ -50,6 +50,28 @@ export function getSamples(options) {
   });
 }
 
+/**
+ * The help entries of the collaborative activity definition: one per
+ * installed addon that declares a help group, as {modules, title, counted},
+ * title and counted being i18n keys of the page's bundle
+ *
+ * @returns {Promise<Array>} the entries; rejected with the HTTP status on
+ *          the error when the answer is not OK
+ */
+export function getCollaborativeActivityHelp() {
+  return fetch('/analytics/rest/collaborative-activity', {
+    method: 'GET',
+    credentials: 'include',
+  }).then(resp => {
+    if (!resp || !resp.ok) {
+      const error = new Error('Response code indicates a server error', resp);
+      error.status = resp?.status;
+      throw error;
+    }
+    return resp.json();
+  });
+}
+
 export function getChart(options) {
   const formData = new FormData();
   if (options.operations?.length) {
