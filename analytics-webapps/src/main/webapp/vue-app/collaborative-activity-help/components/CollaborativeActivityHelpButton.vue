@@ -40,6 +40,11 @@
   </span>
 </template>
 <script>
+// The design's order of the help groups, by the addon that owns each title
+// key (<addon>.collaborativeActivity.help.title): Posts, Documents,
+// News & Notes, Agenda, Tasks, Polls, Chat
+const DESIGN_ORDER = ['social', 'ecms', 'content', 'agenda', 'task', 'poll', 'matrix'];
+
 export default {
   props: {
     /* The i18n key of the tooltip, which names the figure the help explains
@@ -78,14 +83,21 @@ export default {
       try {
         const entries = await this.$analyticsService.getCollaborativeActivityHelp();
         // The endpoint lists the declarations in the order the jars were
-        // read, which is not stable: the groups are shown by displayed title
+        // read, which is not stable: the groups follow the design's order,
+        // read from the addon that owns each title key, then any other addon
+        // by displayed title
         const collator = new Intl.Collator(eXo.env.portal.language, {sensitivity: 'base'});
+        const rank = entry => {
+          const index = DESIGN_ORDER.indexOf(entry.title?.split('.')[0]);
+          return index < 0 ? DESIGN_ORDER.length : index;
+        };
         this.groups = (entries || [])
           .map(entry => ({
+            rank: rank(entry),
             title: this.$t(entry.title),
             counted: (entry.counted || []).map(key => this.$t(key)),
           }))
-          .sort((a, b) => collator.compare(a.title, b.title));
+          .sort((a, b) => a.rank - b.rank || collator.compare(a.title, b.title));
       } catch (e) {
         // A failed load is not displayed as an empty list
         this.failed = true;

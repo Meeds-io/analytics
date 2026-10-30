@@ -23,9 +23,12 @@
   <help-drawer
     title-key="analytics.collaborativeActivity.help.title"
     @closed="$emit('closed')">
-    <div slot="content" class="analytics-collaborative-activity-help">
-      <p>{{ $t('analytics.collaborativeActivity.help.intro') }}</p>
-      <h4 class="text-subtitle-1 font-weight-bold mb-3">
+    <!-- Sizes and gaps are the design's: 16px texts in the text colour, 12px
+         sentences in the sub-title grey, 28px before the heading, 20px before
+         the groups, 18px between groups, 24px around the divider -->
+    <div slot="content" class="analytics-collaborative-activity-help px-3 pt-2 text-color">
+      <p class="text-subtitle-1 mb-7">{{ $t('analytics.collaborativeActivity.help.intro') }}</p>
+      <h4 class="text-subtitle-1 font-weight-bold mb-5">
         {{ $t('analytics.collaborativeActivity.help.counted') }}
       </h4>
       <v-progress-circular
@@ -41,24 +44,23 @@
         <div
           v-for="group in groups"
           :key="group.title"
-          class="analytics-collaborative-activity-help-group mb-3">
-          <div class="analytics-collaborative-activity-help-group-title text-subtitle-2">{{ group.title }}</div>
+          class="analytics-collaborative-activity-help-group"
+          style="margin-bottom: 18px">
+          <div class="analytics-collaborative-activity-help-group-title text-subtitle-1">{{ group.title }}</div>
           <div
             v-for="(sentence, index) in group.counted"
             :key="index"
-            class="analytics-collaborative-activity-help-group-action text-caption text-color">
+            class="analytics-collaborative-activity-help-group-action text-caption text-sub-title">
             {{ sentence }}
           </div>
         </div>
       </template>
-      <v-divider class="my-4" />
-      <h4 class="text-subtitle-1 font-weight-bold mb-3">
+      <v-divider class="my-6" />
+      <h4 class="text-subtitle-1 font-weight-bold mb-4">
         {{ $t('analytics.collaborativeActivity.help.goodToKnow') }}
       </h4>
-      <ul class="ps-4">
-        <li class="mb-2">{{ $t('analytics.collaborativeActivity.help.goodToKnow.oneAction') }}</li>
-        <li>{{ $t('analytics.collaborativeActivity.help.goodToKnow.installedOnly') }}</li>
-      </ul>
+      <p class="text-subtitle-1 mb-3">- {{ $t('analytics.collaborativeActivity.help.goodToKnow.oneAction') }}</p>
+      <p class="text-subtitle-1 mb-0">- {{ $t('analytics.collaborativeActivity.help.goodToKnow.installedOnly') }}</p>
     </div>
   </help-drawer>
 </template>

@@ -20,9 +20,12 @@
 
 -->
 <template>
+  <!-- The design puts 12px between the label and the 16px glyph, and 12px
+       between the glyph and the sort arrow; the 28px button leaves 6px
+       around its glyph, and Vuetify's arrow brings its own 4px -->
   <analytics-collaborative-activity-help-button
     tooltip-key="analytics.collaborativeActivity.help.tooltip.lastActivity"
-    class="ms-1" />
+    style="margin-inline-start: 6px; margin-inline-end: 2px" />
 </template>
 <script>
 export default {
