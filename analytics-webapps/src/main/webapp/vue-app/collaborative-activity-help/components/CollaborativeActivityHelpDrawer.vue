@@ -34,13 +34,7 @@
       <h4 class="text-subtitle-1 font-weight-bold mt-0 mb-5">
         {{ $t('analytics.collaborativeActivity.help.counted') }}
       </h4>
-      <v-progress-circular
-        v-if="loading"
-        class="my-2"
-        color="primary"
-        size="24"
-        indeterminate />
-      <p v-else-if="failed" class="error--text">
+      <p v-if="failed" class="error--text">
         {{ $t('analytics.collaborativeActivity.help.loadFailed') }}
       </p>
       <template v-else>
@@ -73,10 +67,6 @@ export default {
     groups: {
       type: Array,
       default: () => [],
-    },
-    loading: {
-      type: Boolean,
-      default: false,
     },
     failed: {
       type: Boolean,

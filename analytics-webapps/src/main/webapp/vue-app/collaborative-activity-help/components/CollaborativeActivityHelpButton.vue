@@ -33,7 +33,6 @@
     <analytics-collaborative-activity-help-drawer
       v-if="drawer"
       :groups="groups"
-      :loading="loading"
       :failed="failed"
       @closed="close" />
   </span>
@@ -56,7 +55,6 @@ export default {
   data: () => ({
     drawer: false,
     groups: null,
-    loading: false,
     failed: false,
   }),
   computed: {
@@ -65,11 +63,12 @@ export default {
     },
   },
   methods: {
-    open() {
-      this.drawer = true;
+    async open() {
+      // The drawer opens complete: the groups are read before it shows, once
       if (!this.groups) {
-        this.loadGroups();
+        await this.loadGroups();
       }
+      this.drawer = true;
     },
     close() {
       this.drawer = false;
@@ -77,7 +76,6 @@ export default {
       this.$nextTick(() => this.$refs.button?.$el?.focus?.());
     },
     async loadGroups() {
-      this.loading = true;
       this.failed = false;
       try {
         const entries = await this.$analyticsService.getCollaborativeActivityHelp();
@@ -100,8 +98,6 @@ export default {
       } catch (e) {
         // A failed load is not displayed as an empty list
         this.failed = true;
-      } finally {
-        this.loading = false;
       }
     },
   },
