@@ -45,8 +45,8 @@ import io.meeds.analytics.utils.AnalyticsUtils;
  * The two "Most active" queries of the Spaces List Widget, declared as
  * init-params of {@code portlet.xml} and served by
  * {@link AnalyticsQueryPortlet}, rank the spaces on the collaborative
- * activities only: the filter on the virtual field replaces the former list
- * of operation names, in both configurations of the widget.
+ * activities only, through one filter on the virtual field, in both
+ * configurations of the widget.
  */
 class SpacesListWidgetMostActiveQueryTest {
 
@@ -66,13 +66,13 @@ class SpacesListWidgetMostActiveQueryTest {
                     .anyMatch(f -> "spaceId".equals(f.getField())
                                    && f.getType() == AnalyticsFieldFilterType.IN_SET
                                    && "{spaceMemberIds}".equals(f.getValueString())),
-               "the member-only query keeps its restriction to the viewer's spaces");
+               "the member-only query is restricted to the viewer's spaces");
   }
 
   private void assertCollaborativeActivitiesOnly(AnalyticsFilter query) {
     List<AnalyticsFieldFilter> filters = query.getFilters();
     assertFalse(filters.stream().anyMatch(f -> "operation".equals(f.getField())),
-                "the ranking no longer names operations");
+                "the ranking names no operation");
     List<AnalyticsFieldFilter> collaborative = filters.stream()
                                                       .filter(f -> CollaborativeActivityService.FIELD_NAME.equals(f.getField()))
                                                       .toList();
@@ -80,15 +80,16 @@ class SpacesListWidgetMostActiveQueryTest {
     assertEquals(AnalyticsFieldFilterType.EQUAL, collaborative.get(0).getType());
     assertEquals(CollaborativeActivityService.YES, collaborative.get(0).getValueString());
     assertTrue(filters.stream().anyMatch(f -> "spaceId".equals(f.getField())),
-               "the ranking still reads space events only");
+               "the ranking reads space events only");
     assertTrue(filters.stream().anyMatch(f -> "timestamp".equals(f.getField())
                                               && f.getType() == AnalyticsFieldFilterType.GREATER),
-               "the ranking still covers the configured period");
+               "the ranking covers the configured period");
   }
 
   /**
-   * The init-param's JSON, parsed as the portlet parses it, after the
-   * placeholders it substitutes at request time are given a value
+   * The init-param's JSON, parsed into an {@link AnalyticsFilter} as
+   * {@code AnalyticsQueryPortlet.getFilterFromRequest} parses it, the
+   * placeholders left as written
    */
   private AnalyticsFilter mostActiveQuery(String queryName) throws Exception {
     Document portletXml = DocumentBuilderFactory.newInstance()

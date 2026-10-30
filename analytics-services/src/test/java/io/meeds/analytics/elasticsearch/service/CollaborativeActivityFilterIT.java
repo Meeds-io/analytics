@@ -64,6 +64,8 @@ import io.meeds.analytics.model.chart.ChartDataList;
 import io.meeds.analytics.model.collaborative.CollaborativeActivityBrowserOperation;
 import io.meeds.analytics.model.collaborative.CollaborativeActivityDeclaration;
 import io.meeds.analytics.model.collaborative.CollaborativeActivityDefinition;
+import io.meeds.analytics.model.filter.AnalyticsFilter;
+import io.meeds.analytics.model.filter.aggregation.AnalyticsAggregation;
 import io.meeds.analytics.model.filter.aggregation.AnalyticsAggregationType;
 import io.meeds.analytics.model.filter.search.AnalyticsFieldFilter;
 import io.meeds.analytics.model.filter.search.AnalyticsFieldFilterType;
@@ -273,6 +275,47 @@ class CollaborativeActivityFilterIT extends AbstractElasticsearchIT {
                                            true);
     assertEquals(0, chart.getFailedShards(), "every shard answered");
     assertEquals(collaborativeIds.size(), chart.getDataCount(), "the chart counts the same events");
+  }
+
+  /**
+   * The ranking of the Spaces List Widget's "Most active" section, as its
+   * {@code spacesList.mostActive} init-param composes it: the
+   * collaborative-activity clause first, then the space and period
+   * conditions, counted by space. Both spaces have likes; only the one with a
+   * post is ranked, and its count leaves the like out.
+   */
+  @Test
+  void theMostActiveRankingCountsTheCollaborativeEventsOfEachSpaceOnly() throws Exception {
+    index(currentIndex(), "201", spaceEvent("likeActivity", 2));
+    index(currentIndex(), "202", spaceEvent("likeActivity", 2));
+    index(currentIndex(), "203", spaceEvent("likeActivity", 3));
+    index(currentIndex(), "204", spaceEvent("createActivity", 3));
+    send("POST", "/" + ALIAS + "/_refresh", null);
+
+    AnalyticsFilter mostActive = new AnalyticsFilter();
+    mostActive.setFilters(List.of(COLLABORATIVE,
+                                  new AnalyticsFieldFilter("spaceId", AnalyticsFieldFilterType.GREATER, "1"),
+                                  new AnalyticsFieldFilter("timestamp",
+                                                           AnalyticsFieldFilterType.GREATER,
+                                                           String.valueOf(System.currentTimeMillis() - Duration.ofDays(1).toMillis()))));
+    mostActive.setYAxisAggregation(new AnalyticsAggregation(AnalyticsAggregationType.COUNT, "spaceId", "desc", null, 0));
+    mostActive.setXAxisAggregations(List.of(new AnalyticsAggregation(AnalyticsAggregationType.TERMS, "spaceId", null, null, 0)));
+    mostActive.setLimit(5);
+
+    ChartDataList ranking = service.computeChartData(mostActive);
+
+    List<String> rankedSpaceIds = ranking.getAggregationLabels()
+                                         .stream()
+                                         .map(label -> label.getAggregationValues().get(0).getFieldValue())
+                                         .toList();
+    assertEquals(List.of("3"), rankedSpaceIds, "the space with a post is ranked, the space with likes only is not");
+    assertEquals(1, ranking.getDataCount(), "the ranked space counts its post, not its like");
+  }
+
+  private static JSONObject spaceEvent(String operation, long spaceId) {
+    JSONObject event = event(operation, Map.of());
+    event.put("spaceId", spaceId);
+    return event;
   }
 
   private void refreshViewFromTheEngine() {
