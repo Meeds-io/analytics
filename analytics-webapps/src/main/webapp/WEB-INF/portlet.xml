@@ -167,9 +167,9 @@
           "chartType": "bar",
           "hideLabel": true,
           "filters": [{
-            "field": "operation",
-            "type": "IN_SET",
-            "valueString": "noteCreated,noteUpdated,taskCreated,taskUpdated,taskCommented,taskCompleted,taskStatusChanged,createActivity,createComment,likeActivity,likeComment,sendKudos,contactSection,experienceSection,avatar"
+            "field": "collaborativeActivity",
+            "type": "EQUAL",
+            "valueString": "YES"
           }, {
             "field": "spaceId",
             "type": "GREATER",
@@ -198,9 +198,9 @@
           "chartType": "bar",
           "hideLabel": true,
           "filters": [{
-            "field": "operation",
-            "type": "IN_SET",
-            "valueString": "noteCreated,noteUpdated,taskCreated,taskUpdated,taskCommented,taskCompleted,taskStatusChanged,createActivity,createComment,likeActivity,likeComment,sendKudos,contactSection,experienceSection,avatar"
+            "field": "collaborativeActivity",
+            "type": "EQUAL",
+            "valueString": "YES"
           }, {
             "field": "spaceId",
             "type": "IN_SET",
