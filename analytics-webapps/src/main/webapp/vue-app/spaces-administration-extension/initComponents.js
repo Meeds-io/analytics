@@ -17,9 +17,11 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 import SpacesAdministrationLastActivity from './components/SpacesAdministrationLastActivity.vue';
+import SpacesAdministrationLastActivityHelp from './components/SpacesAdministrationLastActivityHelp.vue';
 
 const components = {
   'spaces-administration-last-activity': SpacesAdministrationLastActivity,
+  'spaces-administration-last-activity-help': SpacesAdministrationLastActivityHelp,
 };
 
 for (const key in components) {
