@@ -25,10 +25,12 @@
     @closed="$emit('closed')">
     <!-- Sizes and gaps are the design's: 16px texts in the text colour, 12px
          sentences in the sub-title grey, 28px before the heading, 20px before
-         the groups, 18px between groups, 24px around the divider -->
+         the groups, 18px between groups, 32px above the divider and 20px below,
+         16px between the two Good to know lines. The skin gives every heading
+         a 10px top margin, which the design has not -->
     <div slot="content" class="analytics-collaborative-activity-help px-3 pt-2 text-color">
       <p class="text-subtitle-1 mb-7">{{ $t('analytics.collaborativeActivity.help.intro') }}</p>
-      <h4 class="text-subtitle-1 font-weight-bold mb-5">
+      <h4 class="text-subtitle-1 font-weight-bold mt-0 mb-5">
         {{ $t('analytics.collaborativeActivity.help.counted') }}
       </h4>
       <v-progress-circular
@@ -55,11 +57,11 @@
           </div>
         </div>
       </template>
-      <v-divider class="my-6" />
-      <h4 class="text-subtitle-1 font-weight-bold mb-4">
+      <v-divider class="mt-8 mb-5" />
+      <h4 class="text-subtitle-1 font-weight-bold mt-0 mb-4">
         {{ $t('analytics.collaborativeActivity.help.goodToKnow') }}
       </h4>
-      <p class="text-subtitle-1 mb-3">- {{ $t('analytics.collaborativeActivity.help.goodToKnow.oneAction') }}</p>
+      <p class="text-subtitle-1 mb-4">- {{ $t('analytics.collaborativeActivity.help.goodToKnow.oneAction') }}</p>
       <p class="text-subtitle-1 mb-0">- {{ $t('analytics.collaborativeActivity.help.goodToKnow.installedOnly') }}</p>
     </div>
   </help-drawer>
