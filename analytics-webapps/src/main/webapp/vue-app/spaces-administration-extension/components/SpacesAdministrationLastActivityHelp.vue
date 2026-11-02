@@ -21,10 +21,11 @@
 -->
 <template>
   <!-- The design puts 12px between the label and the 16px glyph, and 12px
-       between the glyph and the sort arrow -->
+       between the glyph and the sort arrow: 8px of margin plus the 4px the
+       24px button leaves around its glyph -->
   <analytics-collaborative-activity-help-button
     tooltip-key="analytics.collaborativeActivity.help.tooltip.lastActivity"
-    class="ms-3 me-3" />
+    class="ms-2 me-2" />
 </template>
 <script>
 export default {

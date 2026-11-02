@@ -21,18 +21,18 @@
 -->
 <template>
   <span class="d-inline-flex align-center">
-    <!-- A v-icon with a click listener renders a real button: focusable,
-         Enter and Space click it, and nothing but the glyph is drawn once
-         the button's own padding is removed -->
-    <v-icon
+    <!-- A v-btn, so the control gets the platform's focus styles like every
+         other button: a 24px button around the 16px glyph the design draws -->
+    <v-btn
       ref="button"
       :title="tooltip"
       :aria-label="tooltip"
-      class="pa-0"
-      size="16"
+      width="24"
+      height="24"
+      icon
       @click.stop="open">
-      fa-question-circle
-    </v-icon>
+      <v-icon size="16">fa-question-circle</v-icon>
+    </v-btn>
     <analytics-collaborative-activity-help-drawer
       v-if="drawer"
       :groups="groups"
