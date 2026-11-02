@@ -139,7 +139,11 @@ export default {
       return this.filteredFieldsMappings;
     },
     fields() {
-      return this.fieldNames.filter(field => (!this.aggregation || field.aggregation) && (!this.numeric || field.numeric || field.date))
+      // A scripted entry (the date sub-fields) is no field of any document: it
+      // serves the aggregation selectors only, never a data filter.
+      return this.fieldNames.filter(field => (!this.aggregation || field.aggregation)
+          && (!this.numeric || field.numeric || field.date)
+          && (this.aggregation || !field.scriptedField))
         .sort((a, b) => a?.label?.toLowerCase?.()?.localeCompare?.(b?.label?.toLowerCase?.()));
     },
   },
