@@ -111,7 +111,15 @@
           required>
       </template>
     </div>
-    <div :class="expand ? 'ms-auto mb-auto' : 'd-flex justify-end'">
+    <div :class="expand ? 'ms-auto mb-auto d-flex align-center' : 'd-flex justify-end align-center'">
+      <!-- The same help as Manage Spaces' Last Activity: one drawer, one content,
+           opened from the filter on the virtual collaborative-activity field.
+           The design draws a 20px glyph 12px before the delete glyph: this
+           button's 4px and the delete button's 8px of padding make that gap -->
+      <analytics-collaborative-activity-help-button
+        v-if="filter.field === 'collaborativeActivity'"
+        :icon-size="20"
+        tooltip-key="analytics.collaborativeActivity.help.tooltip.chart" />
       <v-btn
         icon
         class="error-color"

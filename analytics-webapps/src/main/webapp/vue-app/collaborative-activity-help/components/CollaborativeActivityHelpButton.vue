@@ -22,16 +22,17 @@
 <template>
   <span class="d-inline-flex align-center">
     <!-- A v-btn, so the control gets the platform's focus styles like every
-         other button: a 24px button around the 16px glyph the design draws -->
+         other button: a button 8px wider than the glyph the design draws
+         (16px in Manage Spaces, 20px beside the chart filter's delete button) -->
     <v-btn
       ref="button"
       :title="tooltip"
       :aria-label="tooltip"
-      width="24"
-      height="24"
+      :width="iconSize + 8"
+      :height="iconSize + 8"
       icon
       @click.stop="open">
-      <v-icon size="16">fa-question-circle</v-icon>
+      <v-icon :size="iconSize">fa-question-circle</v-icon>
     </v-btn>
     <analytics-collaborative-activity-help-drawer
       v-if="drawer"
@@ -53,6 +54,12 @@ export default {
     tooltipKey: {
       type: String,
       required: true,
+    },
+    /* The glyph's size in px; the button is 8px wider, so a design gap
+       measured from the glyph keeps 4px of the button on each side */
+    iconSize: {
+      type: Number,
+      default: 16,
     },
   },
   data: () => ({

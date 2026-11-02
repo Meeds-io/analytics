@@ -271,6 +271,7 @@
     </script>
     <depends>
       <module>vue</module>
+      <module>analyticsCollaborativeActivityHelp</module>
     </depends>
     <depends>
       <module>vuetify</module>
