@@ -114,15 +114,14 @@
     <div :class="expand ? 'ms-auto mb-auto d-flex align-center' : 'd-flex justify-end align-center'">
       <!-- The same help as Manage Spaces' Last Activity: one drawer, one content,
            opened from the filter on the virtual collaborative-activity field.
-           The design draws a 20px glyph 12px before the delete glyph; the
-           button takes the delete button's 36px so both hover discs match,
-           and the 4px negative margin keeps the 12px gap (8px of padding on
-           each side would make 16) -->
+           The design draws the glyph 12px before the delete glyph; the
+           button takes the delete button's 36px, so both hover discs match
+           and the 6px padding on each side of the 24px icon box makes the
+           12px gap, with no overlap a click could land in -->
       <analytics-collaborative-activity-help-button
         v-if="filter.field === 'collaborativeActivity'"
         :icon-size="20"
         :button-size="36"
-        class="me-n1"
         tooltip-key="analytics.collaborativeActivity.help.tooltip.chart" />
       <v-btn
         icon
