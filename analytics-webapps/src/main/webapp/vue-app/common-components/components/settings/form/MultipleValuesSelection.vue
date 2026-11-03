@@ -39,8 +39,11 @@
             :selectable="false"
             inactive>
             <v-list-item-action class="drawerIcons align-end d-flex flex-row">
-              <v-btn icon>
-                <v-icon @click="$refs.multipleValuesDrawer.close()">mdi-arrow-left</v-icon>
+              <v-btn
+                :aria-label="$t('analytics.close')"
+                icon
+                @click="$refs.multipleValuesDrawer.close()">
+                <v-icon>mdi-arrow-left</v-icon>
               </v-btn>
             </v-list-item-action>
             <v-list-item-content class="drawerTitle align-start">
@@ -77,6 +80,7 @@
             v-model="filter.valueString"
             type="text"
             :placeholder="placeholder"
+            :aria-label="suggesterLabels.ariaLabel"
             class="ignore-vuetify-classes width-auto pa-0 my-auto"
             required>
         </v-flex>
