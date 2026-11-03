@@ -72,19 +72,12 @@
           v-if="item.value"
           :id="`${id}-value`"
           :input-value="selected"
-          class="identitySuggesterItem ml-0">
+          :close="!disabled"
+          class="identitySuggesterItem ml-0"
+          @click:close="remove(item)">
           <span class="text-truncate">
             {{ item.label }}
           </span>
-          <!-- Vuetify's own close icon is a button with no name: this one is named after the value -->
-          <v-btn
-            :aria-label="$t('analytics.removeValue', {0: item.label})"
-            class="ms-1 me-n2"
-            icon
-            x-small
-            @click.stop="remove(item)">
-            <v-icon size="18">$delete</v-icon>
-          </v-btn>
         </v-chip>
       </template>
       <template slot="item" slot-scope="data">

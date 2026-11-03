@@ -35,18 +35,12 @@
         <v-chip
           :title="value"
           color="primary"
-          class="identitySuggesterItem mt-2">
+          close
+          class="identitySuggesterItem mt-2"
+          @click:close="remove(value)">
           <span class="text-truncate">
             {{ value.label }}
           </span>
-          <v-btn
-            :aria-label="$t('analytics.removeValue', {0: value.label || value})"
-            class="ms-1 me-n2"
-            icon
-            x-small
-            @click.stop="remove(value)">
-            <v-icon size="18">$delete</v-icon>
-          </v-btn>
         </v-chip>
       </div>
     </div>
