@@ -42,7 +42,6 @@
           <v-btn
             :aria-label="$t('analytics.removeValue', {0: value.label || value})"
             class="ms-1 me-n2"
-            color="white"
             icon
             x-small
             @click.stop="remove(value)">

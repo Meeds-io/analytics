@@ -36,22 +36,15 @@
         <v-chip
           :title="user.profile.fullName"
           color="primary"
-          class="identitySuggesterItem mt-2">
+          close
+          class="identitySuggesterItem mt-2"
+          @click:close="remove(user)">
           <v-avatar left>
             <v-img :src="user.profile.avatarUrl" />
           </v-avatar>
           <span class="text-truncate">
             {{ user.profile.fullName }}
           </span>
-          <v-btn
-            :aria-label="$t('analytics.removeValue', {0: user.profile.fullName})"
-            class="ms-1 me-n2"
-            color="white"
-            icon
-            x-small
-            @click.stop="remove(user)">
-            <v-icon size="18">$delete</v-icon>
-          </v-btn>
         </v-chip>
       </div>
     </div>
