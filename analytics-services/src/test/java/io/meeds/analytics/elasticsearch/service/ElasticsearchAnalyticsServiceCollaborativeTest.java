@@ -276,7 +276,7 @@ class ElasticsearchAnalyticsServiceCollaborativeTest {
                       source("createActivity", "\"activityType_alt\": \"ks-wiki:spaces\""),
                       source("createComment", "\"activityType\": \"\", \"activityType_alt2\": \"news\""),
                       source("likeActivity", "\"collaborativeActivity\": \"YES\""),
-                      source("likeActivity", "\"collaborativeActivity_alt1\": \"YES\"")));
+                      source("likeActivity", "\"collaborativeActivity_alt\": \"YES\"")));
 
     List<StatisticData> samples = service.retrieveData(List.of(), 0, 10, null);
 
@@ -288,7 +288,7 @@ class ElasticsearchAnalyticsServiceCollaborativeTest {
     assertNull(samples.get(3).getKeyword(FIELD), "the type is read under the alternative key the document holds");
     assertNull(samples.get(4).getKeyword(FIELD), "an empty base key is skipped for the first non-empty variant, whose excluded type gives no value");
     assertNull(samples.get(5).getKeyword(FIELD), "a value a page stored under the field's name before it was reserved is dropped");
-    assertNull(samples.get(6).getKeyword(FIELD + "_alt1"), "a value stored under an alternative name of the field is dropped too");
+    assertNull(samples.get(6).getKeyword(FIELD + "_alt"), "a value stored under an alternative name of the field is dropped too");
   }
 
   @Test
