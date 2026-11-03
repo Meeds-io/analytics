@@ -99,12 +99,14 @@
           v-model.number="filter.range.min"
           type="number"
           :placeholder="$t('analytics.minPlaceholder')"
+          :aria-label="$t('analytics.fieldValueMinOf', {0: selectedFieldLabel})"
           class="ignore-vuetify-classes width-auto pa-0 my-auto"
           required>
         <input
           v-model.number="filter.range.max"
           type="number"
           :placeholder="$t('analytics.maxPlaceholder')"
+          :aria-label="$t('analytics.fieldValueMaxOf', {0: selectedFieldLabel})"
           class="ignore-vuetify-classes pa-0 width-auto my-auto"
           required>
       </template>

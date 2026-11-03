@@ -26,6 +26,7 @@
       :items="fields"
       :placeholder="placeholder"
       :aria-label="label || placeholder"
+      :aria-describedby="value ? `${id}-value` : null"
       :value-comparator="selectedValueComparator"
       :return-object="false"
       :item-value="aggregation ? 'aggregationFieldName' : 'searchFieldName'"
@@ -49,6 +50,7 @@
         <v-chip
           v-else
           v-bind="data.attrs"
+          :id="`${id}-value`"
           :input-value="data.selected"
           :title="data.item && data.item.label || data.item"
           @click="data.select">

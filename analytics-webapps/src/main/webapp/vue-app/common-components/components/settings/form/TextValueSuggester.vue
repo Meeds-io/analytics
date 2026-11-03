@@ -25,6 +25,7 @@
       :label="labels.label"
       :placeholder="labels.placeholder"
       :aria-label="labels.ariaLabel || labels.label || labels.placeholder"
+      :aria-describedby="value ? `${id}-value` : null"
       :loading="loadingSuggestions > 0"
       :required="required && !value"
       :items="filteredItems"
@@ -69,6 +70,7 @@
       <template slot="selection" slot-scope="{item, selected}">
         <v-chip
           v-if="item.value"
+          :id="`${id}-value`"
           :input-value="selected"
           :close="!disabled"
           class="identitySuggesterItem ml-0"
