@@ -42,6 +42,7 @@
       <template #selection="data">
         <analytics-profile-property-item-attribute-label
           v-if="isProfileProperty(data.item.name)"
+          :id="`${id}-value`"
           :property="data.item.name"
           :chip-attrs="data.attrs"
           :selected="data.selected"
