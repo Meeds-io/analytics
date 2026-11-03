@@ -256,13 +256,14 @@ export default {
         if (translations && typeof translations === 'object') {
           const lang = eXo?.env?.portal?.language || 'en';
           const defaultLanguage = eXo?.env?.portal?.defaultLanguage || 'en';
-          return translations[lang] || translations[defaultLanguage] || Object.values(translations)[0] || '';
+          const translation = translations[lang] || translations[defaultLanguage] || Object.values(translations)[0];
+          return translation && this.$t(translation) || '';
         }
-        return title;
+        return this.$t(title);
       } catch (e) {
-        // Legacy plain-text title (not yet translated): JSON.parse failed, use as-is
-        console.debug('Chart title is not a translations JSON object, using it as plain text', e);
-        return title;
+        // Not a translations JSON object: a plain-text title, or the i18n key of a shipped chart
+        console.debug('Chart title is not a translations JSON object, using it as plain text or i18n key', e);
+        return this.$t(title);
       }
     },
     init() {
