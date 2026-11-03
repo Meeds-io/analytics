@@ -22,14 +22,15 @@
 <template>
   <span class="d-inline-flex align-center">
     <!-- A v-btn, so the control gets the platform's focus styles like every
-         other button: a button 8px wider than the glyph the design draws
-         (16px in Manage Spaces, 20px beside the chart filter's delete button) -->
+         other button: 24px around the 16px glyph Manage Spaces draws, or the
+         size its host names (36px, the icon button's default, beside the
+         chart filter's delete button) -->
     <v-btn
       ref="button"
       :title="tooltip"
       :aria-label="tooltip"
-      :width="iconSize + 8"
-      :height="iconSize + 8"
+      :width="buttonSize || iconSize + 8"
+      :height="buttonSize || iconSize + 8"
       class="collaborativeActivityHelpButton"
       icon
       @click.stop="open">
@@ -61,6 +62,12 @@ export default {
     iconSize: {
       type: Number,
       default: 16,
+    },
+    /* The button's size in px; 8px more than the glyph unless the host names
+       the size of the buttons it sits beside */
+    buttonSize: {
+      type: Number,
+      default: null,
     },
   },
   data: () => ({
