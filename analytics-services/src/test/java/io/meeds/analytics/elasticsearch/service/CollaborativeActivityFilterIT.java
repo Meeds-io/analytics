@@ -185,6 +185,8 @@ class CollaborativeActivityFilterIT extends AbstractElasticsearchIT {
         + " server operation, on the keyword index as on the text one");
     StatisticData browserEvent = samples.stream().filter(sample -> "107".equals(sample.getKeyword("id"))).findFirst().orElseThrow();
     assertEquals("websocket", browserEvent.getKeyword(AnalyticsUtils.STATISTIC_ORIGIN), "the origin is read back with no error");
+    assertTrue(samples.stream().allMatch(sample -> CollaborativeActivityService.YES.equals(sample.getKeyword(CollaborativeActivityService.FIELD_NAME))),
+               "every event the filter selects carries the virtual field: the clause and the per-sample rule agree");
   }
 
   @Test
@@ -192,7 +194,11 @@ class CollaborativeActivityFilterIT extends AbstractElasticsearchIT {
     Set<String> others = new java.util.HashSet<>(allIds);
     others.removeAll(collaborativeIds);
 
-    assertEquals(others, ids(service.retrieveData(List.of(NOT_COLLABORATIVE), 0, 100, null)));
+    List<StatisticData> samples = service.retrieveData(List.of(NOT_COLLABORATIVE), 0, 100, null);
+
+    assertEquals(others, ids(samples));
+    assertTrue(samples.stream().noneMatch(sample -> sample.getKeyword(CollaborativeActivityService.FIELD_NAME) != null),
+               "no event the negated filter selects carries the virtual field");
   }
 
   @Test

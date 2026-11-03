@@ -25,6 +25,8 @@
       v-model="value"
       :items="fields"
       :placeholder="placeholder"
+      :aria-label="label || placeholder"
+      :aria-describedby="value ? `${id}-value` : null"
       :value-comparator="selectedValueComparator"
       :return-object="false"
       :item-value="aggregation ? 'aggregationFieldName' : 'searchFieldName'"
@@ -40,6 +42,7 @@
       <template #selection="data">
         <analytics-profile-property-item-attribute-label
           v-if="isProfileProperty(data.item.name)"
+          :id="`${id}-value`"
           :property="data.item.name"
           :chip-attrs="data.attrs"
           :selected="data.selected"
@@ -48,6 +51,7 @@
         <v-chip
           v-else
           v-bind="data.attrs"
+          :id="`${id}-value`"
           :input-value="data.selected"
           :title="data.item && data.item.label || data.item"
           @click="data.select">
@@ -113,9 +117,7 @@ export default {
   },
   data () {
     return {
-      id: `FieldSelection${parseInt(Math.random() * 10000)
-        .toString()
-        .toString()}`,
+      id: `FieldSelection${this._uid}`,
       selectedFieldMapping: null,
     };
   },
@@ -139,7 +141,11 @@ export default {
       return this.filteredFieldsMappings;
     },
     fields() {
-      return this.fieldNames.filter(field => (!this.aggregation || field.aggregation) && (!this.numeric || field.numeric || field.date))
+      // A scripted entry (the date sub-fields) is no field of any document: it
+      // serves the aggregation selectors only, never a data filter.
+      return this.fieldNames.filter(field => (!this.aggregation || field.aggregation)
+          && (!this.numeric || field.numeric || field.date)
+          && (this.aggregation || !field.scriptedField))
         .sort((a, b) => a?.label?.toLowerCase?.()?.localeCompare?.(b?.label?.toLowerCase?.()));
     },
   },
