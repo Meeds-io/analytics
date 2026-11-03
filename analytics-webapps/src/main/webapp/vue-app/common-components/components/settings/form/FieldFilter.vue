@@ -33,6 +33,7 @@
         v-model="filter.type"
         :placeholder="$t('analytics.operatorPlaceholder')"
         :title="searchFilterTypeLabel"
+        :aria-label="$t('analytics.operatorPlaceholder')"
         class="operatorInput border-color my-auto text-truncate ignore-vuetify-classes"
         :class="expand ? 'mx-1' : 'mx-0'"
         @change="filterTypeChanged">
@@ -81,6 +82,7 @@
           v-model="filter.valueString"
           type="text"
           :placeholder="valuesComparatorPlaceholder"
+          :aria-label="suggesterLabels.ariaLabel"
           class="ignore-vuetify-classes width-auto pa-0 my-auto"
           required>
       </template>
@@ -88,6 +90,7 @@
         v-else-if="filter.type === 'LESS' || filter.type === 'GREATER'"
         v-model.number="filter.valueString"
         type="number"
+        :aria-label="suggesterLabels.ariaLabel"
         :placeholder="$t('analytics.numberValuePlaceholder')"
         class="ignore-vuetify-classes width-auto pa-0 my-auto"
         required>
@@ -96,12 +99,14 @@
           v-model.number="filter.range.min"
           type="number"
           :placeholder="$t('analytics.minPlaceholder')"
+          :aria-label="$t('analytics.fieldValueMinOf', {0: selectedFieldLabel})"
           class="ignore-vuetify-classes width-auto pa-0 my-auto"
           required>
         <input
           v-model.number="filter.range.max"
           type="number"
           :placeholder="$t('analytics.maxPlaceholder')"
+          :aria-label="$t('analytics.fieldValueMaxOf', {0: selectedFieldLabel})"
           class="ignore-vuetify-classes pa-0 width-auto my-auto"
           required>
       </template>
@@ -156,6 +161,7 @@ export default {
         searchPlaceholder: this.$t('analytics.searchPlaceholder'),
         placeholder: this.$t('analytics.searchPlaceholder'),
         noDataLabel: this.$t('analytics.noDataLabel'),
+        ariaLabel: this.$t('analytics.fieldValueOf', {0: this.selectedFieldLabel}),
       };
     },
     selectedFieldMapping() {
