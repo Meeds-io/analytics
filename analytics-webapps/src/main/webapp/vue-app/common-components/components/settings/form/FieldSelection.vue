@@ -117,9 +117,7 @@ export default {
   },
   data () {
     return {
-      id: `FieldSelection${parseInt(Math.random() * 10000)
-        .toString()
-        .toString()}`,
+      id: `FieldSelection${this._uid}`,
       selectedFieldMapping: null,
     };
   },

@@ -135,9 +135,7 @@ export default {
   },
   data() {
     return {
-      id: `AutoComplete${parseInt(Math.random() * 10000)
-        .toString()
-        .toString()}`,
+      id: `AutoComplete${this._uid}`,
       previousSearchTerm: null,
       searchTerm: null,
       searchStarted: null,
