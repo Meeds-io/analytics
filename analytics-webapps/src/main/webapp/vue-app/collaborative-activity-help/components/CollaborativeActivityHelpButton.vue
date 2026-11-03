@@ -31,7 +31,6 @@
       :aria-label="tooltip"
       :width="buttonSize || iconSize + 8"
       :height="buttonSize || iconSize + 8"
-      class="collaborativeActivityHelpButton"
       icon
       @click.stop="open">
       <v-icon :size="iconSize">fa-question-circle</v-icon>
