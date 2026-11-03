@@ -24,6 +24,7 @@
       v-model="value"
       :label="labels.label"
       :placeholder="labels.placeholder"
+      :aria-label="labels.ariaLabel || labels.label || labels.placeholder"
       :loading="loadingSuggestions > 0"
       :required="required && !value"
       :items="filteredItems"

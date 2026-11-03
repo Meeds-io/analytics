@@ -25,6 +25,7 @@
       v-model="value"
       :items="fields"
       :placeholder="placeholder"
+      :aria-label="label || placeholder"
       :value-comparator="selectedValueComparator"
       :return-object="false"
       :item-value="aggregation ? 'aggregationFieldName' : 'searchFieldName'"
