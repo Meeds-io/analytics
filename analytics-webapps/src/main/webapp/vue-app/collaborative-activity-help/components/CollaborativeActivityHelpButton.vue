@@ -56,8 +56,9 @@ export default {
       type: String,
       required: true,
     },
-    /* The glyph's size in px; the button is 8px wider, so a design gap
-       measured from the glyph keeps 4px of the button on each side */
+    /* The glyph's size in px; the button is 8px wider unless the host sets
+       buttonSize, so a design gap measured from the glyph keeps 4px of the
+       button on each side */
     iconSize: {
       type: Number,
       default: 16,
