@@ -39,15 +39,22 @@
         <v-chip
           :title="space.profile.fullName"
           color="primary"
-          close
-          class="identitySuggesterItem mt-2"
-          @click:close="remove(space)">
+          class="identitySuggesterItem mt-2">
           <v-avatar left>
             <v-img :src="space.profile.avatarUrl" />
           </v-avatar>
           <span class="text-truncate">
             {{ space.profile.fullName }}
           </span>
+          <v-btn
+            :aria-label="$t('analytics.removeValue', {0: space.profile.fullName})"
+            class="ms-1 me-n2"
+            color="white"
+            icon
+            x-small
+            @click.stop="remove(space)">
+            <v-icon size="18">$delete</v-icon>
+          </v-btn>
         </v-chip>
       </div>
     </div>
