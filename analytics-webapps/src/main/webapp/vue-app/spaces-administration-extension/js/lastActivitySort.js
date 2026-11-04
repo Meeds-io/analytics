@@ -100,6 +100,11 @@ async function readDatedWindow(state, poolSize) {
   // Exhaustion is read on the raw bucket count, before the bucket of the
   // events with no space (0) is dropped
   state.datedComplete = buckets.length < poolSize;
+  if (!state.sortDesc && !state.datedComplete) {
+    // Ascending, a partial window is inexact: nothing is kept from it, the
+    // complete answer is taken whole, in its order, once it comes
+    return;
+  }
   buckets.slice(state.examinedBuckets).forEach(bucket => {
     const spaceId = String(bucket.label);
     if (Number(spaceId) && !state.datedIds.has(spaceId)) {
