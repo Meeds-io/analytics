@@ -193,7 +193,10 @@ async function fetchUndatedSpaces(state, count, expand, listedIds) {
  * collaborative event, by the time of their last one (newest first, or oldest
  * first), then the spaces with none, by title, in both directions. So every
  * space Social lists is listed, and "load more" stops at Social's total.
- * Under this sort the page applies no filter and no keyword.
+ * Under this sort the page applies no filter and no keyword. A refresh starts
+ * a new scroll before its first read, so a refresh that fails leaves no
+ * earlier scroll behind: the next page would otherwise resume that scroll
+ * past rows the list no longer shows, and never list them.
  *
  * @param {object} options offset (the rows shown, 0 on a refresh), limit,
  *          expand, sortDesc and currentSpaces, the rows shown
@@ -206,6 +209,9 @@ export async function sortSpacesByLastActivity({
   sortDesc,
   currentSpaces,
 }) {
+  if (!offset) {
+    sortState = null;
+  }
   const shownSpaces = offset ? (currentSpaces || []).slice() : [];
   const state = offset && sortState?.sortDesc === !!sortDesc ? copyState(sortState) : newState(sortDesc);
   const listedIds = new Set(shownSpaces.map(space => String(space.id)));
