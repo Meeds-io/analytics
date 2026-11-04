@@ -143,6 +143,9 @@ async function readUndatedSpaceIds(state) {
       filter: 'all',
       offset,
       limit: UNDATED_SNAPSHOT_PAGE_SIZE,
+      // only the ids are read: with no expand, Social's service asks for the
+      // managers of every space, each one a profile built server-side
+      expand: 'spaceId',
       sortBy: 'title',
       sortDirection: 'asc',
     });
