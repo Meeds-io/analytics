@@ -21,9 +21,9 @@
 // each on a GET
 const MAX_IDS_PER_CALL = 100;
 
-// The page size of Social's listing walked for the spaces with no
-// collaborative event
-const UNDATED_PAGE_SIZE = 25;
+// The page size of Social's listing, read once into the list of the spaces
+// with no collaborative event
+const UNDATED_SNAPSHOT_PAGE_SIZE = 100;
 
 // The sort's state for the current scroll, replaced only when a call
 // returns: after a failed read, the next "load more" retries that page from
@@ -41,9 +41,9 @@ function newState(sortDesc) {
     datedIds: new Set(),
     // The dated space ids read and not fetched yet, in the sort's order
     pendingIds: [],
-    // The position reached in Social's listing of every space
-    undatedOffset: 0,
-    undatedComplete: false,
+    // The ids of the spaces with no collaborative event, by title, not
+    // fetched yet: null until Social's listing is read, in one go
+    undatedIds: null,
   };
 }
 
@@ -52,6 +52,7 @@ function copyState(state) {
     ...state,
     datedIds: new Set(state.datedIds),
     pendingIds: state.pendingIds.slice(),
+    undatedIds: state.undatedIds && state.undatedIds.slice(),
   };
 }
 
@@ -125,45 +126,64 @@ async function fetchDatedSpaces(state, count, expand) {
 }
 
 /**
- * Walks Social's listing of every space by title from the position reached,
- * and keeps the spaces with no collaborative event, until count are found or
- * the listing ends. The position is set after the last space kept, so the
- * next page resumes there.
+ * Reads Social's listing of every space by title to its end, in one go, and
+ * keeps the ids of the spaces with no collaborative event. Read once per
+ * scroll: a page is never asked at an offset of a listing that a bulk action
+ * on the rows already listed has shortened meanwhile.
  *
- * @param {object} state the scroll's state, whose listing position moves
+ * @param {object} state the scroll's state, whose dated ids are skipped
+ * @returns {Promise<Array<string>>} the ids kept, by title
+ */
+async function readUndatedSpaceIds(state) {
+  const ids = [];
+  let offset = 0;
+  let page;
+  do {
+    const data = await Vue.prototype.$spaceService.getSpacesByFilter({ // eslint-disable-line no-await-in-loop
+      filter: 'all',
+      offset,
+      limit: UNDATED_SNAPSHOT_PAGE_SIZE,
+      sortBy: 'title',
+      sortDirection: 'asc',
+    });
+    page = data?.spaces || [];
+    page.forEach(space => {
+      const spaceId = String(space?.id);
+      if (space && !state.datedIds.has(spaceId)) {
+        ids.push(spaceId);
+      }
+    });
+    offset += page.length;
+  } while (page.length === UNDATED_SNAPSHOT_PAGE_SIZE);
+  return ids;
+}
+
+/**
+ * Fetches the next spaces with no collaborative event, by title, until count
+ * are found or the list ends. A deleted space is absent from the answer: it
+ * costs its id, not the page.
+ *
+ * @param {object} state the scroll's state, whose undated ids are consumed
  * @param {number} count the count of spaces wanted
  * @param {string} expand the space fields to expand
  * @param {Set<string>} listedIds the ids already listed, extended with the spaces kept
  * @returns {Promise<Array>} the spaces kept, by title
  */
 async function fetchUndatedSpaces(state, count, expand, listedIds) {
+  if (!state.undatedIds) {
+    state.undatedIds = await readUndatedSpaceIds(state);
+  }
   const spaces = [];
-  while (spaces.length < count && !state.undatedComplete) {
-    const data = await Vue.prototype.$spaceService.getSpacesByFilter({ // eslint-disable-line no-await-in-loop
-      filter: 'all',
-      expand,
-      offset: state.undatedOffset,
-      limit: UNDATED_PAGE_SIZE,
-      sortBy: 'title',
-      sortDirection: 'asc',
-    });
-    const page = data?.spaces || [];
-    let walked = 0;
-    for (const space of page) {
-      if (spaces.length >= count) {
-        break;
-      }
-      walked++;
-      const spaceId = String(space?.id);
-      if (space && !state.datedIds.has(spaceId) && !listedIds.has(spaceId)) {
+  while (spaces.length < count && state.undatedIds.length) {
+    const ids = state.undatedIds.splice(0, Math.min(count - spaces.length, MAX_IDS_PER_CALL));
+    const data = await Vue.prototype.$spaceService.getSpacesByIds(ids, expand); // eslint-disable-line no-await-in-loop
+    const spacesById = new Map((data?.spaces || []).filter(space => space).map(space => [String(space.id), space]));
+    ids.map(id => spacesById.get(id))
+      .filter(space => space && !listedIds.has(String(space.id)))
+      .forEach(space => {
         spaces.push(space);
-        listedIds.add(spaceId);
-      }
-    }
-    state.undatedOffset += walked;
-    if (walked === page.length && page.length < UNDATED_PAGE_SIZE) {
-      state.undatedComplete = true;
-    }
+        listedIds.add(String(space.id));
+      });
   }
   return spaces;
 }
