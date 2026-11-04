@@ -25,14 +25,19 @@ const MAX_IDS_PER_CALL = 100;
 // with no collaborative event
 const UNDATED_SNAPSHOT_PAGE_SIZE = 100;
 
-// The sort's state for the current scroll, replaced only when a call
-// returns: after a failed read, the next "load more" retries that page from
-// the state the last successful call left
+// The sort's state for the current scroll: dropped when a refresh starts,
+// replaced when a call returns, and continued only by a call whose rows
+// shown are the rows the last call returned. So after a failed read the next
+// "load more" retries that page, and after a failed refresh, Social's count
+// read included, the rows shown are another list's and the next page starts
+// a new scroll instead of resuming this one past them
 let sortState = null;
 
 function newState(sortDesc) {
   return {
     sortDesc: !!sortDesc,
+    // The ids of the rows the last call returned, shown and new, in order
+    listedIds: [],
     // The buckets of the aggregation already read, in its order
     examinedBuckets: 0,
     // The aggregation has returned every space it holds
@@ -50,10 +55,25 @@ function newState(sortDesc) {
 function copyState(state) {
   return {
     ...state,
+    listedIds: state.listedIds.slice(),
     datedIds: new Set(state.datedIds),
     pendingIds: state.pendingIds.slice(),
     undatedIds: state.undatedIds && state.undatedIds.slice(),
   };
+}
+
+/**
+ * Tells whether the rows shown are the rows the kept state returned, so the
+ * scroll it holds can continue from them.
+ *
+ * @param {object} state the kept state, or null
+ * @param {Array} shownSpaces the rows shown
+ * @returns {boolean} true when the state's listed ids are the rows shown, in order
+ */
+function continuesState(state, shownSpaces) {
+  return !!state
+    && state.listedIds.length === shownSpaces.length
+    && state.listedIds.every((id, index) => id === String(shownSpaces[index].id));
 }
 
 /**
@@ -197,9 +217,11 @@ async function fetchUndatedSpaces(state, count, expand, listedIds) {
  * first), then the spaces with none, by title, in both directions. So every
  * space Social lists is listed, and "load more" stops at Social's total.
  * Under this sort the page applies no filter and no keyword. A refresh starts
- * a new scroll before its first read, so a refresh that fails leaves no
- * earlier scroll behind: the next page would otherwise resume that scroll
- * past rows the list no longer shows, and never list them.
+ * a new scroll before its first read, and a page continues the kept scroll
+ * only when the rows shown are the rows it returned: a refresh that failed,
+ * in this sort or in Social's count read before it, leaves another list's
+ * rows shown, and the next page would otherwise resume the old scroll past
+ * them and never list the spaces ranked before.
  *
  * @param {object} options offset (the rows shown, 0 on a refresh), limit,
  *          expand, sortDesc and currentSpaces, the rows shown
@@ -216,7 +238,9 @@ export async function sortSpacesByLastActivity({
     sortState = null;
   }
   const shownSpaces = offset ? (currentSpaces || []).slice() : [];
-  const state = offset && sortState?.sortDesc === !!sortDesc ? copyState(sortState) : newState(sortDesc);
+  const state = offset && sortState?.sortDesc === !!sortDesc && continuesState(sortState, shownSpaces)
+    ? copyState(sortState)
+    : newState(sortDesc);
   const listedIds = new Set(shownSpaces.map(space => String(space.id)));
   const pageSpaces = [];
   let poolSize = Math.max(offset + limit, state.examinedBuckets + limit);
@@ -234,6 +258,8 @@ export async function sortSpacesByLastActivity({
   if (pageSpaces.length < limit) {
     pageSpaces.push(...await fetchUndatedSpaces(state, limit - pageSpaces.length, expand, listedIds));
   }
+  const rows = [...shownSpaces, ...pageSpaces];
+  state.listedIds = rows.map(space => String(space.id));
   sortState = state;
-  return [...shownSpaces, ...pageSpaces];
+  return rows;
 }
