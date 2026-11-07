@@ -24,6 +24,8 @@
       v-model="value"
       :label="labels.label"
       :placeholder="labels.placeholder"
+      :aria-label="labels.ariaLabel || labels.label || labels.placeholder"
+      :aria-describedby="value ? `${id}-value` : null"
       :loading="loadingSuggestions > 0"
       :required="required && !value"
       :items="filteredItems"
@@ -68,6 +70,7 @@
       <template slot="selection" slot-scope="{item, selected}">
         <v-chip
           v-if="item.value"
+          :id="`${id}-value`"
           :input-value="selected"
           :close="!disabled"
           class="identitySuggesterItem ml-0"
@@ -82,9 +85,11 @@
           :style="menuItemStyle"
           class="text-truncate"
           v-text="data.item.label" />
-        <v-list-item-action class="ma-0 pe-2 text-no-wrap">
+        <v-list-item-action
+          v-if="data.item.count"
+          class="ma-0 pe-2 text-no-wrap">
           <v-list-item-action-text>
-            ({{ $t('analytics.itemsCount', { 0: data.item.count || 0 }) }})
+            ({{ $t('analytics.itemsCount', { 0: data.item.count }) }})
           </v-list-item-action-text>
         </v-list-item-action>
       </template>
@@ -123,9 +128,7 @@ export default {
   },
   data() {
     return {
-      id: `AutoComplete${parseInt(Math.random() * 10000)
-        .toString()
-        .toString()}`,
+      id: `AutoComplete${this._uid}`,
       previousSearchTerm: null,
       searchTerm: null,
       searchStarted: null,

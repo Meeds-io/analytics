@@ -46,6 +46,12 @@ public class ChartDataList implements Serializable {
 
   private long                                 dataCount;
 
+  /**
+   * The number of shards that failed to answer the search, so that a caller
+   * that needs a complete answer can tell a partial one apart
+   */
+  private int                                  failedShards;
+
   public ChartDataList(String lang) {
     this.lang = lang;
   }
