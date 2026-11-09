@@ -28,6 +28,7 @@
     <v-btn
       ref="button"
       :title="tooltip"
+      class="collaborativeActivityHelpButton"
       :aria-label="tooltip"
       :width="buttonSize || iconSize + 8"
       :height="buttonSize || iconSize + 8"
@@ -45,7 +46,7 @@
 <script>
 // The design's order of the help groups, by the addon that owns each title
 // key (<addon>.collaborativeActivity.help.title): Posts, Documents,
-// News & Notes, Agenda, Tasks, Polls, Chat
+// Articles & Notes, Agenda, Tasks, Polls, Chat
 const DESIGN_ORDER = ['social', 'ecms', 'content', 'agenda', 'task', 'poll', 'matrix'];
 
 export default {
