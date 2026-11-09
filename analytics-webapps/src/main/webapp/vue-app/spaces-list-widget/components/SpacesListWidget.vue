@@ -24,7 +24,9 @@
     <v-hover v-model="hover">
       <widget-wrapper
         :loading="loading"
-        extra-class="application-body fill-height">
+        extra-class="application-body fill-height"
+        @focusin.native="onFocusIn"
+        @focusout.native="onFocusOut">
         <template #title>
           <div class="d-flex flex-grow-1 flex-shrink-1 min-width-0 full-width border-box-sizing align-center position-relative pe-16">
             <div class="text-header text-none d-flex align-center min-width-0">
@@ -47,6 +49,7 @@
                 :icon="hoverEdit"
                 :text="!hoverEdit"
                 :title="hoverEdit && $t('analytics.spacesListWidgetSettings.seeAll') || null"
+                :aria-label="hoverEdit && $t('analytics.spacesListWidgetSettings.seeAll') || null"
                 color="primary"
                 small
                 link
@@ -60,8 +63,10 @@
               </v-btn>
               <v-fab-transition hide-on-leave>
                 <v-btn
-                  v-show="hoverEdit"
+                  v-show="$root.canEdit"
+                  :class="{ 'd-sr-only-focusable': !hoverEdit }"
                   :title="$t('analytics.spacesListWidgetSettings.editTooltip')"
+                  :aria-label="$t('analytics.spacesListWidgetSettings.editTooltip')"
                   small
                   icon
                   @click="$root.$emit('spaces-list-widget-settings')">
@@ -112,6 +117,7 @@
 export default {
   data: () => ({
     hover: false,
+    focused: false,
     loading: false,
     initialized: false,
     applicationMounted: false,
@@ -122,7 +128,7 @@ export default {
   }),
   computed: {
     hoverEdit() {
-      return this.hover && this.$root.canEdit;
+      return (this.hover || this.focused) && this.$root.canEdit;
     },
     spacesCount() {
       return (this.userSpaces?.length || 0) + (this.mostRecentSpaces?.length || 0) + (this.mostActiveSpaces?.length || 0);
@@ -220,6 +226,14 @@ export default {
     this.applicationMounted = true;
   },
   methods: {
+    onFocusIn(event) {
+      // The edit icons replace the 'See all' text on hover: the keyboard focus
+      // reveals them too, so they are reached in the tab order
+      this.focused = !!event.target.matches?.(':focus-visible');
+    },
+    onFocusOut(event) {
+      this.focused = !!(event.relatedTarget && event.currentTarget.contains(event.relatedTarget));
+    },
     refresh() {
       this.loading = true;
       if (this.profileMode) {
