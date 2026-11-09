@@ -21,11 +21,9 @@ package io.meeds.analytics.model.filter.search;
 
 import java.io.Serializable;
 
-import groovy.transform.ToString;
 import lombok.*;
 
 @Data
-@ToString
 @NoArgsConstructor
 @AllArgsConstructor
 public class AnalyticsSortField implements Serializable {
