@@ -29,7 +29,7 @@
          groups, 20px between groups, 32px above the divider and 20px below,
          16px between the two Good to know lines. The skin gives every heading
          a 10px top margin, which the design has not -->
-    <div slot="content" class="px-1 pt-1 text-color">
+    <div slot="content" class="collaborativeActivityHelpContent px-1 pt-1 text-color">
       <p class="text-subtitle-1 mb-7">{{ $t('analytics.collaborativeActivity.help.intro') }}</p>
       <h4 class="text-subtitle-1 font-weight-bold mt-0 mb-5">
         {{ $t('analytics.collaborativeActivity.help.counted') }}
@@ -41,12 +41,12 @@
         <div
           v-for="group in groups"
           :key="group.title"
-          class="mb-5">
-          <div class="text-subtitle-1">{{ group.title }}</div>
+          class="collaborativeActivityHelpGroup mb-5">
+          <div class="collaborativeActivityHelpGroupTitle text-subtitle-1">{{ group.title }}</div>
           <div
             v-for="(sentence, index) in group.counted"
             :key="index"
-            class="text-caption text-sub-title">
+            class="collaborativeActivityHelpAction text-caption text-sub-title">
             {{ sentence }}
           </div>
         </div>
