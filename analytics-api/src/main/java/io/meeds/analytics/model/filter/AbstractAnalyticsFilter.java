@@ -25,11 +25,9 @@ import java.time.ZoneOffset;
 
 import org.apache.commons.lang3.StringUtils;
 
-import groovy.transform.ToString;
 import lombok.*;
 
 @Data
-@ToString
 @NoArgsConstructor
 @AllArgsConstructor
 public abstract class AbstractAnalyticsFilter implements Serializable, Cloneable {

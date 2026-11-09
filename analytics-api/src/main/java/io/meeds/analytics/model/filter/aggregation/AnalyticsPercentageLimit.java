@@ -23,11 +23,9 @@ import java.io.Serializable;
 
 import io.meeds.analytics.model.filter.AnalyticsPercentageItemFilter;
 
-import groovy.transform.ToString;
 import lombok.*;
 
 @Data
-@ToString
 @NoArgsConstructor
 @AllArgsConstructor
 public class AnalyticsPercentageLimit implements Serializable, Cloneable {

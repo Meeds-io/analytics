@@ -37,13 +37,11 @@ import io.meeds.analytics.model.filter.aggregation.AnalyticsAggregation;
 import io.meeds.analytics.model.filter.search.AnalyticsFieldFilter;
 import io.meeds.analytics.utils.AnalyticsUtils;
 
-import groovy.transform.ToString;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
-@ToString
 @NoArgsConstructor
 @AllArgsConstructor
 public class AnalyticsPercentageItemFilter implements Serializable, Cloneable {
@@ -100,7 +98,6 @@ public class AnalyticsPercentageItemFilter implements Serializable, Cloneable {
   }
 
   @Data
-  @ToString
   @NoArgsConstructor
   @AllArgsConstructor
   public static class Range implements Serializable, Cloneable {
