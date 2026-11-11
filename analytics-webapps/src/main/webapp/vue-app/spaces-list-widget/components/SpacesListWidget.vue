@@ -21,50 +21,53 @@
 -->
 <template>
   <v-app v-if="initialized && !hiddenWidget">
-    <v-hover v-model="hover">
-      <widget-wrapper
-        :loading="loading"
-        extra-class="application-body fill-height"
-        @focusin.native="onFocusIn"
-        @focusout.native="onFocusOut">
-        <template #title>
-          <div class="d-flex flex-grow-1 flex-shrink-1 min-width-0 full-width border-box-sizing align-center position-relative pe-16">
-            <div class="text-header text-none d-flex align-center min-width-0">
-              <span class="text-truncate">{{ title }}</span>
-            </div>
-            <div
-              :class="{
-                'me-2': emptyWidget,
-                'l-0': $vuetify.rtl,
-                'r-0': !$vuetify.rtl,
-              }"
-              class="position-absolute absolute-vertical-center z-index-one">
-              <!-- Same hover affordance as the Documents and Task widgets: a
-                   small text button (28px-high pill) behind the label, a small
-                   icon button (28px circle) once the edit icons show. No
-                   height/min-width override: it shrank the hover background
-                   to the text or the icon -->
+    <widget-wrapper
+      :loading="loading"
+      extra-class="application-body fill-height hover-swap-trigger">
+      <template #title>
+        <div class="d-flex flex-grow-1 flex-shrink-1 min-width-0 full-width border-box-sizing align-center position-relative pe-16">
+          <div class="text-header text-none d-flex align-center min-width-0">
+            <span class="text-truncate">{{ title }}</span>
+          </div>
+          <div
+            :class="{
+              'me-2': emptyWidget,
+              'l-0': $vuetify.rtl,
+              'r-0': !$vuetify.rtl,
+            }"
+            class="position-absolute absolute-vertical-center z-index-one">
+            <!-- The 'See all' text is replaced by the icons on hover or
+                 keyboard focus: the helper classes keep the icons in the tab
+                 order. Same hover affordance as the Documents and Task
+                 widgets: a small text button (28px-high pill), small icon
+                 buttons (28px circle) -->
+            <div class="hover-swap-parent d-flex align-center">
               <v-btn
                 v-if="!emptyWidget"
-                :icon="hoverEdit"
-                :text="!hoverEdit"
-                :title="hoverEdit && $t('analytics.spacesListWidgetSettings.seeAll') || null"
-                :aria-label="hoverEdit && $t('analytics.spacesListWidgetSettings.seeAll') || null"
+                :tabindex="$root.canEdit && -1 || null"
+                :aria-hidden="$root.canEdit ? 'true' : null"
+                :class="$root.canEdit && 'hover-swap-default'"
                 color="primary"
                 small
+                text
                 link
                 @click="$refs.listDrawer.open()">
-                <v-icon
-                  v-if="hoverEdit"
-                  size="18">
-                  fa-external-link-alt
-                </v-icon>
-                <span v-else class="text-font-size text-none">{{ $t('analytics.spacesListWidgetSettings.seeAll') }}</span>
+                <span class="text-font-size text-none">{{ $t('analytics.spacesListWidgetSettings.seeAll') }}</span>
               </v-btn>
-              <v-fab-transition hide-on-leave>
+              <div
+                v-if="$root.canEdit"
+                class="hover-swap-alt align-center">
                 <v-btn
-                  v-show="$root.canEdit"
-                  :class="{ 'd-sr-only-focusable': !hoverEdit }"
+                  v-if="!emptyWidget"
+                  :title="$t('analytics.spacesListWidgetSettings.seeAll')"
+                  :aria-label="$t('analytics.spacesListWidgetSettings.seeAll')"
+                  color="primary"
+                  small
+                  icon
+                  @click="$refs.listDrawer.open()">
+                  <v-icon size="18">fa-external-link-alt</v-icon>
+                </v-btn>
+                <v-btn
                   :title="$t('analytics.spacesListWidgetSettings.editTooltip')"
                   :aria-label="$t('analytics.spacesListWidgetSettings.editTooltip')"
                   small
@@ -72,41 +75,41 @@
                   @click="$root.$emit('spaces-list-widget-settings')">
                   <v-icon size="18">fa-cog</v-icon>
                 </v-btn>
-              </v-fab-transition>
+              </div>
             </div>
           </div>
-        </template>
-        <template v-if="initialized" #default>
-          <div v-if="emptyWidget" class="d-flex flex-column align-center justify-center full-width full-height">
-            <v-icon color="tertiary" size="60">fa-layer-group</v-icon>
-            <span v-if="profileMode" class="mt-5">{{ $t('analytics.spacesListWidget.noCommonSpaces') }}</span>
-            <template v-else>
-              <span class="mt-5">{{ $t('analytics.spacesListWidget.noSpaces') }}</span>
-              <span class="my-4">
-                <space-creation-button
-                  v-if="$root.canCreateSpace"
-                  :color="'primary'"
-                  :elevation="0"
-                  outlined
-                  require-form-drawer
-                  display-label />
-              </span>
-            </template>
-          </div>
-          <div v-else>
-            <spaces-list-widget-list
-              :list="userSpaces"
-              :label-key="sectionsCount > 1 && 'analytics.spacesListWidget.userSpaces'" />
-            <spaces-list-widget-list
-              :list="mostRecentSpaces"
-              :label-key="sectionsCount > 1 && 'analytics.spacesListWidget.recentSpaces'" />
-            <spaces-list-widget-list
-              :list="mostActiveSpaces"
-              :label-key="sectionsCount > 1 && 'analytics.spacesListWidget.activeSpaces'" />
-          </div>
-        </template>
-      </widget-wrapper>
-    </v-hover>
+        </div>
+      </template>
+      <template v-if="initialized" #default>
+        <div v-if="emptyWidget" class="d-flex flex-column align-center justify-center full-width full-height">
+          <v-icon color="tertiary" size="60">fa-layer-group</v-icon>
+          <span v-if="profileMode" class="mt-5">{{ $t('analytics.spacesListWidget.noCommonSpaces') }}</span>
+          <template v-else>
+            <span class="mt-5">{{ $t('analytics.spacesListWidget.noSpaces') }}</span>
+            <span class="my-4">
+              <space-creation-button
+                v-if="$root.canCreateSpace"
+                :color="'primary'"
+                :elevation="0"
+                outlined
+                require-form-drawer
+                display-label />
+            </span>
+          </template>
+        </div>
+        <div v-else>
+          <spaces-list-widget-list
+            :list="userSpaces"
+            :label-key="sectionsCount > 1 && 'analytics.spacesListWidget.userSpaces'" />
+          <spaces-list-widget-list
+            :list="mostRecentSpaces"
+            :label-key="sectionsCount > 1 && 'analytics.spacesListWidget.recentSpaces'" />
+          <spaces-list-widget-list
+            :list="mostActiveSpaces"
+            :label-key="sectionsCount > 1 && 'analytics.spacesListWidget.activeSpaces'" />
+        </div>
+      </template>
+    </widget-wrapper>
     <spaces-list-widget-settings-drawer
       v-if="$root.canEdit" />
     <spaces-list-widget-drawer
@@ -116,8 +119,6 @@
 <script>
 export default {
   data: () => ({
-    hover: false,
-    focused: false,
     loading: false,
     initialized: false,
     applicationMounted: false,
@@ -127,9 +128,6 @@ export default {
     profileError: false,
   }),
   computed: {
-    hoverEdit() {
-      return (this.hover || this.focused) && this.$root.canEdit;
-    },
     spacesCount() {
       return (this.userSpaces?.length || 0) + (this.mostRecentSpaces?.length || 0) + (this.mostActiveSpaces?.length || 0);
     },
@@ -226,14 +224,6 @@ export default {
     this.applicationMounted = true;
   },
   methods: {
-    onFocusIn(event) {
-      // The edit icons replace the 'See all' text on hover: the keyboard focus
-      // reveals them too, so they are reached in the tab order
-      this.focused = !!event.target.matches?.(':focus-visible');
-    },
-    onFocusOut(event) {
-      this.focused = !!(event.relatedTarget && event.currentTarget.contains(event.relatedTarget));
-    },
     refresh() {
       this.loading = true;
       if (this.profileMode) {
