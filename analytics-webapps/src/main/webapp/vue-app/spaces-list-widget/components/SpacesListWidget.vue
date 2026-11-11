@@ -45,6 +45,7 @@
               <v-btn
                 v-if="!emptyWidget"
                 :tabindex="$root.canEdit && -1 || null"
+                :aria-hidden="$root.canEdit ? 'true' : null"
                 :class="$root.canEdit && 'hover-swap-default'"
                 color="primary"
                 small
