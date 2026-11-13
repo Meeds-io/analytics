@@ -31,6 +31,7 @@ import org.exoplatform.social.core.space.spi.SpaceService;
 import io.meeds.analytics.model.StatisticData;
 import io.meeds.analytics.utils.AnalyticsUtils;
 import io.meeds.common.ContainerTransactional;
+import io.meeds.spring.kernel.ClusterTaskScheduler;
 
 import lombok.SneakyThrows;
 
@@ -46,7 +47,7 @@ public class SpacesStatisticsCountJob {
 
   @SneakyThrows
   @ContainerTransactional
-  @Scheduled(initialDelay = 2, fixedDelay = 180, timeUnit = TimeUnit.MINUTES)
+  @Scheduled(initialDelay = 2, fixedDelay = 180, timeUnit = TimeUnit.MINUTES, scheduler = ClusterTaskScheduler.NAME)
   public void run() {
     long startTime = System.currentTimeMillis();
     int allSpacesCount = spaceService.getAllSpacesWithListAccess().getSize();
