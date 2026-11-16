@@ -23,6 +23,7 @@ import static io.meeds.analytics.elasticsearch.listener.ElasticsearchMappingList
 import static io.meeds.analytics.utils.AnalyticsUtils.ALTERNATIVE_FIELD_SUFFIX;
 import static io.meeds.analytics.utils.AnalyticsUtils.DEFAULT_FIELDS;
 import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_DURATION;
+import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_ID;
 import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_ERROR_CODE;
 import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_ERROR_MESSAGE;
 import static io.meeds.analytics.utils.AnalyticsUtils.FIELD_IS_ANALYTICS;
@@ -43,6 +44,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.ResolverStyle;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -165,6 +167,14 @@ public class ElasticsearchAnalyticsStorage {
     } catch (Exception e) {
       LOG.warn("Error while initializing Elasticsearch connection", e);
     }
+  }
+
+  /**
+   * @return the mappings this storage created since its start, by field name,
+   *         read-only, which the published mapping view may not hold yet
+   */
+  public Map<String, String> getMappedFieldNames() {
+    return Collections.unmodifiableMap(mappedFieldNames);
   }
 
   /**
@@ -452,7 +462,7 @@ public class ElasticsearchAnalyticsStorage {
     String timestampString = String.valueOf(data.getTimestamp());
 
     Map<String, String> fields = new HashMap<>();
-    fields.put("id", id);
+    fields.put(FIELD_ID, id);
     fields.put(FIELD_TIMESTAMP, timestampString);
     fields.put(FIELD_USER_ID, String.valueOf(data.getUserId()));
     fields.put(FIELD_SPACE_ID, String.valueOf(data.getSpaceId()));

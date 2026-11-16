@@ -49,6 +49,7 @@ const config = {
     analyticsTable:'./src/main/webapp/vue-app/table-portlet/main.js',
     spacesListWidget:'./src/main/webapp/vue-app/spaces-list-widget/main.js',
     spacesAdministrationExtension:'./src/main/webapp/vue-app/spaces-administration-extension/main.js',
+    collaborativeActivityHelp: './src/main/webapp/vue-app/collaborative-activity-help/main.js',
     analyticsApi:'./src/main/webapp/vue-app/analytics-api/main.js',
     analyticsQuickActionExtensions: "./src/main/webapp/vue-app/quick-actions/extensions.js",
     analyticsActivityStreamExtension: "./src/main/webapp/vue-app/analytics-extensions/number-views/main.js"

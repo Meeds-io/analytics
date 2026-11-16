@@ -33,6 +33,7 @@
         v-model="filter.type"
         :placeholder="$t('analytics.operatorPlaceholder')"
         :title="searchFilterTypeLabel"
+        :aria-label="$t('analytics.operatorPlaceholder')"
         class="operatorInput border-color my-auto text-truncate ignore-vuetify-classes"
         :class="expand ? 'mx-1' : 'mx-0'"
         @change="filterTypeChanged">
@@ -81,6 +82,7 @@
           v-model="filter.valueString"
           type="text"
           :placeholder="valuesComparatorPlaceholder"
+          :aria-label="suggesterLabels.ariaLabel"
           class="ignore-vuetify-classes width-auto pa-0 my-auto"
           required>
       </template>
@@ -88,6 +90,7 @@
         v-else-if="filter.type === 'LESS' || filter.type === 'GREATER'"
         v-model.number="filter.valueString"
         type="number"
+        :aria-label="suggesterLabels.ariaLabel"
         :placeholder="$t('analytics.numberValuePlaceholder')"
         class="ignore-vuetify-classes width-auto pa-0 my-auto"
         required>
@@ -96,17 +99,31 @@
           v-model.number="filter.range.min"
           type="number"
           :placeholder="$t('analytics.minPlaceholder')"
+          :aria-label="$t('analytics.fieldValueMinOf', {0: selectedFieldLabel})"
           class="ignore-vuetify-classes width-auto pa-0 my-auto"
           required>
         <input
           v-model.number="filter.range.max"
           type="number"
           :placeholder="$t('analytics.maxPlaceholder')"
+          :aria-label="$t('analytics.fieldValueMaxOf', {0: selectedFieldLabel})"
           class="ignore-vuetify-classes pa-0 width-auto my-auto"
           required>
       </template>
     </div>
-    <div :class="expand ? 'ms-auto mb-auto' : 'd-flex justify-end'">
+    <div :class="expand ? 'ms-auto mb-auto d-flex align-center' : 'd-flex justify-end align-center'">
+      <!-- The same help as Manage Spaces' Last Activity: one drawer, one content,
+           opened from the filter on the virtual collaborative-activity field.
+           The design puts 12px between the two 36px buttons; the button
+           takes the delete button's 36px, so both hover discs match, and
+           the margin keeps the two buttons apart, with no overlap a click
+           could land in -->
+      <analytics-collaborative-activity-help-button
+        v-if="filter.field === 'collaborativeActivity'"
+        class="me-3"
+        :icon-size="20"
+        :button-size="36"
+        tooltip-key="analytics.collaborativeActivity.help.tooltip.chart" />
       <v-btn
         icon
         class="error-color"
@@ -156,6 +173,7 @@ export default {
         searchPlaceholder: this.$t('analytics.searchPlaceholder'),
         placeholder: this.$t('analytics.searchPlaceholder'),
         noDataLabel: this.$t('analytics.noDataLabel'),
+        ariaLabel: this.$t('analytics.fieldValueOf', {0: this.selectedFieldLabel}),
       };
     },
     selectedFieldMapping() {
