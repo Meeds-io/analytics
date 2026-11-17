@@ -955,7 +955,8 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
       appendAggregationNameQuery(esQuery,
                                  aggregationFieldName,
                                  aggregationField,
-                                 aggregationType == AnalyticsAggregationType.TERMS);
+                                 aggregationType == AnalyticsAggregationType.TERMS
+                                     || aggregationType == AnalyticsAggregationType.CARDINALITY);
       appendIntervalQuery(esQuery, timeZone, aggregation, aggregationType, aggregationFieldName);
       appendLimitQuery(esQuery, aggregationType, limit);
       appendSortQuery(esQuery, aggregations, aggregationsSize, i, aggregation, aggregationType);
@@ -1033,12 +1034,14 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
    * @param esQuery the query to complete
    * @param aggregationFieldName the aggregated field
    * @param aggregationField its entry of the mapping view, null when unknown
-   * @param groupsByValue whether the aggregation makes one group per value of
-   *          the field. Such an aggregation reads the indices of one type
-   *          only when the weekly indices give the field several types (a
+   * @param groupsByValue whether the aggregation tells the values of the field
+   *          apart: one group per value, or a count of the distinct values.
+   *          When the weekly indices give the field several types (a
    *          {@code long} in the older ones, a {@code keyword} in the newer
-   *          ones), with no error and no failed shard: the values are then
-   *          read as text, so the same value is one group over every index.
+   *          ones), a grouping reads the indices of one type only and a
+   *          distinct count counts a value once per type, with no error and
+   *          no failed shard: the values are then read as text, so the same
+   *          value is one value over every index.
    */
   private void appendAggregationNameQuery(StringBuilder esQuery,
                                           String aggregationFieldName,

@@ -186,6 +186,27 @@ class ElasticsearchAnalyticsTypeConflictAggregationIT extends AbstractElasticsea
                  "each user is listed once, with the events of both indices");
   }
 
+  @Test
+  void aUserOfBothTypesIsCountedOnceAmongTheDistinctUsers() {
+    ChartDataList distinctUsers = service.getChart(null,
+                                                   null,
+                                                   null,
+                                                   "module",
+                                                   AnalyticsAggregationType.TERMS,
+                                                   null,
+                                                   "userId",
+                                                   AnalyticsAggregationType.CARDINALITY,
+                                                   "desc",
+                                                   10,
+                                                   false);
+
+    List<ChartAggregationResult> results = results(distinctUsers);
+    assertEquals(List.of("social"), results.stream().map(ChartAggregationResult::getLabel).toList());
+    assertEquals(2d,
+                 Double.parseDouble(results.getFirst().getResult()),
+                 "the user of both indices is one user, beside the user of the newer index");
+  }
+
   private static List<ChartAggregationResult> results(ChartDataList chartData) {
     assertEquals(1, chartData.getCharts().size(), "one chart is expected");
     return chartData.getCharts().getFirst().getAggregationResults();
