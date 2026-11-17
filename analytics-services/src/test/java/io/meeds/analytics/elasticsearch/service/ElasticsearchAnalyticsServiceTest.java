@@ -86,6 +86,51 @@ class ElasticsearchAnalyticsServiceTest {
     ReflectionTestUtils.setField(elasticsearchAnalyticsService, "aggregationReturnedDocumentsSize", 200);
   }
 
+  @Test
+  void onlyAGroupingOnAFieldInTypeConflictReadsItsValuesAsText() {
+    when(elasticsearchStorage.search(anyString())).thenReturn(cannedResponse(2));
+    StatisticFieldMapping rank = new StatisticFieldMapping("rank", "long", false);
+    rank.setTypeConflict(true);
+    ElasticsearchAnalyticsServiceCollaborativeTest.viewOf(elasticsearchAnalyticsService)
+                                                  .set(Map.of("rank", rank, "module", new StatisticFieldMapping("module", "keyword", false)));
+
+    AnalyticsFilter metric = new AnalyticsFilter();
+    metric.setFilters(new ArrayList<>());
+    metric.addXAxisAggregation(new AnalyticsAggregation(AnalyticsAggregationType.TERMS, "module", "desc", null, 10));
+    metric.setYAxisAggregation(new AnalyticsAggregation(AnalyticsAggregationType.MAX, "rank", "desc", null, 0));
+    elasticsearchAnalyticsService.computeChartData(metric);
+    String metricQuery = captureGeneratedQuery();
+
+    assertTrue(metricQuery.contains("\"field\": \"module\""), "a grouping on a field with one type keeps the field");
+    assertTrue(metricQuery.contains("\"field\": \"rank\""), "a metric on a field in type conflict keeps the field");
+    assertFalse(metricQuery.contains("\"script\""), "neither of them reads values as text");
+  }
+
+  @Test
+  void aGroupingOnAFieldInTypeConflictPassesTheFieldNameAsAScriptParameter() {
+    when(elasticsearchStorage.search(anyString())).thenReturn(cannedResponse(2));
+    StatisticFieldMapping rank = new StatisticFieldMapping("rank", "long", false);
+    rank.setTypeConflict(true);
+    ElasticsearchAnalyticsServiceCollaborativeTest.viewOf(elasticsearchAnalyticsService).set(Map.of("rank", rank));
+
+    AnalyticsFilter grouping = new AnalyticsFilter();
+    grouping.setFilters(new ArrayList<>());
+    grouping.addXAxisAggregation(new AnalyticsAggregation(AnalyticsAggregationType.TERMS, "rank", "desc", null, 10));
+    grouping.setYAxisAggregation(new AnalyticsAggregation(AnalyticsAggregationType.COUNT, "rank", "desc", null, 0));
+    elasticsearchAnalyticsService.computeChartData(grouping);
+
+    JSONObject terms = firstAggregation(new JSONObject(captureGeneratedQuery())).getJSONObject("terms");
+    assertFalse(terms.has("field"), "the grouping reads through the script");
+    JSONObject script = terms.getJSONObject("script");
+    assertEquals("rank", script.getJSONObject("params").getString("field"));
+    assertFalse(script.getString("source").contains("rank"), "the field name is never a part of the script source");
+  }
+
+  private static JSONObject firstAggregation(JSONObject query) {
+    JSONObject aggregations = query.getJSONObject("aggs");
+    return aggregations.getJSONObject(aggregations.keys().next());
+  }
+
   private AnalyticsFilter newGroupByFilter(long minDocCount) {
     AnalyticsFilter filter = new AnalyticsFilter();
     filter.setFilters(new ArrayList<>());

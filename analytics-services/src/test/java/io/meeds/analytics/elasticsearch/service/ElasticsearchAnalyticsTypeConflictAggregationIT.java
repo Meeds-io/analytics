@@ -269,6 +269,25 @@ class ElasticsearchAnalyticsTypeConflictAggregationIT extends AbstractElasticsea
     assertEquals(Map.of("1000", 4d), countByMoment, "the date of the older index and the number of the newer one are the same moment");
   }
 
+  @Test
+  void aMaximumOfAFieldInTypeConflictKeepsReadingTheFieldItself() {
+    ChartDataList highestRank = service.getChart(null,
+                                                 null,
+                                                 null,
+                                                 "module",
+                                                 AnalyticsAggregationType.TERMS,
+                                                 null,
+                                                 "rank",
+                                                 AnalyticsAggregationType.MAX,
+                                                 "desc",
+                                                 10,
+                                                 false);
+
+    List<ChartAggregationResult> results = results(highestRank);
+    assertEquals(List.of("social"), results.stream().map(ChartAggregationResult::getLabel).toList());
+    assertEquals(15d, Double.parseDouble(results.getFirst().getResult()), "a metric reads numbers, never the text of the grouping");
+  }
+
   /**
    * The behaviour of the engine the fix answers, pinned here because nothing
    * else states it: the plain request is accepted, no shard fails, and the
