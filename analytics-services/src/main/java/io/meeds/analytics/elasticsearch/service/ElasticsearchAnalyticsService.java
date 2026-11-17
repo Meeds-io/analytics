@@ -156,8 +156,9 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
   /**
    * Reads the values of a field as text, whatever type the index gives it: a
    * whole number reads the same from an integer, a decimal or a keyword index
-   * ({@code 15}), any other value as the index holds it. The field name is a
-   * parameter of the script, never a part of its source.
+   * ({@code 15}), a date reads as its epoch milliseconds, as an index holding
+   * it as a number does, any other value as the index holds it. The field name
+   * is a parameter of the script, never a part of its source.
    */
   private static final String                FIELD_AS_TEXT_SCRIPT                     =
                                                                   "def texts = new ArrayList();"
@@ -166,6 +167,8 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
                                                                       + " if (value instanceof Double && value == Math.rint(value)"
                                                                       + " && Math.abs(value) < 9.0E15) {"
                                                                       + " texts.add(String.valueOf((long) value)); }"
+                                                                      + " else if (value instanceof ZonedDateTime) {"
+                                                                      + " texts.add(String.valueOf(value.toInstant().toEpochMilli())); }"
                                                                       + " else { texts.add(value.toString()); } } }"
                                                                       + " return texts;";
 

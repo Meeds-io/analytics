@@ -122,8 +122,8 @@ class ElasticsearchAnalyticsTypeConflictAggregationIT extends AbstractElasticsea
 
     cleanCluster();
     // The older weeks hold the ids as numbers, the newer ones as keywords
-    createIndex(OLD_INDEX, "long", "float", false);
-    createIndex(currentIndex(), "keyword", "long", true);
+    createIndex(OLD_INDEX, "long", "float", "\"type\":\"date\",\"format\":\"epoch_millis\"", false);
+    createIndex(currentIndex(), "keyword", "long", "\"type\":\"long\"", true);
     index(OLD_INDEX, "1", event("createActivity", 1000, 1, 7));
     index(OLD_INDEX, "2", event("createActivity", 2000, 2, 7));
     index(currentIndex(), "3", event("createActivity", 4000, "1", "7"));
@@ -249,6 +249,26 @@ class ElasticsearchAnalyticsTypeConflictAggregationIT extends AbstractElasticsea
     assertEquals(Map.of("15", 4d), countByRank, "15.0 of the float index and 15 of the long index are the same rank");
   }
 
+  @Test
+  void aMomentIsOneGroupWhetherTheIndexHoldsItAsADateOrAsANumber() {
+    ChartDataList eventsByMoment = service.getChart(null,
+                                                    null,
+                                                    null,
+                                                    "moment",
+                                                    AnalyticsAggregationType.TERMS,
+                                                    null,
+                                                    "operation",
+                                                    AnalyticsAggregationType.COUNT,
+                                                    "desc",
+                                                    10,
+                                                    false);
+
+    Map<String, Double> countByMoment = results(eventsByMoment).stream()
+                                                               .collect(Collectors.toMap(ChartAggregationResult::getLabel,
+                                                                                         result -> Double.parseDouble(result.getResult())));
+    assertEquals(Map.of("1000", 4d), countByMoment, "the date of the older index and the number of the newer one are the same moment");
+  }
+
   /**
    * The behaviour of the engine the fix answers, pinned here because nothing
    * else states it: the plain request is accepted, no shard fails, and the
@@ -282,6 +302,7 @@ class ElasticsearchAnalyticsTypeConflictAggregationIT extends AbstractElasticsea
     event.put("operation", operation);
     event.put("status", 0);
     event.put("rank", 15);
+    event.put("moment", 1000);
     return event;
   }
 
@@ -290,15 +311,15 @@ class ElasticsearchAnalyticsTypeConflictAggregationIT extends AbstractElasticsea
     assertTrue(response.statusCode() == 200 || response.statusCode() == 201, response::body);
   }
 
-  private void createIndex(String index, String idType, String rankType, boolean writeIndex) throws Exception {
+  private void createIndex(String index, String idType, String rankType, String momentMapping, boolean writeIndex) throws Exception {
     HttpResponse<String> response = send("PUT", "/" + index, """
         {"aliases":{"%s":{"is_write_index":%s}},
          "settings":{"number_of_shards":1,"number_of_replicas":0},
          "mappings":{"properties":{
            "timestamp":{"type":"date","format":"epoch_millis"},
-           "userId":{"type":"%s"}, "spaceId":{"type":"%s"}, "rank":{"type":"%s"}, "status":{"type":"short"},
+           "userId":{"type":"%s"}, "spaceId":{"type":"%s"}, "rank":{"type":"%s"}, "moment":{%s}, "status":{"type":"short"},
            "operation":{"type":"keyword"}, "module":{"type":"keyword"}, "subModule":{"type":"keyword"}}}}
-        """.formatted(ALIAS, writeIndex, idType, idType, rankType));
+        """.formatted(ALIAS, writeIndex, idType, idType, rankType, momentMapping));
     assertEquals(200, response.statusCode(), response::body);
   }
 
