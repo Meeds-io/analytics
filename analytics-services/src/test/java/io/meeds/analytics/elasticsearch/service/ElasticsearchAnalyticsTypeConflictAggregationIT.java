@@ -33,6 +33,7 @@ import java.net.http.HttpResponse.BodyHandlers;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -58,6 +59,8 @@ import io.meeds.analytics.elasticsearch.storage.ElasticsearchConfiguration;
 import io.meeds.analytics.model.StatisticFieldValue;
 import io.meeds.analytics.model.chart.ChartAggregationResult;
 import io.meeds.analytics.model.chart.ChartDataList;
+import io.meeds.analytics.model.filter.AnalyticsFilter;
+import io.meeds.analytics.model.filter.aggregation.AnalyticsAggregation;
 import io.meeds.analytics.model.filter.aggregation.AnalyticsAggregationType;
 
 /**
@@ -205,6 +208,25 @@ class ElasticsearchAnalyticsTypeConflictAggregationIT extends AbstractElasticsea
     assertEquals(2d,
                  Double.parseDouble(results.getFirst().getResult()),
                  "the user of both indices is one user, beside the user of the newer index");
+  }
+
+  @Test
+  void aUserOfBothTypesIsOneGroupOfAGroupByCount() {
+    AnalyticsFilter filter = new AnalyticsFilter();
+    filter.setFilters(new ArrayList<>());
+    filter.addXAxisAggregation(new AnalyticsAggregation(AnalyticsAggregationType.TERMS, "module", "desc", null, 10));
+    AnalyticsAggregation groupBy = new AnalyticsAggregation();
+    groupBy.setType(AnalyticsAggregationType.GROUP_BY);
+    groupBy.setField("userId");
+    groupBy.setMinDocCount(1);
+    filter.setYAxisAggregation(groupBy);
+
+    List<ChartAggregationResult> results = results(service.computeChartData(filter));
+
+    assertEquals(1, results.size(), "one module holds the events");
+    assertEquals(2d,
+                 Double.parseDouble(results.getFirst().getResult()),
+                 "the user of both indices is one group, beside the user of the newer index");
   }
 
   /**
