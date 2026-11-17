@@ -146,7 +146,7 @@
              only a statement once the current tab's request has answered,
              otherwise it flashes before every first page -->
         <div v-if="emptyList && !listLoading" class="d-flex flex-column flex-grow-1 align-center justify-center full-width">
-          <v-icon color="tertiary" size="40">{{ profileMode && tabName === 'common' && !ownProfile && 'fa-layer-group' || 'fa-people-arrows' }}</v-icon>
+          <v-icon color="secondary" size="40">{{ profileMode && tabName === 'common' && !ownProfile && 'fa-layer-group' || 'fa-people-arrows' }}</v-icon>
           <span class="mt-5">{{ profileMode && tabName === 'common' && !ownProfile && $t('analytics.spacesListWidget.noCommonSpaces') || $t('analytics.spacesListWidget.noSpaces') }}</span>
         </div>
       </div>

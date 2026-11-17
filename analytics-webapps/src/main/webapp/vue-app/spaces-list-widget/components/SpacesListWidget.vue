@@ -73,7 +73,7 @@
         </template>
         <template v-if="initialized" #default>
           <div v-if="emptyWidget" class="d-flex flex-column align-center justify-center full-width full-height">
-            <v-icon color="tertiary" size="60">fa-layer-group</v-icon>
+            <v-icon color="secondary" size="60">fa-layer-group</v-icon>
             <span v-if="profileMode" class="mt-5">{{ $t('analytics.spacesListWidget.noCommonSpaces') }}</span>
             <template v-else>
               <span class="mt-5">{{ $t('analytics.spacesListWidget.noSpaces') }}</span>
