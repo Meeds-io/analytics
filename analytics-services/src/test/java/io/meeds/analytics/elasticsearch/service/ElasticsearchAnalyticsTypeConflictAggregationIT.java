@@ -207,6 +207,24 @@ class ElasticsearchAnalyticsTypeConflictAggregationIT extends AbstractElasticsea
                  "the user of both indices is one user, beside the user of the newer index");
   }
 
+  /**
+   * The behaviour of the engine the fix answers, pinned here because nothing
+   * else states it: the plain request is accepted, no shard fails, and the
+   * answer misses the spaces of one type.
+   */
+  @Test
+  void theEngineAnswersAPlainGroupingFromTheIndicesOfOneTypeWithNoFailedShard() throws Exception {
+    HttpResponse<String> response = send("POST", "/" + ALIAS + "/_search", """
+        {"size":0,"aggs":{"spaces":{"terms":{"field":"spaceId"}}}}
+        """);
+
+    assertEquals(200, response.statusCode(), response::body);
+    JSONObject answer = new JSONObject(response.body());
+    assertEquals(0, answer.getJSONObject("_shards").getInt("failed"), response::body);
+    int spaces = answer.getJSONObject("aggregations").getJSONObject("spaces").getJSONArray("buckets").length();
+    assertTrue(spaces < 3, () -> "the three spaces are not all listed by the plain request: " + response.body());
+  }
+
   private static List<ChartAggregationResult> results(ChartDataList chartData) {
     assertEquals(1, chartData.getCharts().size(), "one chart is expected");
     return chartData.getCharts().getFirst().getAggregationResults();
