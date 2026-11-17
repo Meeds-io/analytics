@@ -154,14 +154,19 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
   private static final String                AGG_FIELD_PARAM_REQUEST_BODY_PARAM       = "$aggFieldParam";
 
   /**
-   * Reads the values of a field as text, whatever type the index gives it. The
-   * field name is a parameter of the script, never a part of its source.
+   * Reads the values of a field as text, whatever type the index gives it: a
+   * whole number reads the same from an integer, a decimal or a keyword index
+   * ({@code 15}), any other value as the index holds it. The field name is a
+   * parameter of the script, never a part of its source.
    */
   private static final String                FIELD_AS_TEXT_SCRIPT                     =
                                                                   "def texts = new ArrayList();"
                                                                       + " if (doc.containsKey(params.field)) {"
                                                                       + " for (def value : doc[params.field]) {"
-                                                                      + " texts.add(value.toString()); } }"
+                                                                      + " if (value instanceof Double && value == Math.rint(value)"
+                                                                      + " && Math.abs(value) < 9.0E15) {"
+                                                                      + " texts.add(String.valueOf((long) value)); }"
+                                                                      + " else { texts.add(value.toString()); } } }"
                                                                       + " return texts;";
 
   private static final String                VALUE_REQUEST_BODY_PARAM                 = "$value";
