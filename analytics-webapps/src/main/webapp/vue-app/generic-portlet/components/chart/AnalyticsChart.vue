@@ -61,6 +61,7 @@ export default {
         .toString()
         .toString()}`,
       chartInstance: null,
+      chartsData: null,
       chartOptions: {},
       resizeObserver: null,
     };
@@ -70,7 +71,11 @@ export default {
       this.init();
     }
   },
+  created() {
+    document.addEventListener('displayModeChanged', this.refreshTheme);
+  },
   beforeDestroy() {
+    document.removeEventListener('displayModeChanged', this.refreshTheme);
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
     }
@@ -79,7 +84,27 @@ export default {
     }
   },
   methods: {
+    refreshTheme() {
+      // The canvas can't follow the page's CSS: its text, axis and tooltip colours are read again for the version shown
+      if (this.chartsData) {
+        this.init(this.chartsData).catch(e => console.error('Chart colours not refreshed for', this.id, e));
+      }
+    },
+    isDarkVersion() {
+      // an application kept light (a light scope around it) shows the light version on a dark page
+      if (this.$root?.lightOnly || this.$el?.closest?.('[data-display-mode="light"]:not(html)')) {
+        return false;
+      }
+      const version = this.$displayMode?.getVersion?.();
+      return (version || document.documentElement.dataset.displayMode) === 'dark';
+    },
+    themeColor(container, names, fallback) {
+      const style = window.getComputedStyle(container);
+      const name = names.find(n => style.getPropertyValue(n)?.trim());
+      return name ? style.getPropertyValue(name).trim() : fallback;
+    },
     async init(chartsData) {
+      this.chartsData = chartsData;
       const charts = (chartsData && chartsData.charts) || [];
       const labels = await Promise.all(((chartsData && chartsData.labels) || []).map(l => Promise.resolve(this.getI18N(l))));
       const $container = $(`#${this.id}`);
@@ -87,6 +112,21 @@ export default {
         console.error('No chart container for selector', this.id);
         return;
       }
+      // Light keeps the ECharts defaults; only the dark version gets theme-derived colours
+      const dark = this.isDarkVersion();
+      const textColor = dark && this.themeColor($container[0], ['--appTextColor', '--allPagesBaseTextColor'], '#20282c');
+      const surfaceColor = dark && this.themeColor($container[0], ['--allPagesBaseBackground'], '#ffffff');
+      const borderColor = dark && this.themeColor($container[0], ['--allPagesBorderColor'], '#e1e8ee');
+      const pointerLabelColor = dark ? this.themeColor($container[0], ['--allPagesGreyColorLighten1'], '#6B6B6B') : '#6a7985';
+      const tooltipStyle = dark ? {
+        backgroundColor: surfaceColor,
+        borderColor,
+        textStyle: {color: textColor},
+      } : {};
+      const axisStyle = dark ? {
+        axisLabel: {color: textColor},
+        axisLine: {lineStyle: {color: borderColor}},
+      } : {};
       const series = [];
       const chartOptions = {
         title: {x: 'center'},
@@ -105,6 +145,7 @@ export default {
       if (echartsSeriesType === 'line' || echartsSeriesType === 'bar') {
         const isStacked = this.chartType === 'stackedBar';
         const yAxisOptions = {
+          ...axisStyle,
           type: 'value',
           splitLine: {show: false},
         };
@@ -112,13 +153,15 @@ export default {
         Object.assign(chartOptions, {
           grid: {show: false},
           tooltip: {
+            ...tooltipStyle,
             trigger: 'axis',
             axisPointer: {
               type: 'cross',
-              label: {backgroundColor: '#6a7985'}
+              label: {backgroundColor: pointerLabelColor}
             },
           },
           xAxis: [{
+            ...axisStyle,
             type: 'category',
             showGrid: false,
             data: [...labels],
@@ -189,13 +232,13 @@ export default {
         const isDoughnut = this.chartType === 'doughnut';
         const isNightingale = this.chartType === 'nightingale';
 
-        chartOptions.tooltip = {trigger: 'item', formatter: '{b} : {c} ({d}%)'};
+        chartOptions.tooltip = {...tooltipStyle, trigger: 'item', formatter: '{b} : {c} ({d}%)'};
         chartOptions.legend = {
           orient: 'vertical',
           left: '2%',
           // Canvas-rendered text can't take a CSS class directly: matches
           // the platform's subtitle-2 typography (font-size/weight) instead.
-          textStyle: {fontSize: 14, fontWeight: 500},
+          textStyle: dark ? {fontSize: 14, fontWeight: 500, color: textColor} : {fontSize: 14, fontWeight: 500},
         };
 
         const chartsLength = charts.length;
