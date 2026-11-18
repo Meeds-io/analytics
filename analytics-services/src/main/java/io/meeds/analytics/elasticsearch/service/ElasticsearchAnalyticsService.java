@@ -155,13 +155,15 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
 
   /**
    * Reads the values of a field as text, whatever type the index gives it: a
-   * whole number reads the same from an integer and from a decimal index, and
-   * as a keyword index writes it without a fraction ({@code 15}); a date reads
-   * as its epoch milliseconds, as an index holding it as a number does. Any
-   * other value reads as the index holds it: a number with a fraction is not
-   * unified between a decimal index, which widens it, and a keyword index, nor
-   * is a keyword written {@code 15.0}. The field name is a parameter of the
-   * script, never a part of its source.
+   * whole number below 9.0E15 reads the same from an integer and from a decimal
+   * index, and as a keyword index writes it without a fraction ({@code 15}); a
+   * date reads as its epoch milliseconds, as an index holding it as a number
+   * does. Any other value reads as the index holds it: a number with a fraction
+   * is not unified between a decimal index, which widens it, and a keyword
+   * index, nor is a keyword written {@code 15.0}, nor a whole number of 9.0E15
+   * or more, which a decimal index reads in its exponent form
+   * ({@code 1.0E16}). The field name is a parameter of the script, never a part
+   * of its source.
    */
   private static final String                FIELD_AS_TEXT_SCRIPT                     =
                                                                   "def texts = new ArrayList();"
