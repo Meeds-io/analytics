@@ -23,11 +23,9 @@ import java.io.Serializable;
 
 import io.meeds.analytics.model.filter.AnalyticsFilter.Range;
 
-import groovy.transform.ToString;
 import lombok.*;
 
 @Data
-@ToString
 @AllArgsConstructor
 @NoArgsConstructor
 public class AnalyticsFieldFilter implements Serializable, Cloneable {

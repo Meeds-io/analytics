@@ -31,12 +31,10 @@ import org.apache.commons.lang3.StringUtils;
 
 import io.meeds.analytics.utils.AnalyticsUtils;
 
-import groovy.transform.ToString;
 import lombok.*;
 import lombok.EqualsAndHashCode.Exclude;
 
 @Data
-@ToString
 @AllArgsConstructor
 @NoArgsConstructor
 public class AnalyticsAggregation implements Serializable, Cloneable {
