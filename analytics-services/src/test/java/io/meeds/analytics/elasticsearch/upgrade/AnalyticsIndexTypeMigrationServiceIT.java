@@ -21,7 +21,12 @@ package io.meeds.analytics.elasticsearch.upgrade;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.startsWith;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -35,6 +40,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.json.JSONObject;
@@ -79,6 +85,9 @@ class AnalyticsIndexTypeMigrationServiceIT extends AbstractElasticsearchIT {
 
   private static final String                NEWEST_INDEX = PREFIX + "_2020-01-16";
 
+  /** Behind the alias through the template, and no week */
+  private static final String                OTHER_INDEX  = PREFIX + "_zzz";
+
   private static final String                COPIES       = AnalyticsIndexTypeMigrationService.MIGRATION_INDEX_PREFIX + PREFIX + "_*";
 
   private static final String                OLD_COPY     = AnalyticsIndexTypeMigrationService.MIGRATION_INDEX_PREFIX + OLD_INDEX;
@@ -93,6 +102,8 @@ class AnalyticsIndexTypeMigrationServiceIT extends AbstractElasticsearchIT {
   @Mock
   private ListenerService                    listenerService;
 
+  private ElasticsearchAnalyticsStorage      storage;
+
   private AnalyticsIndexTypeMigrationService migrationService;
 
   @BeforeEach
@@ -102,7 +113,7 @@ class AnalyticsIndexTypeMigrationServiceIT extends AbstractElasticsearchIT {
     when(configuration.getIndexPrefix()).thenReturn(PREFIX);
     when(configuration.getIndexAlias()).thenReturn(ALIAS);
 
-    ElasticsearchAnalyticsStorage storage = new ElasticsearchAnalyticsStorage();
+    storage = spy(new ElasticsearchAnalyticsStorage());
     ReflectionTestUtils.setField(storage, "elasticsearchConfiguration", configuration);
     ReflectionTestUtils.setField(storage, "listenerService", listenerService);
     ReflectionTestUtils.setField(storage, "httpClient", HttpClientBuilder.create().build());
@@ -142,6 +153,11 @@ class AnalyticsIndexTypeMigrationServiceIT extends AbstractElasticsearchIT {
   }
 
   @Test
+  void theEngineCountsAUserOfBothTypesMoreThanOnceWithNoFailedShard() throws Exception {
+    assertNotEquals(2, usersOfThePlainDistinctCount(), "the two users are not counted once each by the plain request");
+  }
+
+  @Test
   void theOlderIndicesTakeTheTypesOfTheNewestOneAndKeepTheirNameAndDocuments() throws Exception {
     List<String> failedIndices = migrationService.migrate();
 
@@ -159,6 +175,7 @@ class AnalyticsIndexTypeMigrationServiceIT extends AbstractElasticsearchIT {
     assertEquals(2, count(OLD_INDEX));
     assertEquals(5, count(ALIAS));
     assertEquals(3, spacesOfThePlainGrouping());
+    assertEquals(2, usersOfThePlainDistinctCount());
     // A migrated index accepts writes, as any weekly index
     index(OLD_INDEX, "6", event(6000, 4, 8, 15));
     refresh();
@@ -232,20 +249,82 @@ class AnalyticsIndexTypeMigrationServiceIT extends AbstractElasticsearchIT {
   }
 
   @Test
-  void anIndexWhoseDocumentsDoNotFitTheNewTypeIsLeftAsItIsAndTheOthersAreMigrated() throws Exception {
-    // The older week holds, as a keyword, a rank no number can hold
-    HttpResponse<String> deleted = send("DELETE", "/" + OLD_INDEX, null);
-    assertEquals(200, deleted.statusCode(), deleted::body);
-    createIndex(OLD_INDEX, "long", "keyword", false);
-    // The template gave it the alias as a write index too
-    HttpResponse<String> notWritten = send("POST", "/_aliases", """
-        {"actions":[{"add":{"index":"%s","alias":"%s","is_write_index":false}}]}
-        """.formatted(OLD_INDEX, ALIAS));
-    assertEquals(200, notWritten.statusCode(), notWritten::body);
-    index(OLD_INDEX, "2", event(2000, 2, 7, "first"));
-    index(OLD_INDEX, "3", event(3000, 1, 8, "second"));
+  void aCopyStillRunningInTheEngineIsCancelledBeforeItsCopyIsDeletedAndMadeAgain() throws Exception {
+    // A run stopped while the engine was copying: the copy goes on, slowly
+    for (int i = 10; i < 40; i++) {
+      index(OLD_INDEX, String.valueOf(i), event(1000 + i, 2, 7, 15));
+    }
     refresh();
+    HttpResponse<String> copy = send("PUT", "/" + OLD_COPY, """
+        {"settings":{"number_of_shards":1,"number_of_replicas":0},
+         "mappings":{"properties":{"spaceId":{"type":"keyword"},"userId":{"type":"keyword"}}}}
+        """);
+    assertEquals(200, copy.statusCode(), copy::body);
+    HttpResponse<String> running = send("POST", "/_reindex?wait_for_completion=false&requests_per_second=1", """
+        {"source":{"index":"%s","size":1},"dest":{"index":"%s"}}
+        """.formatted(OLD_INDEX, OLD_COPY));
+    assertEquals(200, running.statusCode(), running::body);
+    assertEquals(1, runningCopies(), "the copy of the stopped run is running in the engine");
+
+    assertEquals(List.of(), migrationService.migrate());
+
+    assertEquals(0, runningCopies());
+    refresh();
+    assertEquals(Set.of(OLDEST_INDEX, OLD_INDEX, NEWEST_INDEX), indices("/_alias/" + ALIAS));
+    assertEquals(Set.of(), indices("/" + COPIES));
+    assertEquals("keyword", fieldType(OLD_INDEX, "spaceId"));
+    assertEquals(32, count(OLD_INDEX));
+    assertEquals(35, count(ALIAS));
+  }
+
+  @Test
+  void anUnfinishedCloneIsDeletedAndMadeAgainFromTheCopyThatHasTheAlias() throws Exception {
+    // A run stopped after the clone was asked: the copy has the alias, and an
+    // index has the name of the original
+    HttpResponse<String> copy = send("PUT", "/" + OLD_COPY, """
+        {"settings":{"number_of_shards":1,"number_of_replicas":0},
+         "mappings":{"properties":{"spaceId":{"type":"keyword"},"userId":{"type":"keyword"},"rank":{"type":"long"},
+           "timestamp":{"type":"date","format":"epoch_millis"}}}}
+        """);
+    assertEquals(200, copy.statusCode(), copy::body);
+    index(OLD_COPY, "2", event(2000, 2, 7, 15));
+    index(OLD_COPY, "3", event(3000, 1, 8, 15));
+    HttpResponse<String> swap = send("POST", "/_aliases", """
+        {"actions":[{"add":{"index":"%s","alias":"%s","is_write_index":false}},{"remove_index":{"index":"%s"}}]}
+        """.formatted(OLD_COPY, ALIAS, OLD_INDEX));
+    assertEquals(200, swap.statusCode(), swap::body);
+    HttpResponse<String> clone = send("PUT", "/" + OLD_INDEX, """
+        {"aliases":{"%s":{"is_write_index":false}},
+         "settings":{"number_of_shards":1,"number_of_replicas":0},
+         "mappings":{"properties":{"spaceId":{"type":"keyword"},"userId":{"type":"keyword"}}}}
+        """.formatted(ALIAS));
+    assertEquals(200, clone.statusCode(), clone::body);
+    index(OLD_INDEX, "2", event(2000, 2, 7, 15));
+    refresh();
+    String unfinishedCloneId = indexSettings(OLD_INDEX).getString("uuid");
+
+    assertEquals(List.of(), migrationService.migrate());
+
+    refresh();
+    assertNotEquals(unfinishedCloneId, indexSettings(OLD_INDEX).getString("uuid"));
+    assertEquals(Set.of(OLDEST_INDEX, OLD_INDEX, NEWEST_INDEX), indices("/_alias/" + ALIAS));
+    assertEquals(Set.of(), indices("/" + COPIES));
+    assertEquals(2, count(OLD_INDEX));
+    assertEquals(5, count(ALIAS));
+    assertEquals(3, spacesOfThePlainGrouping());
+  }
+
+  @Test
+  void anIndexWhoseCopyDoesNotHoldEveryDocumentIsLeftAsItIsAndTheOthersAreMigrated() throws Exception {
     String oldIndexId = indexSettings(OLD_INDEX).getString("uuid");
+    // The engine copies one of the two documents of the older week
+    doAnswer(invocation -> {
+      String content = invocation.getArgument(1);
+      if (content.contains("\"" + OLD_COPY + "\"")) {
+        invocation.getRawArguments()[1] = new JSONObject(content).put("max_docs", 1).toString();
+      }
+      return invocation.callRealMethod();
+    }).when(storage).sendPostRequest(startsWith("_reindex"), any());
 
     List<String> failedIndices = migrationService.migrate();
 
@@ -258,6 +337,95 @@ class AnalyticsIndexTypeMigrationServiceIT extends AbstractElasticsearchIT {
     assertEquals(Set.of(), indices("/" + COPIES));
     assertEquals("keyword", fieldType(OLDEST_INDEX, "spaceId"));
     assertEquals(5, count(ALIAS));
+  }
+
+  @Test
+  void anIndexDeletedSinceTheListWasMadeIsSkipped() throws Exception {
+    // The retention deletes the older week while the oldest one is copied
+    AtomicBoolean deleted = new AtomicBoolean();
+    doAnswer(invocation -> {
+      if (deleted.compareAndSet(false, true)) {
+        assertEquals(200, send("DELETE", "/" + OLD_INDEX, null).statusCode());
+      }
+      return invocation.callRealMethod();
+    }).when(storage).sendPostRequest(startsWith("_reindex"), any());
+
+    assertEquals(List.of(), migrationService.migrate());
+
+    refresh();
+    assertEquals(Set.of(OLDEST_INDEX, NEWEST_INDEX), indices("/_alias/" + ALIAS));
+    assertEquals(Set.of(), indices("/" + COPIES));
+    assertEquals("keyword", fieldType(OLDEST_INDEX, "spaceId"));
+    assertEquals(3, count(ALIAS));
+  }
+
+  @Test
+  void aFieldTheNewestIndexDoesNotTypeAsAKeywordIsLeftAsItIs() throws Exception {
+    // The older week holds, as a keyword, a rank no number can hold
+    HttpResponse<String> deleted = send("DELETE", "/" + OLD_INDEX, null);
+    assertEquals(200, deleted.statusCode(), deleted::body);
+    createIndex(OLD_INDEX, "long", "keyword", false);
+    // The template gave it the alias as a write index too
+    HttpResponse<String> notWritten = send("POST", "/_aliases", """
+        {"actions":[{"add":{"index":"%s","alias":"%s","is_write_index":false}}]}
+        """.formatted(OLD_INDEX, ALIAS));
+    assertEquals(200, notWritten.statusCode(), notWritten::body);
+    index(OLD_INDEX, "2", event(2000, 2, 7, "first"));
+    index(OLD_INDEX, "3", event(3000, 1, 8, "second"));
+    refresh();
+
+    assertEquals(List.of(), migrationService.migrate());
+
+    refresh();
+    assertEquals("keyword", fieldType(OLD_INDEX, "spaceId"));
+    assertEquals("keyword", fieldType(OLD_INDEX, "rank"), "a keyword the newest index types as a number is not converted");
+    assertEquals(2, count(OLD_INDEX));
+    assertEquals(5, count(ALIAS));
+    assertEquals(3, spacesOfThePlainGrouping());
+  }
+
+  @Test
+  void anIndexNamedAfterThePrefixThatIsNoWeekIsNeitherTheReferenceNorMigrated() throws Exception {
+    // Its name sorts after every week, and it holds the ids as numbers
+    createIndex(OTHER_INDEX, "long", "long", false);
+    HttpResponse<String> notWritten = send("POST", "/_aliases", """
+        {"actions":[{"add":{"index":"%s","alias":"%s","is_write_index":false}}]}
+        """.formatted(OTHER_INDEX, ALIAS));
+    assertEquals(200, notWritten.statusCode(), notWritten::body);
+    String otherIndexId = indexSettings(OTHER_INDEX).getString("uuid");
+
+    assertEquals(List.of(), migrationService.migrate());
+
+    assertEquals(otherIndexId, indexSettings(OTHER_INDEX).getString("uuid"));
+    assertEquals("long", fieldType(OTHER_INDEX, "spaceId"));
+    assertEquals("keyword", fieldType(OLDEST_INDEX, "spaceId"));
+    assertEquals("keyword", fieldType(OLD_INDEX, "spaceId"));
+  }
+
+  private int usersOfThePlainDistinctCount() throws Exception {
+    HttpResponse<String> response = send("POST", "/" + ALIAS + "/_search", """
+        {"size":0,"aggs":{"users":{"cardinality":{"field":"userId"}}}}
+        """);
+    assertEquals(200, response.statusCode(), response::body);
+    JSONObject answer = new JSONObject(response.body());
+    assertEquals(0, answer.getJSONObject("_shards").getInt("failed"), response::body);
+    return answer.getJSONObject("aggregations").getJSONObject("users").getInt("value");
+  }
+
+  private int runningCopies() throws Exception {
+    HttpResponse<String> response = send("GET", "/_tasks?actions=indices:data/write/reindex&detailed=true", null);
+    assertEquals(200, response.statusCode(), response::body);
+    int copies = 0;
+    JSONObject nodes = new JSONObject(response.body()).getJSONObject("nodes");
+    for (String node : nodes.keySet()) {
+      JSONObject tasks = nodes.getJSONObject(node).getJSONObject("tasks");
+      for (String task : tasks.keySet()) {
+        if (tasks.getJSONObject(task).getString("description").contains(OLD_COPY)) {
+          copies++;
+        }
+      }
+    }
+    return copies;
   }
 
   private int spacesOfThePlainGrouping() throws Exception {
