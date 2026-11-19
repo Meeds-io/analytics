@@ -83,6 +83,10 @@ class ElasticsearchAnalyticsStorageTest {
 
   private final List<String>            createIndexBodies = new ArrayList<>();
 
+  private final List<String>            bulkBodies        = new ArrayList<>();
+
+  private final List<String>            mappingBodies     = new ArrayList<>();
+
   private boolean                       indexExists;
 
   private int                           createIndexFailures;
@@ -146,6 +150,27 @@ class ElasticsearchAnalyticsStorageTest {
     assertTrue(createIndexBodies.isEmpty());
   }
 
+  @Test
+  void aValueThatFitsNoAlternativeUpToTheThirdGetsAFourthAlternativeField() {
+    indexExists = true;
+    Set<StatisticFieldMapping> mappings = knownMappings();
+    mappings.add(new StatisticFieldMapping("views", "long", false));
+    mappings.add(new StatisticFieldMapping("views_alt", "long", false));
+    mappings.add(new StatisticFieldMapping("views_alt2", "long", false));
+    mappings.add(new StatisticFieldMapping("views_alt3", "long", false));
+    StatisticData data = statisticData();
+    data.addKeyword("views", "not-a-number");
+
+    storage.sendCreateBulkDocumentsRequest(List.of(new StatisticDataQueueEntry(data)), mappings);
+
+    assertEquals(1, mappingBodies.size());
+    assertEquals("keyword",
+                 new JSONObject(mappingBodies.get(0)).getJSONObject("properties").getJSONObject("views_alt4").getString("type"));
+    assertEquals(1, bulkBodies.size());
+    String indexedDocument = bulkBodies.get(0).split("\n")[1];
+    assertEquals("not-a-number", new JSONObject(indexedDocument).getString("views_alt4"));
+  }
+
   private ElasticsearchResponse answer(ClassicHttpRequest request) throws Exception {
     String path = request.getUri().getPath();
     String method = request.getMethod();
@@ -161,6 +186,10 @@ class ElasticsearchAnalyticsStorageTest {
       }
       indexExists = true;
       return ok("{\"acknowledged\":true}");
+    } else if ("PUT".equals(method) && path.equals("/_bulk")) {
+      bulkBodies.add(EntityUtils.toString(request.getEntity()));
+    } else if ("PUT".equals(method) && path.equals("/" + INDEX_ALIAS + "/_mapping")) {
+      mappingBodies.add(EntityUtils.toString(request.getEntity()));
     }
     return ok("{}");
   }
