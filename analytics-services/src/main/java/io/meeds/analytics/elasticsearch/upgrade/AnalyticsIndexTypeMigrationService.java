@@ -59,7 +59,8 @@ import io.meeds.analytics.elasticsearch.storage.ElasticsearchConfiguration;
  * reads a week once. One case reads it twice for a moment: a new weekly
  * index created between the clone and the last exchange, since the storage
  * then gives the alias to every index named after the prefix, the clone
- * included; the last exchange ends it.
+ * included. The last exchange ends it; a clone that is not available or does
+ * not hold every document is deleted at once, and the copy keeps the alias.
  * <p>
  * A copy that carries the alias says that its original is deleted: this is
  * what a new run reads to resume. A copy without the alias is an unfinished
@@ -70,9 +71,13 @@ import io.meeds.analytics.elasticsearch.storage.ElasticsearchConfiguration;
  * as it is: a copy would refuse a text that is not a number, and would change
  * a number given a narrower type.
  * <p>
- * What stays open while an index is copied: a field the storage maps on the
- * alias during the copy is not mapped on the migrated index, which holds no
- * document with it since only the newest index is written.
+ * What stays open while an index is migrated: a field the storage maps on
+ * the alias during the copy is not mapped on the migrated index, which holds
+ * no document with it since only the newest index is written; and the
+ * retention, which deletes the oldest weekly indices at each start and at
+ * each new weekly index, can delete the clone before the last exchange, which
+ * then fails and leaves the alias to the copy: the next run clones it again,
+ * and the retention deletes that week at its next pass.
  */
 @Service
 public class AnalyticsIndexTypeMigrationService {
@@ -331,14 +336,21 @@ public class AnalyticsIndexTypeMigrationService {
     // The engine clones an index only once its writes are blocked
     storage.sendPutRequest(copy + "/_settings", "{\"index.blocks.write\":true}");
     storage.sendPostRequest(copy + "/_clone/" + index, null);
-    ElasticsearchResponse health = storage.sendGetRequest("_cluster/health/" + index + "?wait_for_status=yellow&timeout=120s");
-    if (new JSONObject(health.getMessage()).optBoolean("timed_out", true)) {
-      throw new IllegalStateException("The clone " + index + " of " + copy + " is not available");
+    try {
+      ElasticsearchResponse health = storage.sendGetRequest("_cluster/health/" + index + "?wait_for_status=yellow&timeout=120s");
+      if (new JSONObject(health.getMessage()).optBoolean("timed_out", true)) {
+        throw new IllegalStateException("The clone " + index + " of " + copy + " is not available");
+      }
+      checkSameCount(copy, index);
+      // The clone has the settings of the copy: it is written and refreshed
+      // again as any weekly index
+      storage.sendPutRequest(index + "/_settings", "{\"index.blocks.write\":null,\"index.refresh_interval\":null}");
+    } catch (RuntimeException e) {
+      // The copy carries the alias and holds the week: a clone left under a
+      // weekly name would receive the alias with the next weekly index
+      deleteUnusableClone(index, copy);
+      throw e;
     }
-    checkSameCount(copy, index);
-    // The clone has the settings of the copy: it is written and refreshed
-    // again as any weekly index
-    storage.sendPutRequest(index + "/_settings", "{\"index.blocks.write\":null,\"index.refresh_interval\":null}");
     storage.sendPostRequest("_aliases", aliasSwap(index, copy, alias));
   }
 
@@ -408,6 +420,14 @@ public class AnalyticsIndexTypeMigrationService {
       }
     } catch (RuntimeException e) {
       LOG.warn("Analytics index '{}': its unfinished copy '{}' could not be deleted, the next run deletes it", index, copy, e);
+    }
+  }
+
+  private void deleteUnusableClone(String index, String copy) {
+    try {
+      storage.sendDeleteRequest(index);
+    } catch (RuntimeException e) {
+      LOG.warn("Analytics index '{}': the clone of its copy '{}' could not be deleted, the next run deletes it", index, copy, e);
     }
   }
 

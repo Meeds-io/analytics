@@ -362,6 +362,7 @@ class AnalyticsIndexTypeMigrationServiceIT extends AbstractElasticsearchIT {
 
     refresh();
     assertEquals(Set.of(OLDEST_INDEX, OLD_COPY, NEWEST_INDEX), indices("/_alias/" + ALIAS), "the copy keeps the alias");
+    assertEquals(404, send("GET", "/" + OLD_INDEX, null).statusCode(), "the clone that cannot be used is deleted");
     assertEquals(5, count(ALIAS));
     assertEquals(3, spacesOfThePlainGrouping());
 
@@ -424,6 +425,30 @@ class AnalyticsIndexTypeMigrationServiceIT extends AbstractElasticsearchIT {
     assertTrue(migrationService.isNewestIndexTypedAsTheTemplate());
     assertEquals(Set.of(), indices("/" + PREFIX + "_*"));
     assertEquals(Set.of(), indices("/" + COPIES));
+  }
+
+  @Test
+  void anIndexThatCannotBeReadAgainAtItsTurnIsLeftAsItIsAndTheOthersAreMigrated() throws Exception {
+    String oldestIndexId = indexSettings(OLDEST_INDEX).getString("uuid");
+    // The first read of the names behind the alias, at the turn of the oldest
+    // week, fails
+    AtomicBoolean failed = new AtomicBoolean();
+    doAnswer(invocation -> {
+      if (failed.compareAndSet(false, true)) {
+        throw new IllegalStateException("The engine does not answer");
+      }
+      return invocation.callRealMethod();
+    }).when(storage).sendGetRequest("_alias/" + ALIAS);
+
+    assertEquals(List.of(OLDEST_INDEX), migrationService.migrate());
+
+    refresh();
+    assertEquals(oldestIndexId, indexSettings(OLDEST_INDEX).getString("uuid"), "the index that failed is the original one");
+    assertEquals("long", fieldType(OLDEST_INDEX, "spaceId"));
+    assertEquals("keyword", fieldType(OLD_INDEX, "spaceId"));
+    assertEquals(Set.of(OLDEST_INDEX, OLD_INDEX, NEWEST_INDEX), indices("/_alias/" + ALIAS));
+    assertEquals(Set.of(), indices("/" + COPIES));
+    assertEquals(5, count(ALIAS));
   }
 
   @Test

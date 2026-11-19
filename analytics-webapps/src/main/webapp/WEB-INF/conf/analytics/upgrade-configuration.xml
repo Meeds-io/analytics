@@ -29,7 +29,7 @@
       <name>AnalyticsIndexTypeMigrationUpgradePlugin</name>
       <set-method>addUpgradePlugin</set-method>
       <type>io.meeds.analytics.elasticsearch.upgrade.AnalyticsIndexTypeMigrationUpgradePlugin</type>
-      <description>Gives the weekly analytics indices the keyword fields of the newest one, at each start until a run leaves no index behind: the plugin keeps its own record of it</description>
+      <description>Gives the weekly analytics indices the keyword fields of the newest one, at each start until a run leaves no index behind and the newest index has the types of the index template: the plugin keeps its own record of it</description>
       <init-params>
         <value-param>
           <name>product.group.id</name>
