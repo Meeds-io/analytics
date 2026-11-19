@@ -416,6 +416,17 @@ class AnalyticsIndexTypeMigrationServiceIT extends AbstractElasticsearchIT {
   }
 
   @Test
+  void aPlatformWithNoAnalyticsIndexHasNothingToMigrateAndItsMigrationIsComplete() throws Exception {
+    cleanCluster();
+
+    assertEquals(List.of(), migrationService.migrate());
+
+    assertTrue(migrationService.isNewestIndexTypedAsTheTemplate());
+    assertEquals(Set.of(), indices("/" + PREFIX + "_*"));
+    assertEquals(Set.of(), indices("/" + COPIES));
+  }
+
+  @Test
   void anIndexDeletedSinceTheListWasMadeIsSkipped() throws Exception {
     // The retention deletes the older week while the oldest one is copied
     AtomicBoolean deleted = new AtomicBoolean();
