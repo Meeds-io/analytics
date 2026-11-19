@@ -46,10 +46,18 @@ public class StatisticFieldMapping {
   @Exclude
   private boolean                   scriptedField;
 
+  @Exclude
+  private boolean                   typeConflict;
+
   public StatisticFieldMapping(String name, String type, boolean hasKeywordSubField) {
     this.name = name;
     this.type = type;
     this.hasKeywordSubField = hasKeywordSubField;
+  }
+
+  public StatisticFieldMapping(String name, String type, boolean hasKeywordSubField, boolean scriptedField) {
+    this(name, type, hasKeywordSubField);
+    this.scriptedField = scriptedField;
   }
 
   public static final String computeESQueryValue(String value) {
