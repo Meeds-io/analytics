@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.json.JSONObject;
@@ -57,6 +58,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.exoplatform.services.listener.ListenerService;
 
 import io.meeds.analytics.elasticsearch.AbstractElasticsearchIT;
+import io.meeds.analytics.elasticsearch.model.ElasticsearchResponse;
 import io.meeds.analytics.elasticsearch.storage.ElasticsearchAnalyticsStorage;
 import io.meeds.analytics.elasticsearch.storage.ElasticsearchConfiguration;
 
@@ -336,6 +338,31 @@ class AnalyticsIndexTypeMigrationServiceIT extends AbstractElasticsearchIT {
     assertEquals(2, count(OLD_INDEX));
     assertEquals(Set.of(), indices("/" + COPIES));
     assertEquals("keyword", fieldType(OLDEST_INDEX, "spaceId"));
+    assertEquals(5, count(ALIAS));
+  }
+
+  @Test
+  void aCloneThatDoesNotHoldEveryDocumentLeavesTheAliasToTheCopyAndTheNextRunClonesItAgain() throws Exception {
+    // The second count of the older week is the one of its clone
+    AtomicInteger counts = new AtomicInteger();
+    doAnswer(invocation -> {
+      ElasticsearchResponse response = (ElasticsearchResponse) invocation.callRealMethod();
+      return counts.incrementAndGet() == 2 ? new ElasticsearchResponse("{\"count\":1}", 200) : response;
+    }).when(storage).sendGetRequest(OLD_INDEX + "/_count");
+
+    assertEquals(List.of(OLD_INDEX), migrationService.migrate());
+
+    refresh();
+    assertEquals(Set.of(OLDEST_INDEX, OLD_COPY, NEWEST_INDEX), indices("/_alias/" + ALIAS), "the copy keeps the alias");
+    assertEquals(5, count(ALIAS));
+    assertEquals(3, spacesOfThePlainGrouping());
+
+    assertEquals(List.of(), migrationService.migrate());
+
+    refresh();
+    assertEquals(Set.of(OLDEST_INDEX, OLD_INDEX, NEWEST_INDEX), indices("/_alias/" + ALIAS));
+    assertEquals(Set.of(), indices("/" + COPIES));
+    assertEquals(2, count(OLD_INDEX));
     assertEquals(5, count(ALIAS));
   }
 
