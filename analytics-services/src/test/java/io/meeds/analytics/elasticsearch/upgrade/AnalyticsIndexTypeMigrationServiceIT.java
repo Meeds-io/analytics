@@ -1,0 +1,351 @@
+/**
+ * This file is part of the Meeds project (https://meeds.io/).
+ *
+ * Copyright (C) 2020 - 2026 Meeds Association contact@meeds.io
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
+package io.meeds.analytics.elasticsearch.upgrade;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpRequest.BodyPublishers;
+import java.net.http.HttpResponse;
+import java.net.http.HttpResponse.BodyHandlers;
+import java.time.Duration;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
+
+import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
+import org.json.JSONObject;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import org.exoplatform.services.listener.ListenerService;
+
+import io.meeds.analytics.elasticsearch.AbstractElasticsearchIT;
+import io.meeds.analytics.elasticsearch.storage.ElasticsearchAnalyticsStorage;
+import io.meeds.analytics.elasticsearch.storage.ElasticsearchConfiguration;
+
+/**
+ * A server whose statistics started before the index template typed
+ * {@code spaceId} and {@code userId} as {@code keyword} holds them as
+ * {@code long} in its older weekly indices and as {@code keyword} in the newer
+ * ones. Executed against a real engine, with an index template that gives its
+ * alias to every index named after the prefix, as the analytics one does: the
+ * plain grouping reads the indices of one type only, and reads every week once
+ * the older indices are migrated.
+ */
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
+class AnalyticsIndexTypeMigrationServiceIT extends AbstractElasticsearchIT {
+
+  private static final String                PREFIX       = "it_analytics_migration";
+
+  private static final String                ALIAS        = PREFIX + "_alias";
+
+  private static final String                TEMPLATE     = PREFIX + "_template";
+
+  private static final String                OLDEST_INDEX = PREFIX + "_2020-01-02";
+
+  private static final String                OLD_INDEX    = PREFIX + "_2020-01-09";
+
+  private static final String                NEWEST_INDEX = PREFIX + "_2020-01-16";
+
+  private static final String                COPIES       = AnalyticsIndexTypeMigrationService.MIGRATION_INDEX_PREFIX + PREFIX + "_*";
+
+  private static final String                OLD_COPY     = AnalyticsIndexTypeMigrationService.MIGRATION_INDEX_PREFIX + OLD_INDEX;
+
+  private final HttpClient                   client       = HttpClient.newBuilder()
+                                                                      .connectTimeout(Duration.ofSeconds(5))
+                                                                      .build();
+
+  @Mock
+  private ElasticsearchConfiguration         configuration;
+
+  @Mock
+  private ListenerService                    listenerService;
+
+  private AnalyticsIndexTypeMigrationService migrationService;
+
+  @BeforeEach
+  void setUp() throws Exception {
+    String url = elasticsearchUrl();
+    when(configuration.getUrlClient()).thenReturn(url);
+    when(configuration.getIndexPrefix()).thenReturn(PREFIX);
+    when(configuration.getIndexAlias()).thenReturn(ALIAS);
+
+    ElasticsearchAnalyticsStorage storage = new ElasticsearchAnalyticsStorage();
+    ReflectionTestUtils.setField(storage, "elasticsearchConfiguration", configuration);
+    ReflectionTestUtils.setField(storage, "listenerService", listenerService);
+    ReflectionTestUtils.setField(storage, "httpClient", HttpClientBuilder.create().build());
+
+    migrationService = new AnalyticsIndexTypeMigrationService();
+    ReflectionTestUtils.setField(migrationService, "storage", storage);
+    ReflectionTestUtils.setField(migrationService, "configuration", configuration);
+    ReflectionTestUtils.setField(migrationService, "taskPollPeriodMs", 50L);
+
+    cleanCluster();
+    // The older weeks hold the ids as numbers, the newest one as keywords
+    createIndex(OLDEST_INDEX, "long", "long", false);
+    createIndex(OLD_INDEX, "long", "long", false);
+    index(OLDEST_INDEX, "1", event(1000, 1, 7, 15));
+    index(OLD_INDEX, "2", event(2000, 2, 7, 15));
+    index(OLD_INDEX, "3", event(3000, 1, 8, 15));
+    // As the analytics template: its alias for every index named after the
+    // prefix
+    HttpResponse<String> template = send("PUT", "/_index_template/" + TEMPLATE, """
+        {"index_patterns":["%s*"],"template":{"aliases":{"%s":{"is_write_index":true}}}}
+        """.formatted(PREFIX, ALIAS));
+    assertEquals(200, template.statusCode(), template::body);
+    createIndex(NEWEST_INDEX, "keyword", "long", true);
+    index(NEWEST_INDEX, "4", event(4000, "1", "7", 15));
+    index(NEWEST_INDEX, "5", event(5000, "3", "8", 15));
+    refresh();
+  }
+
+  @AfterEach
+  void tearDown() throws Exception {
+    cleanCluster();
+  }
+
+  @Test
+  void theEngineAnswersAPlainGroupingFromTheIndicesOfOneTypeWithNoFailedShard() throws Exception {
+    assertTrue(spacesOfThePlainGrouping() < 3, "the three spaces are not all listed by the plain request");
+  }
+
+  @Test
+  void theOlderIndicesTakeTheTypesOfTheNewestOneAndKeepTheirNameAndDocuments() throws Exception {
+    List<String> failedIndices = migrationService.migrate();
+
+    assertEquals(List.of(), failedIndices);
+    assertEquals(Set.of(OLDEST_INDEX, OLD_INDEX, NEWEST_INDEX), indices("/_alias/" + ALIAS));
+    assertEquals(Set.of(), indices("/" + COPIES));
+    for (String index : List.of(OLDEST_INDEX, OLD_INDEX)) {
+      assertEquals("keyword", fieldType(index, "spaceId"), index);
+      assertEquals("keyword", fieldType(index, "userId"), index);
+      assertEquals("long", fieldType(index, "rank"), index);
+      assertFalse(indexSettings(index).has("refresh_interval"), "the migrated index is refreshed as any other");
+    }
+    refresh();
+    assertEquals(1, count(OLDEST_INDEX));
+    assertEquals(2, count(OLD_INDEX));
+    assertEquals(5, count(ALIAS));
+    assertEquals(3, spacesOfThePlainGrouping());
+    // A migrated index accepts writes, as any weekly index
+    index(OLD_INDEX, "6", event(6000, 4, 8, 15));
+    refresh();
+    assertEquals(3, count(OLD_INDEX));
+  }
+
+  @Test
+  void anIndexThatAlreadyHasTheTypesOfTheNewestOneIsLeftAsItIs() throws Exception {
+    migrationService.migrate();
+    String oldestIndexId = indexSettings(OLDEST_INDEX).getString("uuid");
+    String oldIndexId = indexSettings(OLD_INDEX).getString("uuid");
+    String newestIndexId = indexSettings(NEWEST_INDEX).getString("uuid");
+
+    assertEquals(List.of(), migrationService.migrate());
+
+    assertEquals(oldestIndexId, indexSettings(OLDEST_INDEX).getString("uuid"));
+    assertEquals(oldIndexId, indexSettings(OLD_INDEX).getString("uuid"));
+    assertEquals(newestIndexId, indexSettings(NEWEST_INDEX).getString("uuid"));
+  }
+
+  @Test
+  void anUnfinishedCopyIsDeletedAndMadeAgain() throws Exception {
+    // A run stopped while the copy was filling: it holds one of the two
+    // documents
+    HttpResponse<String> copy = send("PUT", "/" + OLD_COPY, """
+        {"settings":{"number_of_shards":1,"number_of_replicas":0},
+         "mappings":{"properties":{"spaceId":{"type":"keyword"},"userId":{"type":"keyword"}}}}
+        """);
+    assertEquals(200, copy.statusCode(), copy::body);
+    index(OLD_COPY, "2", event(2000, 2, 7, 15));
+    refresh();
+    assertEquals(5, count(ALIAS), "the copy that fills is not behind the alias");
+
+    assertEquals(List.of(), migrationService.migrate());
+
+    refresh();
+    assertEquals(Set.of(OLDEST_INDEX, OLD_INDEX, NEWEST_INDEX), indices("/_alias/" + ALIAS));
+    assertEquals(Set.of(), indices("/" + COPIES));
+    assertEquals("long", fieldType(OLD_INDEX, "rank"), "the copy made again has the mappings of the original");
+    assertEquals(2, count(OLD_INDEX));
+    assertEquals(5, count(ALIAS));
+    assertEquals(3, spacesOfThePlainGrouping());
+  }
+
+  @Test
+  void aCopyThatTookThePlaceOfItsOriginalTakesItsName() throws Exception {
+    // A run stopped once the copy had the alias and the original was deleted
+    HttpResponse<String> copy = send("PUT", "/" + OLD_COPY, """
+        {"settings":{"number_of_shards":1,"number_of_replicas":0},
+         "mappings":{"properties":{"spaceId":{"type":"keyword"},"userId":{"type":"keyword"},"rank":{"type":"long"},
+           "timestamp":{"type":"date","format":"epoch_millis"}}}}
+        """);
+    assertEquals(200, copy.statusCode(), copy::body);
+    index(OLD_COPY, "2", event(2000, 2, 7, 15));
+    index(OLD_COPY, "3", event(3000, 1, 8, 15));
+    HttpResponse<String> swap = send("POST", "/_aliases", """
+        {"actions":[{"add":{"index":"%s","alias":"%s","is_write_index":false}},{"remove_index":{"index":"%s"}}]}
+        """.formatted(OLD_COPY, ALIAS, OLD_INDEX));
+    assertEquals(200, swap.statusCode(), swap::body);
+    refresh();
+
+    assertEquals(List.of(), migrationService.migrate());
+
+    refresh();
+    assertEquals(Set.of(OLDEST_INDEX, OLD_INDEX, NEWEST_INDEX), indices("/_alias/" + ALIAS));
+    assertEquals(Set.of(), indices("/" + COPIES));
+    assertEquals("keyword", fieldType(OLD_INDEX, "spaceId"));
+    assertEquals(2, count(OLD_INDEX));
+    assertEquals(5, count(ALIAS));
+    assertEquals(3, spacesOfThePlainGrouping());
+  }
+
+  @Test
+  void anIndexWhoseDocumentsDoNotFitTheNewTypeIsLeftAsItIsAndTheOthersAreMigrated() throws Exception {
+    // The older week holds, as a keyword, a rank no number can hold
+    HttpResponse<String> deleted = send("DELETE", "/" + OLD_INDEX, null);
+    assertEquals(200, deleted.statusCode(), deleted::body);
+    createIndex(OLD_INDEX, "long", "keyword", false);
+    // The template gave it the alias as a write index too
+    HttpResponse<String> notWritten = send("POST", "/_aliases", """
+        {"actions":[{"add":{"index":"%s","alias":"%s","is_write_index":false}}]}
+        """.formatted(OLD_INDEX, ALIAS));
+    assertEquals(200, notWritten.statusCode(), notWritten::body);
+    index(OLD_INDEX, "2", event(2000, 2, 7, "first"));
+    index(OLD_INDEX, "3", event(3000, 1, 8, "second"));
+    refresh();
+    String oldIndexId = indexSettings(OLD_INDEX).getString("uuid");
+
+    List<String> failedIndices = migrationService.migrate();
+
+    assertEquals(List.of(OLD_INDEX), failedIndices);
+    refresh();
+    assertEquals(Set.of(OLDEST_INDEX, OLD_INDEX, NEWEST_INDEX), indices("/_alias/" + ALIAS));
+    assertEquals(oldIndexId, indexSettings(OLD_INDEX).getString("uuid"), "the index that failed is the original one");
+    assertEquals("long", fieldType(OLD_INDEX, "spaceId"));
+    assertEquals(2, count(OLD_INDEX));
+    assertEquals(Set.of(), indices("/" + COPIES));
+    assertEquals("keyword", fieldType(OLDEST_INDEX, "spaceId"));
+    assertEquals(5, count(ALIAS));
+  }
+
+  private int spacesOfThePlainGrouping() throws Exception {
+    HttpResponse<String> response = send("POST", "/" + ALIAS + "/_search", """
+        {"size":0,"aggs":{"spaces":{"terms":{"field":"spaceId"}}}}
+        """);
+    assertEquals(200, response.statusCode(), response::body);
+    JSONObject answer = new JSONObject(response.body());
+    assertEquals(0, answer.getJSONObject("_shards").getInt("failed"), response::body);
+    return answer.getJSONObject("aggregations").getJSONObject("spaces").getJSONArray("buckets").length();
+  }
+
+  private Set<String> indices(String path) throws Exception {
+    HttpResponse<String> response = send("GET", path + "?allow_no_indices=true", null);
+    assertEquals(200, response.statusCode(), response::body);
+    return new TreeSet<>(new JSONObject(response.body()).keySet());
+  }
+
+  private String fieldType(String index, String field) throws Exception {
+    HttpResponse<String> response = send("GET", "/" + index + "/_mapping", null);
+    assertEquals(200, response.statusCode(), response::body);
+    return new JSONObject(response.body()).getJSONObject(index)
+                                          .getJSONObject("mappings")
+                                          .getJSONObject("properties")
+                                          .getJSONObject(field)
+                                          .getString("type");
+  }
+
+  private JSONObject indexSettings(String index) throws Exception {
+    HttpResponse<String> response = send("GET", "/" + index + "/_settings", null);
+    assertEquals(200, response.statusCode(), response::body);
+    return new JSONObject(response.body()).getJSONObject(index).getJSONObject("settings").getJSONObject("index");
+  }
+
+  private long count(String index) throws Exception {
+    HttpResponse<String> response = send("GET", "/" + index + "/_count", null);
+    assertEquals(200, response.statusCode(), response::body);
+    return new JSONObject(response.body()).getLong("count");
+  }
+
+  private void refresh() throws Exception {
+    HttpResponse<String> response = send("POST", "/_refresh", null);
+    assertEquals(200, response.statusCode(), response::body);
+  }
+
+  private static JSONObject event(long timestamp, Object spaceId, Object userId, Object rank) {
+    JSONObject event = new JSONObject();
+    event.put("timestamp", timestamp);
+    event.put("userId", userId);
+    event.put("spaceId", spaceId);
+    event.put("rank", rank);
+    event.put("operation", "createActivity");
+    return event;
+  }
+
+  private void index(String index, String id, JSONObject event) throws Exception {
+    HttpResponse<String> response = send("PUT", "/" + index + "/_doc/" + id, event.toString());
+    assertTrue(response.statusCode() == 200 || response.statusCode() == 201, response::body);
+  }
+
+  private void createIndex(String index, String idType, String rankType, boolean writeIndex) throws Exception {
+    HttpResponse<String> response = send("PUT", "/" + index, """
+        {"aliases":{"%s":{"is_write_index":%s}},
+         "settings":{"number_of_shards":1,"number_of_replicas":0},
+         "mappings":{"properties":{
+           "timestamp":{"type":"date","format":"epoch_millis"},
+           "userId":{"type":"%s"}, "spaceId":{"type":"%s"}, "rank":{"type":"%s"},
+           "operation":{"type":"keyword"}}}}
+        """.formatted(ALIAS, writeIndex, idType, idType, rankType));
+    assertEquals(200, response.statusCode(), response::body);
+  }
+
+  private void cleanCluster() throws Exception {
+    send("DELETE", "/_index_template/" + TEMPLATE, null);
+    for (String pattern : List.of(PREFIX + "_*", COPIES)) {
+      for (String index : indices("/" + pattern)) {
+        HttpResponse<String> deleted = send("DELETE", "/" + index, null);
+        assertEquals(200, deleted.statusCode(), deleted::body);
+      }
+    }
+  }
+
+  private HttpResponse<String> send(String method, String path, String body) throws IOException, InterruptedException {
+    HttpRequest.Builder request = HttpRequest.newBuilder(URI.create(elasticsearchUrl() + path))
+                                             .timeout(Duration.ofSeconds(30))
+                                             .header("Content-Type", "application/json");
+    request.method(method, body == null ? BodyPublishers.noBody() : BodyPublishers.ofString(body));
+    return client.send(request.build(), BodyHandlers.ofString());
+  }
+
+}
