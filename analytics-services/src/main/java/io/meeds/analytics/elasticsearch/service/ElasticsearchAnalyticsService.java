@@ -151,32 +151,6 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
 
   private static final String                AGG_NAME_REQUEST_BODY_PARAM              = "$aggName";
 
-  private static final String                AGG_FIELD_PARAM_REQUEST_BODY_PARAM       = "$aggFieldParam";
-
-  /**
-   * Reads the values of a field as text, whatever type the index gives it: a
-   * whole number below 9.0E15 reads the same from an integer and from a decimal
-   * index, and as a keyword index writes it without a fraction ({@code 15}); a
-   * date reads as its epoch milliseconds, as an index holding it as a number
-   * does. Any other value reads as the index holds it: a number with a fraction
-   * is not unified between a decimal index, which widens it, and a keyword
-   * index, nor is a keyword written {@code 15.0}, nor a whole number of 9.0E15
-   * or more, which a decimal index reads in its exponent form
-   * ({@code 1.0E16}). The field name is a parameter of the script, never a part
-   * of its source.
-   */
-  private static final String                FIELD_AS_TEXT_SCRIPT                     =
-                                                                  "def texts = new ArrayList();"
-                                                                      + " if (doc.containsKey(params.field)) {"
-                                                                      + " for (def value : doc[params.field]) {"
-                                                                      + " if (value instanceof Double && value == Math.rint(value)"
-                                                                      + " && Math.abs(value) < 9.0E15) {"
-                                                                      + " texts.add(String.valueOf((long) value)); }"
-                                                                      + " else if (value instanceof ZonedDateTime) {"
-                                                                      + " texts.add(String.valueOf(value.toInstant().toEpochMilli())); }"
-                                                                      + " else { texts.add(value.toString()); } } }"
-                                                                      + " return texts;";
-
   private static final String                VALUE_REQUEST_BODY_PARAM                 = "$value";
 
   private static final String                NAME_REQUEST_BODY_PARAM                  = "$name";
@@ -965,11 +939,7 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
       // queried period, instead of a continuous hourly timeline
       appendHourOfDayAggregationQuery(esQuery, timeZone, aggregationFieldName);
     } else {
-      appendAggregationNameQuery(esQuery,
-                                 aggregationFieldName,
-                                 aggregationField,
-                                 aggregationType == AnalyticsAggregationType.TERMS
-                                     || aggregationType == AnalyticsAggregationType.CARDINALITY);
+      appendAggregationNameQuery(esQuery, aggregationFieldName, aggregationField);
       appendIntervalQuery(esQuery, timeZone, aggregation, aggregationType, aggregationFieldName);
       appendLimitQuery(esQuery, aggregationType, limit);
       appendSortQuery(esQuery, aggregations, aggregationsSize, i, aggregation, aggregationType);
@@ -993,7 +963,7 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
              "terms": {
 
         """.replace(GROUP_BY_NAME_REQUEST_BODY_PARAM, AGGREGATION_GROUP_BY_PARAM));
-    appendAggregationNameQuery(esQuery, aggregationFieldName, aggregationField, true);
+    appendAggregationNameQuery(esQuery, aggregationFieldName, aggregationField);
     esQuery.append("""
                   ,
                   "min_doc_count": $minDocCount
@@ -1043,39 +1013,14 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
            .replace(TIME_ZONE_ID_REQUEST_BODY_PARAM, timeZone == null ? "UTC" : timeZone.getId()));
   }
 
-  /**
-   * @param esQuery the query to complete
-   * @param aggregationFieldName the aggregated field
-   * @param aggregationField its entry of the mapping view, null when unknown
-   * @param groupsByValue whether the aggregation tells the values of the field
-   *          apart: one group per value, or a count of the distinct values.
-   *          When the weekly indices give the field several types (a
-   *          {@code long} in the older ones, a {@code keyword} in the newer
-   *          ones), a grouping reads the indices of one type only and a
-   *          distinct count counts a value once per type, with no error and
-   *          no failed shard: the values are then read as text, so the same
-   *          value is one value over every index.
-   */
   private void appendAggregationNameQuery(StringBuilder esQuery,
                                           String aggregationFieldName,
-                                          StatisticFieldMapping aggregationField,
-                                          boolean groupsByValue) {
+                                          StatisticFieldMapping aggregationField) {
     if (StringUtils.isBlank(aggregationFieldName)) {
       aggregationFieldName = FIELD_TIMESTAMP;
     }
 
-    if (groupsByValue && aggregationField != null && !aggregationField.isScriptedField() && aggregationField.isTypeConflict()) {
-      esQuery.append("""
-                   "script": {
-                     "lang": "painless",
-                     "source": "$aggFieldName",
-                     "params": {
-                       "field": $aggFieldParam
-                     }
-                   }
-          """.replace(AGG_FIELD_NAME_REQUEST_BODY_PARAM, FIELD_AS_TEXT_SCRIPT)
-             .replace(AGG_FIELD_PARAM_REQUEST_BODY_PARAM, JSONObject.quote(aggregationFieldName)));
-    } else if (aggregationField == null || !aggregationField.isScriptedField()) {
+    if (aggregationField == null || !aggregationField.isScriptedField()) {
       esQuery.append("""
                     "field": "$aggFieldName"
           """.replace(AGG_FIELD_NAME_REQUEST_BODY_PARAM, aggregationFieldName));
