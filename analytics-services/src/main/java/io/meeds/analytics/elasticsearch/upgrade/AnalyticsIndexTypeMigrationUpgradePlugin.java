@@ -30,12 +30,15 @@ import org.exoplatform.container.xml.InitParams;
 /**
  * Runs, after the platform has started, the migration of the weekly analytics
  * indices whose fields differ from the {@code keyword} ones of the newest
- * index, until a run leaves no index behind. The plugin keeps its own record
- * of that run: the upgrade service runs a plugin that failed again only when
- * the version of the platform has changed since, which a restart of the same
- * build is not. A run that follows a complete one is not asked for; one that
- * follows a failed one finds the indices already migrated with the expected
- * types and skips them.
+ * index, at each start until the migration is complete: a run left no index
+ * behind, and the newest index has the types of the index template. The
+ * plugin keeps its own record of it, which replaces the version check of the
+ * upgrade service: a first run that fails with no change of version is asked
+ * again, a platform whose newest index was created by a former template is
+ * asked again until an index created by the new one is the newest, and a
+ * complete migration is never asked again, at a later upgrade either. A run
+ * that follows an incomplete one finds the indices already migrated with the
+ * expected types and skips them.
  */
 public class AnalyticsIndexTypeMigrationUpgradePlugin extends UpgradeProductPlugin {
 
@@ -54,11 +57,14 @@ public class AnalyticsIndexTypeMigrationUpgradePlugin extends UpgradeProductPlug
 
   @Override
   public void processUpgrade(String oldVersion, String newVersion) {
-    List<String> failedIndices = getMigrationService().migrate();
+    AnalyticsIndexTypeMigrationService migrationService = getMigrationService();
+    List<String> failedIndices = migrationService.migrate();
     if (!failedIndices.isEmpty()) {
       throw new IllegalStateException("The analytics indices " + failedIndices + " are not migrated");
     }
-    storeValueForPlugin(MIGRATION_DONE, String.valueOf(true));
+    if (migrationService.isNewestIndexTypedAsTheTemplate()) {
+      storeValueForPlugin(MIGRATION_DONE, String.valueOf(true));
+    }
   }
 
   /**

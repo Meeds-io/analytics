@@ -81,21 +81,35 @@ class AnalyticsIndexTypeMigrationUpgradePluginTest {
 
   @Test
   void theMigrationIsAskedAgainAtEachStartUntilARunLeavesNoIndexBehind() {
-    UpgradePluginExecutionContext sameVersionAlreadyRun = new UpgradePluginExecutionContext("7.3.0", 1);
+    // What the upgrade service records for a first run with no change of
+    // version, which its own check would not ask again
+    UpgradePluginExecutionContext sameVersion = new UpgradePluginExecutionContext("7.3.0", 0);
     when(migrationService.migrate()).thenReturn(List.of("analytics_2026-07-30"));
 
-    assertTrue(plugin.shouldProceedToUpgrade("7.3.0", "7.3.0", sameVersionAlreadyRun));
+    assertTrue(plugin.shouldProceedToUpgrade("7.3.0", "7.3.0", sameVersion));
     IllegalStateException failure = assertThrows(IllegalStateException.class, () -> plugin.processUpgrade("7.3.0", "7.3.0"));
 
     assertTrue(failure.getMessage().contains("analytics_2026-07-30"), failure::getMessage);
     verify(settingService, never()).set(any(), any(), any(), any());
-    assertTrue(plugin.shouldProceedToUpgrade("7.3.0", "7.3.0", sameVersionAlreadyRun),
+    assertTrue(plugin.shouldProceedToUpgrade("7.3.0", "7.3.0", sameVersion),
                "a run that left an index behind is asked again, on the same version too");
+  }
+
+  @Test
+  void theMigrationIsAskedAgainWhileTheNewestIndexDoesNotHaveTheTypesOfTheTemplate() {
+    when(migrationService.migrate()).thenReturn(List.of());
+    when(migrationService.isNewestIndexTypedAsTheTemplate()).thenReturn(false);
+
+    plugin.processUpgrade("7.2.0", "7.3.0");
+
+    verify(settingService, never()).set(any(), any(), any(), any());
+    assertTrue(plugin.shouldProceedToUpgrade("7.3.0", "7.3.0", new UpgradePluginExecutionContext("7.3.0", 1)));
   }
 
   @Test
   void theMigrationIsNotAskedAgainOnceARunLeftNoIndexBehind() {
     when(migrationService.migrate()).thenReturn(List.of());
+    when(migrationService.isNewestIndexTypedAsTheTemplate()).thenReturn(true);
     assertTrue(plugin.shouldProceedToUpgrade("7.3.0", "7.2.0", null));
 
     plugin.processUpgrade("7.2.0", "7.3.0");

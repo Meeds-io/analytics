@@ -165,7 +165,11 @@ public class AnalyticsIndexTypeMigrationService {
       try {
         // Read again: the list can be hours old when the turn of an index
         // comes, and its copy ends with the deletion of the original
-        JSONObject mappings = getMappingsToMigrate(readIndices(alias), prefix, index, new ArrayList<>(), new ArrayList<>());
+        JSONObject mappings = getMappingsToMigrate(readWithNewestIndex(index, prefix, alias),
+                                                   prefix,
+                                                   index,
+                                                   new ArrayList<>(),
+                                                   new ArrayList<>());
         if (mappings == null) {
           skipped++;
           LOG.info("Analytics index '{}' ({}/{}) is not to migrate any more: deleted, or with the expected types",
@@ -200,6 +204,60 @@ public class AnalyticsIndexTypeMigrationService {
              failedIndices,
              System.currentTimeMillis() - start);
     return failedIndices;
+  }
+
+  /**
+   * The newest index is the reference of a run. While it holds, as numbers,
+   * the fields the index template types {@code keyword}, every index agrees
+   * with it and nothing is migrated: this is the state of a platform at its
+   * first start on a version whose template changed these types, where the
+   * index of the current week was created by the former template. The
+   * migration is complete only once the newest index has the template's
+   * types, which the first index created by the new template brings.
+   *
+   * @return true when the newest weekly index types {@code keyword} every
+   *         field the index template types so, or when there is no weekly
+   *         index
+   */
+  public boolean isNewestIndexTypedAsTheTemplate() {
+    String prefix = configuration.getIndexPrefix();
+    TreeSet<String> weeklyIndices = getWeeklyIndices(readIndices(configuration.getIndexAlias()), prefix);
+    if (weeklyIndices.isEmpty()) {
+      return true;
+    }
+    String newestIndex = weeklyIndices.last();
+    JSONObject newestProperties = readIndices(newestIndex + "/_mapping").getJSONObject(newestIndex)
+                                                                        .getJSONObject(MAPPINGS)
+                                                                        .optJSONObject(PROPERTIES, new JSONObject());
+    JSONObject templateProperties = new JSONObject(configuration.getIndexTemplateMapping()).getJSONObject("template")
+                                                                                           .getJSONObject(MAPPINGS)
+                                                                                           .getJSONObject(PROPERTIES);
+    for (String field : templateProperties.keySet()) {
+      JSONObject newestDefinition = newestProperties.optJSONObject(field, new JSONObject());
+      if (KEYWORD_TYPE.equals(templateProperties.getJSONObject(field).optString(TYPE))
+          && !KEYWORD_TYPE.equals(newestDefinition.optString(TYPE))) {
+        LOG.info("Analytics index '{}', the newest one, does not type '{}' as the index template does: the older indices are migrated once an index created by the template is the newest one",
+                 newestIndex,
+                 field);
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * @param  index  a weekly index
+   * @param  prefix the weekly index name prefix
+   * @param  alias  the analytics alias
+   * @return        the mappings of the index and of the newest weekly index
+   *                behind the alias, by index name, as they are now
+   */
+  private JSONObject readWithNewestIndex(String index, String prefix, String alias) {
+    TreeSet<String> weeklyIndices = getWeeklyIndices(readIndices("_alias/" + alias), prefix);
+    if (!weeklyIndices.contains(index)) {
+      return new JSONObject();
+    }
+    return readIndices(index + "," + weeklyIndices.last() + "/_mapping?ignore_unavailable=true");
   }
 
   /**

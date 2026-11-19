@@ -87,6 +87,8 @@ class AnalyticsIndexTypeMigrationServiceIT extends AbstractElasticsearchIT {
 
   private static final String                NEWEST_INDEX = PREFIX + "_2020-01-16";
 
+  private static final String                NEXT_INDEX   = PREFIX + "_2020-01-23";
+
   /** Behind the alias through the template, and no week */
   private static final String                OTHER_INDEX  = PREFIX + "_zzz";
 
@@ -114,6 +116,11 @@ class AnalyticsIndexTypeMigrationServiceIT extends AbstractElasticsearchIT {
     when(configuration.getUrlClient()).thenReturn(url);
     when(configuration.getIndexPrefix()).thenReturn(PREFIX);
     when(configuration.getIndexAlias()).thenReturn(ALIAS);
+    when(configuration.getIndexTemplateMapping()).thenReturn("""
+        {"template":{"mappings":{"properties":{
+          "timestamp":{"type":"date","format":"epoch_millis"},
+          "userId":{"type":"keyword"},"spaceId":{"type":"keyword"},"operation":{"type":"keyword"}}}}}
+        """);
 
     storage = spy(new ElasticsearchAnalyticsStorage());
     ReflectionTestUtils.setField(storage, "elasticsearchConfiguration", configuration);
@@ -156,7 +163,7 @@ class AnalyticsIndexTypeMigrationServiceIT extends AbstractElasticsearchIT {
 
   @Test
   void theEngineCountsAUserOfBothTypesMoreThanOnceWithNoFailedShard() throws Exception {
-    assertNotEquals(2, usersOfThePlainDistinctCount(), "the two users are not counted once each by the plain request");
+    assertEquals(4, usersOfThePlainDistinctCount(), "each of the two users is counted once per type by the plain request");
   }
 
   @Test
@@ -164,6 +171,7 @@ class AnalyticsIndexTypeMigrationServiceIT extends AbstractElasticsearchIT {
     List<String> failedIndices = migrationService.migrate();
 
     assertEquals(List.of(), failedIndices);
+    assertTrue(migrationService.isNewestIndexTypedAsTheTemplate());
     assertEquals(Set.of(OLDEST_INDEX, OLD_INDEX, NEWEST_INDEX), indices("/_alias/" + ALIAS));
     assertEquals(Set.of(), indices("/" + COPIES));
     for (String index : List.of(OLDEST_INDEX, OLD_INDEX)) {
@@ -364,6 +372,47 @@ class AnalyticsIndexTypeMigrationServiceIT extends AbstractElasticsearchIT {
     assertEquals(Set.of(), indices("/" + COPIES));
     assertEquals(2, count(OLD_INDEX));
     assertEquals(5, count(ALIAS));
+  }
+
+  @Test
+  void nothingIsMigratedWhileTheNewestIndexHoldsTheIdsAsNumbersAndTheOlderOnesAreOnceAnIndexOfTheTemplateIsTheNewest() throws Exception {
+    // A platform at its first start on the version that types the ids as
+    // keywords: the index of the current week was created by the former
+    // template
+    HttpResponse<String> deleted = send("DELETE", "/" + NEWEST_INDEX, null);
+    assertEquals(200, deleted.statusCode(), deleted::body);
+    createIndex(NEWEST_INDEX, "long", "long", true);
+    index(NEWEST_INDEX, "4", event(4000, 1, 7, 15));
+    index(NEWEST_INDEX, "5", event(5000, 3, 8, 15));
+    refresh();
+    String oldestIndexId = indexSettings(OLDEST_INDEX).getString("uuid");
+    String oldIndexId = indexSettings(OLD_INDEX).getString("uuid");
+
+    assertEquals(List.of(), migrationService.migrate());
+
+    assertFalse(migrationService.isNewestIndexTypedAsTheTemplate(), "the migration is not complete");
+    assertEquals(oldestIndexId, indexSettings(OLDEST_INDEX).getString("uuid"));
+    assertEquals(oldIndexId, indexSettings(OLD_INDEX).getString("uuid"));
+    assertEquals(3, spacesOfThePlainGrouping(), "every index holds the ids as numbers: the plain grouping reads them all");
+
+    // The next week is created by the template
+    HttpResponse<String> notWritten = send("POST", "/_aliases", """
+        {"actions":[{"add":{"index":"%s","alias":"%s","is_write_index":false}}]}
+        """.formatted(NEWEST_INDEX, ALIAS));
+    assertEquals(200, notWritten.statusCode(), notWritten::body);
+    createIndex(NEXT_INDEX, "keyword", "long", true);
+    index(NEXT_INDEX, "6", event(6000, "4", "7", 15));
+    refresh();
+
+    assertEquals(List.of(), migrationService.migrate());
+
+    assertTrue(migrationService.isNewestIndexTypedAsTheTemplate());
+    refresh();
+    for (String index : List.of(OLDEST_INDEX, OLD_INDEX, NEWEST_INDEX)) {
+      assertEquals("keyword", fieldType(index, "spaceId"), index);
+    }
+    assertEquals(6, count(ALIAS));
+    assertEquals(4, spacesOfThePlainGrouping());
   }
 
   @Test
