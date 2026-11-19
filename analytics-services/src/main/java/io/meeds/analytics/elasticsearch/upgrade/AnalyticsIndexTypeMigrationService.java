@@ -77,7 +77,10 @@ import io.meeds.analytics.elasticsearch.storage.ElasticsearchConfiguration;
  * retention, which deletes the oldest weekly indices at each start and at
  * each new weekly index, can delete the clone before the last exchange, which
  * then fails and leaves the alias to the copy: the next run clones it again,
- * and the retention deletes that week at its next pass.
+ * and the retention deletes that week at its next pass; and a last exchange
+ * the engine refuses leaves the clone under the weekly name, where the next
+ * weekly index gives it the alias beside the copy, until the next run, which
+ * deletes it and clones the copy again.
  */
 @Service
 public class AnalyticsIndexTypeMigrationService {
