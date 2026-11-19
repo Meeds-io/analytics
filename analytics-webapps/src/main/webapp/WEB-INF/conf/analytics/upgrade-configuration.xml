@@ -29,7 +29,7 @@
       <name>AnalyticsIndexTypeMigrationUpgradePlugin</name>
       <set-method>addUpgradePlugin</set-method>
       <type>io.meeds.analytics.elasticsearch.upgrade.AnalyticsIndexTypeMigrationUpgradePlugin</type>
-      <description>Gives the weekly analytics indices the field types of the newest one</description>
+      <description>Gives the weekly analytics indices the keyword fields of the newest one, at each start until a run leaves no index behind: the plugin keeps its own record of it</description>
       <init-params>
         <value-param>
           <name>product.group.id</name>
@@ -40,11 +40,6 @@
           <name>plugin.execution.order</name>
           <description>The plugin execution order</description>
           <value>100</value>
-        </value-param>
-        <value-param>
-          <name>plugin.upgrade.execute.once</name>
-          <description>A run that fails is not counted: the plugin runs again at the next start</description>
-          <value>true</value>
         </value-param>
         <value-param>
           <name>plugin.upgrade.async.execution</name>
