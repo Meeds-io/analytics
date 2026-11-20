@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mockingDetails;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
@@ -638,7 +639,11 @@ class AnalyticsIndexTypeMigrationServiceIT extends AbstractElasticsearchIT {
     AtomicBoolean second = new AtomicBoolean();
     doAnswer(invocation -> {
       if (second.compareAndSet(false, true)) {
+        int requests = mockingDetails(storage).getInvocations().size();
         assertThrows(AnalyticsMigrationRunningException.class, () -> migrationService.migrate());
+        assertEquals(requests,
+                     mockingDetails(storage).getInvocations().size(),
+                     "the second run is refused before it sends a request, the read of the lock included");
         assertEquals(200, send("GET", "/" + LOCK + "/_doc/run", null).statusCode(), "the first run keeps its lock");
       }
       return invocation.callRealMethod();
