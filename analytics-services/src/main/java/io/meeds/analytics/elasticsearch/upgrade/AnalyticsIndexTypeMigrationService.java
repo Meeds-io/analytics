@@ -22,6 +22,7 @@ package io.meeds.analytics.elasticsearch.upgrade;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
@@ -72,7 +73,9 @@ import io.meeds.analytics.elasticsearch.storage.ElasticsearchConfiguration;
  * time for the version of the document it last wrote. A run that finds the
  * lock held does nothing, unless the lock was not renewed for
  * {@value #LOCK_EXPIRY_MS} ms, which a run that was stopped leaves behind; a
- * run whose lock was taken over learns it at its next renewal and stops.
+ * run whose lock was taken over learns it at its next renewal and stops. A
+ * second run in the same server is refused before it reads the lock, whose
+ * state this service keeps for one run.
  * Each deletion of an index that is not part of an exchange first reads
  * whether the copy carries the alias: the copy is then the one that holds
  * the week.
@@ -145,6 +148,9 @@ public class AnalyticsIndexTypeMigrationService {
 
   private long                          taskPollPeriodMs       = 1000;
 
+  /** Whether a run is in progress in this server */
+  private final AtomicBoolean           running                = new AtomicBoolean();
+
   /** The lock index of the run in progress */
   private String                        lock;
 
@@ -168,13 +174,26 @@ public class AnalyticsIndexTypeMigrationService {
    * @return                                    the indices that could not be
    *                                            migrated, empty when none is
    *                                            left to migrate
-   * @throws AnalyticsMigrationRunningException when another run holds the
-   *                                              lock, and nothing was read
-   *                                              nor changed, or took it
-   *                                              over, and this run stopped
-   *                                              at its next renewal
+   * @throws AnalyticsMigrationRunningException when another run is in
+   *                                              progress in this server or
+   *                                              holds the lock, and nothing
+   *                                              was read nor changed, or
+   *                                              took the lock over, and this
+   *                                              run stopped at its next
+   *                                              renewal
    */
   public List<String> migrate() {
+    if (!running.compareAndSet(false, true)) {
+      throw new AnalyticsMigrationRunningException("The migration of the analytics indices is running in this server");
+    }
+    try {
+      return migrateWeeklyIndices();
+    } finally {
+      running.set(false);
+    }
+  }
+
+  private List<String> migrateWeeklyIndices() {
     String prefix = configuration.getIndexPrefix();
     String alias = configuration.getIndexAlias();
     lock = MIGRATION_INDEX_PREFIX + prefix + "-lock";
@@ -602,10 +621,14 @@ public class AnalyticsIndexTypeMigrationService {
   private void deleteUnfinishedCopy(String index) {
     String copy = MIGRATION_INDEX_PREFIX + index;
     try {
+      // The copy of that name is this run's only while it holds the lock
+      renewLock();
       if (exists(copy) && !carriesAlias(copy, configuration.getIndexAlias())) {
         cancelCopies(copy);
         storage.sendDeleteRequest(copy);
       }
+    } catch (AnalyticsMigrationRunningException e) {
+      throw e;
     } catch (Exception e) { // NOSONAR the storage throws the client's checked exceptions undeclared
       LOG.warn("Analytics index '{}': its unfinished copy '{}' could not be deleted, the next run deletes it", index, copy, e);
     }

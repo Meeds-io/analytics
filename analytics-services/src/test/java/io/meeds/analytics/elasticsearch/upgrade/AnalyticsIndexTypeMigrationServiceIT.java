@@ -550,6 +550,111 @@ class AnalyticsIndexTypeMigrationServiceIT extends AbstractElasticsearchIT {
   }
 
   @Test
+  void aRunWhoseLockIsTakenOverBeforeItResumesACopyLeavesThatCopy() throws Exception {
+    HttpResponse<String> copy = send("PUT", "/" + OLD_COPY, """
+        {"settings":{"number_of_shards":1,"number_of_replicas":0},
+         "mappings":{"properties":{"spaceId":{"type":"keyword"},"userId":{"type":"keyword"}}}}
+        """);
+    assertEquals(200, copy.statusCode(), copy::body);
+    index(OLD_COPY, "2", event(2000, 2, 7, 15));
+    refresh();
+    // Another run takes the lock over right after this one listed the copies:
+    // the copy is that run's from then on
+    doAnswer(invocation -> {
+      Object listed = invocation.callRealMethod();
+      HttpResponse<String> written = send("PUT", "/" + LOCK + "/_doc/run?refresh=true", """
+          {"timestamp":%s}
+          """.formatted(System.currentTimeMillis()));
+      assertEquals(200, written.statusCode(), written::body);
+      return listed;
+    }).when(storage).sendGetRequest(COPIES + "?allow_no_indices=true&ignore_unavailable=true");
+
+    assertThrows(AnalyticsMigrationRunningException.class, () -> migrationService.migrate());
+
+    assertEquals(200, send("GET", "/" + OLD_COPY, null).statusCode(), "the copy of the other run is left");
+    assertEquals("long", fieldType(OLD_INDEX, "spaceId"));
+    assertEquals(200, send("GET", "/" + LOCK + "/_doc/run", null).statusCode(), "the lock of the other run is left");
+  }
+
+  @Test
+  void aRunWhoseLockIsTakenOverWhileItCancelsACopyLeavesThatCopy() throws Exception {
+    for (int i = 10; i < 40; i++) {
+      index(OLD_INDEX, String.valueOf(i), event(1000 + i, 2, 7, 15));
+    }
+    refresh();
+    HttpResponse<String> copy = send("PUT", "/" + OLD_COPY, """
+        {"settings":{"number_of_shards":1,"number_of_replicas":0},
+         "mappings":{"properties":{"spaceId":{"type":"keyword"},"userId":{"type":"keyword"}}}}
+        """);
+    assertEquals(200, copy.statusCode(), copy::body);
+    HttpResponse<String> runningCopy = send("POST", "/_reindex?wait_for_completion=false&requests_per_second=1", """
+        {"source":{"index":"%s","size":1},"dest":{"index":"%s"}}
+        """.formatted(OLD_INDEX, OLD_COPY));
+    assertEquals(200, runningCopy.statusCode(), runningCopy::body);
+    // Another run takes the lock over while this one cancels the copy
+    AtomicBoolean takenOver = new AtomicBoolean();
+    doAnswer(invocation -> {
+      if (takenOver.compareAndSet(false, true)) {
+        HttpResponse<String> written = send("PUT", "/" + LOCK + "/_doc/run?refresh=true", """
+            {"timestamp":%s}
+            """.formatted(System.currentTimeMillis()));
+        assertEquals(200, written.statusCode(), written::body);
+      }
+      return invocation.callRealMethod();
+    }).when(storage).sendPostRequest(startsWith("_tasks/"), any());
+
+    assertThrows(AnalyticsMigrationRunningException.class, () -> migrationService.migrate());
+
+    assertEquals(200, send("GET", "/" + OLD_COPY, null).statusCode(), "the copy is not deleted");
+    assertEquals("long", fieldType(OLD_INDEX, "spaceId"));
+    assertEquals(200, send("GET", "/" + LOCK + "/_doc/run", null).statusCode(), "the lock of the other run is left");
+  }
+
+  @Test
+  void aRunWhoseLockIsTakenOverBeforeItDeletesAnUnfinishedCopyLeavesThatCopy() throws Exception {
+    // The copy of the older week does not hold every document, and another
+    // run takes the lock over before this one deletes it
+    doAnswer(invocation -> {
+      String content = invocation.getArgument(1);
+      if (content.contains("\"" + OLD_COPY + "\"")) {
+        invocation.getRawArguments()[1] = new JSONObject(content).put("max_docs", 1).toString();
+        HttpResponse<String> written = send("PUT", "/" + LOCK + "/_doc/run?refresh=true", """
+            {"timestamp":%s}
+            """.formatted(System.currentTimeMillis()));
+        assertEquals(200, written.statusCode(), written::body);
+      }
+      return invocation.callRealMethod();
+    }).when(storage).sendPostRequest(startsWith("_reindex"), any());
+
+    assertThrows(AnalyticsMigrationRunningException.class, () -> migrationService.migrate());
+
+    assertEquals(200, send("GET", "/" + OLD_COPY, null).statusCode(), "the copy is not deleted");
+    assertEquals("long", fieldType(OLD_INDEX, "spaceId"));
+    assertEquals(200, send("GET", "/" + LOCK + "/_doc/run", null).statusCode(), "the lock of the other run is left");
+  }
+
+  @Test
+  void aSecondRunInTheSameServerIsRefusedAndLeavesTheFirstOneItsLock() throws Exception {
+    AtomicBoolean second = new AtomicBoolean();
+    doAnswer(invocation -> {
+      if (second.compareAndSet(false, true)) {
+        assertThrows(AnalyticsMigrationRunningException.class, () -> migrationService.migrate());
+        assertEquals(200, send("GET", "/" + LOCK + "/_doc/run", null).statusCode(), "the first run keeps its lock");
+      }
+      return invocation.callRealMethod();
+    }).when(storage).sendPostRequest(startsWith("_reindex"), any());
+
+    assertEquals(List.of(), migrationService.migrate());
+
+    assertTrue(second.get());
+    assertEquals("keyword", fieldType(OLDEST_INDEX, "spaceId"));
+    assertEquals("keyword", fieldType(OLD_INDEX, "spaceId"));
+    assertEquals(404, send("GET", "/" + LOCK + "/_doc/run", null).statusCode(), "the lock is released");
+    // And a run that follows is not refused
+    assertEquals(List.of(), migrationService.migrate());
+  }
+
+  @Test
   void aCopyThatTookTheAliasSinceTheCopiesWereListedIsNotDeleted() throws Exception {
     // A complete copy without the alias, as another run leaves it right
     // before its first exchange
