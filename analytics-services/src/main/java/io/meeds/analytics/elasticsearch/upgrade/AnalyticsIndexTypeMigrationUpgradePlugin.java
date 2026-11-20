@@ -29,7 +29,7 @@ import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 
-import io.meeds.analytics.elasticsearch.upgrade.AnalyticsIndexTypeMigrationService.AnalyticsMigrationRunningException;
+import io.meeds.analytics.elasticsearch.model.AnalyticsMigrationRunningException;
 
 /**
  * Runs, after the platform has started, the migration of the weekly analytics

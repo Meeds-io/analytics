@@ -33,6 +33,7 @@ import org.springframework.stereotype.Service;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 
+import io.meeds.analytics.elasticsearch.model.AnalyticsMigrationRunningException;
 import io.meeds.analytics.elasticsearch.model.ElasticsearchResponse;
 import io.meeds.analytics.elasticsearch.storage.ElasticsearchAnalyticsStorage;
 import io.meeds.analytics.elasticsearch.storage.ElasticsearchConfiguration;
@@ -67,12 +68,14 @@ import io.meeds.analytics.elasticsearch.storage.ElasticsearchConfiguration;
  * one, deleted and made again; a copy with the alias is cloned again.
  * <p>
  * One run at a time: a run holds a lock document the engine creates for one
- * caller only, renews it while it works and releases it when it ends. A run
- * that finds the lock held does nothing, unless the lock was not renewed for
- * {@value #LOCK_EXPIRY_MS} ms, which a run that was stopped leaves behind.
- * Each deletion of an index that is not part of an exchange first reads that
- * the copy still carries the alias: the copy is then the one that holds the
- * week.
+ * caller only, renews it while it works and releases it when it ends, each
+ * time for the version of the document it last wrote. A run that finds the
+ * lock held does nothing, unless the lock was not renewed for
+ * {@value #LOCK_EXPIRY_MS} ms, which a run that was stopped leaves behind; a
+ * run whose lock was taken over learns it at its next renewal and stops.
+ * Each deletion of an index that is not part of an exchange first reads
+ * whether the copy carries the alias: the copy is then the one that holds
+ * the week.
  * <p>
  * Only a field the index template types {@code keyword}, and that the newest
  * index holds as such, is changed: any value can be held as a keyword. A
@@ -142,6 +145,16 @@ public class AnalyticsIndexTypeMigrationService {
 
   private long                          taskPollPeriodMs       = 1000;
 
+  /** The lock index of the run in progress */
+  private String                        lock;
+
+  /** Whether this run holds the lock, and the version of its last write */
+  private boolean                       lockHeld;
+
+  private long                          lockSeqNo;
+
+  private long                          lockPrimaryTerm;
+
   /**
    * Lists the weekly indices that hold, as another type, a field the index
    * template types {@code keyword} and the newest index holds as such, then
@@ -156,15 +169,17 @@ public class AnalyticsIndexTypeMigrationService {
    *                                            migrated, empty when none is
    *                                            left to migrate
    * @throws AnalyticsMigrationRunningException when another run holds the
-   *                                              lock: nothing was read nor
-   *                                              changed
+   *                                              lock, and nothing was read
+   *                                              nor changed, or took it
+   *                                              over, and this run stopped
+   *                                              at its next renewal
    */
   public List<String> migrate() {
     String prefix = configuration.getIndexPrefix();
     String alias = configuration.getIndexAlias();
-    String lock = MIGRATION_INDEX_PREFIX + prefix + "-lock";
+    lock = MIGRATION_INDEX_PREFIX + prefix + "-lock";
     long start = System.currentTimeMillis();
-    takeLock(lock);
+    takeLock();
     try {
       LOG.info("Start upgrade: migration of the analytics indices to the keyword fields of the index template");
       List<String> failedIndices = new ArrayList<>(resumeInterruptedMigrations(prefix, alias));
@@ -196,7 +211,7 @@ public class AnalyticsIndexTypeMigrationService {
         position++;
         long indexStart = System.currentTimeMillis();
         try {
-          renewLock(lock);
+          renewLock();
           // Read again: the list can be hours old when the turn of an index
           // comes, and its copy ends with the deletion of the original
           JSONObject mappings = getMappingsToMigrate(readWithNewestIndex(index, prefix, alias),
@@ -213,7 +228,7 @@ public class AnalyticsIndexTypeMigrationService {
             continue;
           }
           LOG.info("Migrating analytics index '{}' ({}/{})", index, position, indicesToMigrate.size());
-          migrateIndex(index, mappings, alias, lock);
+          migrateIndex(index, mappings, alias);
           migrated++;
           LOG.info("PROGRESS:: analytics index '{}' migrated in {} ms: {}/{} processed, {} failed",
                    index,
@@ -221,6 +236,8 @@ public class AnalyticsIndexTypeMigrationService {
                    position,
                    indicesToMigrate.size(),
                    failedIndices.size());
+        } catch (AnalyticsMigrationRunningException e) {
+          throw e;
         } catch (Exception e) { // NOSONAR the storage throws the client's checked exceptions undeclared
           LOG.warn("Error migrating analytics index '{}'. It is left as it is and handled again at the next start. Continue to migrate other indices",
                    index,
@@ -239,7 +256,7 @@ public class AnalyticsIndexTypeMigrationService {
                System.currentTimeMillis() - start);
       return failedIndices;
     } finally {
-      releaseLock(lock);
+      releaseLock();
     }
   }
 
@@ -299,40 +316,103 @@ public class AnalyticsIndexTypeMigrationService {
    * conflict. A lock that was not renewed for {@value #LOCK_EXPIRY_MS} ms is
    * taken over, by one caller only too.
    */
-  private void takeLock(String lock) {
-    try {
-      storage.sendPutRequest(lock + "/_create/run?refresh=true", lockContent());
+  private void takeLock() {
+    lockHeld = false;
+    createLockIndex();
+    if (createLock()) {
       return;
-    } catch (IllegalStateException e) {
-      if (!StringUtils.contains(e.getMessage(), LOCK_CONFLICT)) {
-        throw e;
-      }
     }
-    JSONObject held = new JSONObject(storage.sendGetRequest(lock + LOCK_DOCUMENT).getMessage());
+    ElasticsearchResponse read = storage.sendGetRequest(lock + LOCK_DOCUMENT, false);
+    if (read.getStatusCode() == 404) {
+      // Released since the conflict
+      if (createLock()) {
+        return;
+      }
+      throw new AnalyticsMigrationRunningException("The migration of the analytics indices is running: its lock was just taken");
+    } else if (read.getStatusCode() != 200) {
+      throw new IllegalStateException("The lock of the migration of the analytics indices cannot be read: " + read.getMessage());
+    }
+    JSONObject held = new JSONObject(read.getMessage());
     long heldFor = System.currentTimeMillis() - held.getJSONObject("_source").getLong(TIMESTAMP);
     if (heldFor < LOCK_EXPIRY_MS) {
       throw new AnalyticsMigrationRunningException("The migration of the analytics indices is running: its lock was renewed "
           + heldFor + " ms ago");
     }
+    lockSeqNo = held.getLong("_seq_no");
+    lockPrimaryTerm = held.getLong("_primary_term");
+    writeLock("The migration of the analytics indices is running: its lock was just taken over");
+    LOG.info("The lock of the migration of the analytics indices was not renewed for {} ms: it is taken over", heldFor);
+  }
+
+  /**
+   * Created here, and not by the first write of the lock: an index the engine
+   * creates by itself takes a replica, which a single node never assigns.
+   */
+  private void createLockIndex() {
+    if (exists(lock)) {
+      return;
+    }
     try {
-      storage.sendPutRequest(lock + LOCK_DOCUMENT + "?refresh=true&if_seq_no=" + held.getLong("_seq_no") + "&if_primary_term="
-          + held.getLong("_primary_term"), lockContent());
-      LOG.info("The lock of the migration of the analytics indices was not renewed for {} ms: it is taken over", heldFor);
+      storage.sendPutRequest(lock, "{\"settings\":{\"index\":{\"number_of_shards\":1,\"auto_expand_replicas\":\"0-1\"}}}");
+    } catch (IllegalStateException e) {
+      if (!StringUtils.contains(e.getMessage(), "resource_already_exists_exception")) {
+        throw e;
+      }
+    }
+  }
+
+  /**
+   * @return true when the engine created the lock document for this run,
+   *         false when it exists already
+   */
+  private boolean createLock() {
+    try {
+      keepLock(storage.sendPutRequest(lock + "/_create/run?refresh=true", lockContent()));
+      return true;
     } catch (IllegalStateException e) {
       if (StringUtils.contains(e.getMessage(), LOCK_CONFLICT)) {
-        throw new AnalyticsMigrationRunningException("The migration of the analytics indices is running: its lock was just taken over");
+        return false;
       }
       throw e;
     }
   }
 
-  private void renewLock(String lock) {
-    storage.sendPutRequest(lock + LOCK_DOCUMENT, lockContent());
+  /**
+   * Writes the lock for the version this run read or wrote last: the engine
+   * refuses it once another run wrote the document.
+   */
+  private void writeLock(String refusal) {
+    try {
+      keepLock(storage.sendPutRequest(lock + LOCK_DOCUMENT + "?refresh=true&if_seq_no=" + lockSeqNo + "&if_primary_term="
+          + lockPrimaryTerm, lockContent()));
+    } catch (IllegalStateException e) {
+      if (StringUtils.contains(e.getMessage(), LOCK_CONFLICT)) {
+        lockHeld = false;
+        throw new AnalyticsMigrationRunningException(refusal);
+      }
+      throw e;
+    }
   }
 
-  private void releaseLock(String lock) {
+  private void keepLock(ElasticsearchResponse written) {
+    JSONObject version = new JSONObject(written.getMessage());
+    lockSeqNo = version.getLong("_seq_no");
+    lockPrimaryTerm = version.getLong("_primary_term");
+    lockHeld = true;
+  }
+
+  private void renewLock() {
+    writeLock("The lock of the migration of the analytics indices was taken over by another run: this one stops");
+  }
+
+  private void releaseLock() {
+    if (!lockHeld) {
+      return;
+    }
+    lockHeld = false;
     try {
-      storage.sendDeleteRequest(lock + LOCK_DOCUMENT + "?refresh=true");
+      storage.sendDeleteRequest(lock + LOCK_DOCUMENT + "?refresh=true&if_seq_no=" + lockSeqNo + "&if_primary_term="
+          + lockPrimaryTerm);
     } catch (Exception e) { // NOSONAR the storage throws the client's checked exceptions undeclared
       LOG.warn("The lock of the migration of the analytics indices could not be released: the next run takes it over once it is {} ms old",
                LOCK_EXPIRY_MS,
@@ -375,17 +455,21 @@ public class AnalyticsIndexTypeMigrationService {
       }
       String index = copy.substring(MIGRATION_INDEX_PREFIX.length());
       try {
-        JSONObject aliases = copies.getJSONObject(copy).optJSONObject(ALIASES);
-        if (aliases != null && aliases.has(alias)) {
+        renewLock();
+        // Read now, and not from the list: a copy is deleted only while it
+        // does not carry the alias
+        if (carriesAlias(copy, alias)) {
           // The original was deleted in the request that gave the alias to
           // the copy: only the return to its name is left to do
           LOG.info("Analytics index '{}': resuming its migration from its copy '{}'", index, copy);
           takeOriginalName(index, copy, alias);
-        } else {
+        } else if (exists(copy)) {
           LOG.info("Analytics index '{}': deleting its unfinished copy '{}'", index, copy);
           cancelCopies(copy);
           storage.sendDeleteRequest(copy);
         }
+      } catch (AnalyticsMigrationRunningException e) {
+        throw e;
       } catch (Exception e) { // NOSONAR the storage throws the client's checked exceptions undeclared
         LOG.warn("Error resuming the migration of the analytics index '{}'. It is handled again at the next start", index, e);
         failedIndices.add(index);
@@ -394,7 +478,7 @@ public class AnalyticsIndexTypeMigrationService {
     return failedIndices;
   }
 
-  private void migrateIndex(String index, JSONObject mappings, String alias, String lock) {
+  private void migrateIndex(String index, JSONObject mappings, String alias) {
     String copy = MIGRATION_INDEX_PREFIX + index;
     JSONObject indexSettings = readIndices(index + "/_settings").getJSONObject(index).getJSONObject(SETTINGS).getJSONObject(INDEX);
     JSONObject copySettings = new JSONObject();
@@ -412,7 +496,7 @@ public class AnalyticsIndexTypeMigrationService {
     copyDefinition.put(MAPPINGS, mappings);
     storage.sendPutRequest(copy, copyDefinition.toString());
 
-    copyDocuments(index, copy, lock);
+    copyDocuments(index, copy);
     storage.sendPostRequest(copy + "/_refresh", null);
     checkSameCount(index, copy);
 
@@ -463,7 +547,7 @@ public class AnalyticsIndexTypeMigrationService {
    * for it: the request of a long copy would otherwise stay open for its
    * whole duration.
    */
-  private void copyDocuments(String index, String copy, String lock) {
+  private void copyDocuments(String index, String copy) {
     JSONObject reindex = new JSONObject();
     reindex.put("source", new JSONObject().put(INDEX, index));
     reindex.put("dest", new JSONObject().put(INDEX, copy));
@@ -475,7 +559,7 @@ public class AnalyticsIndexTypeMigrationService {
       pause();
       state = new JSONObject(storage.sendGetRequest("_tasks/" + task).getMessage());
       if (++polls % PROGRESS_POLLS == 0 && !state.optBoolean("completed")) {
-        renewLock(lock);
+        renewLock();
         JSONObject status = state.optJSONObject("task", new JSONObject()).optJSONObject("status", new JSONObject());
         LOG.info("PROGRESS:: analytics index '{}': {}/{} documents copied", index, status.optLong("created"), status.optLong("total"));
       }
@@ -510,6 +594,7 @@ public class AnalyticsIndexTypeMigrationService {
       if (!running) {
         return;
       }
+      renewLock();
       pause();
     }
   }
@@ -664,17 +749,6 @@ public class AnalyticsIndexTypeMigrationService {
       Thread.currentThread().interrupt();
       throw new IllegalStateException("The migration of the analytics indices was interrupted", e);
     }
-  }
-
-  /** Another run of the migration holds its lock */
-  public static class AnalyticsMigrationRunningException extends IllegalStateException {
-
-    private static final long serialVersionUID = -3175610884361921712L;
-
-    public AnalyticsMigrationRunningException(String message) {
-      super(message);
-    }
-
   }
 
 }

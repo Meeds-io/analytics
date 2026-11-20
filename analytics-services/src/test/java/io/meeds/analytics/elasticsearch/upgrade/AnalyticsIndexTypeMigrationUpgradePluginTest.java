@@ -46,7 +46,7 @@ import org.exoplatform.commons.upgrade.UpgradePluginExecutionContext;
 import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.container.xml.ValueParam;
 
-import io.meeds.analytics.elasticsearch.upgrade.AnalyticsIndexTypeMigrationService.AnalyticsMigrationRunningException;
+import io.meeds.analytics.elasticsearch.model.AnalyticsMigrationRunningException;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
