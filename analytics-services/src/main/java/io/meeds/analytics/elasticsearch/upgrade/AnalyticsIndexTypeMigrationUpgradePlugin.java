@@ -68,7 +68,8 @@ public class AnalyticsIndexTypeMigrationUpgradePlugin extends UpgradeProductPlug
     try {
       failedIndices = migrationService.migrate();
     } catch (AnalyticsMigrationRunningException e) {
-      // Another node runs it: this one neither fails nor records anything
+      // Another run holds it, in this server or on another node: this one
+      // neither fails nor records anything
       LOG.info("{} The upgrade is asked again at the next start if it is not complete by then", e.getMessage());
       return;
     }
