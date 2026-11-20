@@ -26,11 +26,15 @@ import org.exoplatform.commons.upgrade.UpgradePluginExecutionContext;
 import org.exoplatform.commons.upgrade.UpgradeProductPlugin;
 import org.exoplatform.commons.utils.CommonsUtils;
 import org.exoplatform.container.xml.InitParams;
+import org.exoplatform.services.log.ExoLogger;
+import org.exoplatform.services.log.Log;
+
+import io.meeds.analytics.elasticsearch.upgrade.AnalyticsIndexTypeMigrationService.AnalyticsMigrationRunningException;
 
 /**
  * Runs, after the platform has started, the migration of the weekly analytics
- * indices whose fields differ from the {@code keyword} ones of the newest
- * index, at each start until the migration is complete: a run left no index
+ * indices that hold as another type a field the index template types
+ * {@code keyword}, at each start until the migration is complete: a run left no index
  * behind, and the newest index has the types of the index template. The
  * plugin keeps its own record of it, which replaces the version check of the
  * upgrade service: a first run that fails with no change of version is asked
@@ -41,6 +45,8 @@ import org.exoplatform.container.xml.InitParams;
  * expected types and skips them.
  */
 public class AnalyticsIndexTypeMigrationUpgradePlugin extends UpgradeProductPlugin {
+
+  private static final Log    LOG            = ExoLogger.getLogger(AnalyticsIndexTypeMigrationUpgradePlugin.class);
 
   private static final String MIGRATION_DONE = "analyticsIndicesMigrated";
 
@@ -58,7 +64,14 @@ public class AnalyticsIndexTypeMigrationUpgradePlugin extends UpgradeProductPlug
   @Override
   public void processUpgrade(String oldVersion, String newVersion) {
     AnalyticsIndexTypeMigrationService migrationService = getMigrationService();
-    List<String> failedIndices = migrationService.migrate();
+    List<String> failedIndices;
+    try {
+      failedIndices = migrationService.migrate();
+    } catch (AnalyticsMigrationRunningException e) {
+      // Another node runs it: this one neither fails nor records anything
+      LOG.info("{} The upgrade is asked again at the next start if it is not complete by then", e.getMessage());
+      return;
+    }
     if (!failedIndices.isEmpty()) {
       throw new IllegalStateException("The analytics indices " + failedIndices + " are not migrated");
     }

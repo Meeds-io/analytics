@@ -46,6 +46,8 @@ import org.exoplatform.commons.upgrade.UpgradePluginExecutionContext;
 import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.container.xml.ValueParam;
 
+import io.meeds.analytics.elasticsearch.upgrade.AnalyticsIndexTypeMigrationService.AnalyticsMigrationRunningException;
+
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class AnalyticsIndexTypeMigrationUpgradePluginTest {
@@ -99,6 +101,16 @@ class AnalyticsIndexTypeMigrationUpgradePluginTest {
   void theMigrationIsAskedAgainWhileTheNewestIndexDoesNotHaveTheTypesOfTheTemplate() {
     when(migrationService.migrate()).thenReturn(List.of());
     when(migrationService.isNewestIndexTypedAsTheTemplate()).thenReturn(false);
+
+    plugin.processUpgrade("7.2.0", "7.3.0");
+
+    verify(settingService, never()).set(any(), any(), any(), any());
+    assertTrue(plugin.shouldProceedToUpgrade("7.3.0", "7.3.0", new UpgradePluginExecutionContext("7.3.0", 1)));
+  }
+
+  @Test
+  void theMigrationIsAskedAgainWhenAnotherRunHoldsItsLock() {
+    when(migrationService.migrate()).thenThrow(new AnalyticsMigrationRunningException("The migration is running."));
 
     plugin.processUpgrade("7.2.0", "7.3.0");
 

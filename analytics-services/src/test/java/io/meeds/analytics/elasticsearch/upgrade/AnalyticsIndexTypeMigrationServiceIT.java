@@ -22,6 +22,7 @@ package io.meeds.analytics.elasticsearch.upgrade;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.startsWith;
@@ -30,6 +31,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -61,6 +63,7 @@ import io.meeds.analytics.elasticsearch.AbstractElasticsearchIT;
 import io.meeds.analytics.elasticsearch.model.ElasticsearchResponse;
 import io.meeds.analytics.elasticsearch.storage.ElasticsearchAnalyticsStorage;
 import io.meeds.analytics.elasticsearch.storage.ElasticsearchConfiguration;
+import io.meeds.analytics.elasticsearch.upgrade.AnalyticsIndexTypeMigrationService.AnalyticsMigrationRunningException;
 
 /**
  * A server whose statistics started before the index template typed
@@ -88,6 +91,8 @@ class AnalyticsIndexTypeMigrationServiceIT extends AbstractElasticsearchIT {
   private static final String                NEWEST_INDEX = PREFIX + "_2020-01-16";
 
   private static final String                NEXT_INDEX   = PREFIX + "_2020-01-23";
+
+  private static final String                LOCK         = AnalyticsIndexTypeMigrationService.MIGRATION_INDEX_PREFIX + PREFIX + "-lock";
 
   /** Behind the alias through the template, and no week */
   private static final String                OTHER_INDEX  = PREFIX + "_zzz";
@@ -452,6 +457,185 @@ class AnalyticsIndexTypeMigrationServiceIT extends AbstractElasticsearchIT {
   }
 
   @Test
+  void aRunDoesNothingWhileAnotherOneHoldsTheLock() throws Exception {
+    lock(System.currentTimeMillis());
+    String oldestIndexId = indexSettings(OLDEST_INDEX).getString("uuid");
+    String oldIndexId = indexSettings(OLD_INDEX).getString("uuid");
+
+    assertThrows(AnalyticsMigrationRunningException.class, () -> migrationService.migrate());
+
+    assertEquals(oldestIndexId, indexSettings(OLDEST_INDEX).getString("uuid"));
+    assertEquals(oldIndexId, indexSettings(OLD_INDEX).getString("uuid"));
+    assertEquals(Set.of(), indices("/" + COPIES));
+    assertEquals(200, send("GET", "/" + LOCK + "/_doc/run", null).statusCode(), "the lock of the other run is left");
+  }
+
+  @Test
+  void aLockThatWasNotRenewedIsTakenOverAndReleasedAtTheEndOfTheRun() throws Exception {
+    lock(System.currentTimeMillis() - AnalyticsIndexTypeMigrationService.LOCK_EXPIRY_MS - 1000);
+
+    assertEquals(List.of(), migrationService.migrate());
+
+    assertEquals("keyword", fieldType(OLDEST_INDEX, "spaceId"));
+    assertEquals("keyword", fieldType(OLD_INDEX, "spaceId"));
+    assertEquals(404, send("GET", "/" + LOCK + "/_doc/run", null).statusCode(), "the lock is released");
+    // And a run that follows takes it
+    assertEquals(List.of(), migrationService.migrate());
+  }
+
+  @Test
+  void aFieldTheTemplateDoesNotNameKeepsItsTypeWhateverTheNewestIndexGivesIt() throws Exception {
+    // The newest week types the rank as a keyword: its first value there was
+    // written as a text
+    HttpResponse<String> deleted = send("DELETE", "/" + NEWEST_INDEX, null);
+    assertEquals(200, deleted.statusCode(), deleted::body);
+    createIndex(NEWEST_INDEX, "keyword", "keyword", true);
+    index(NEWEST_INDEX, "4", event(4000, "1", "7", "15"));
+    index(NEWEST_INDEX, "5", event(5000, "3", "8", "15"));
+    refresh();
+
+    assertEquals(List.of(), migrationService.migrate());
+
+    refresh();
+    for (String index : List.of(OLDEST_INDEX, OLD_INDEX)) {
+      assertEquals("keyword", fieldType(index, "spaceId"), index);
+      assertEquals("long", fieldType(index, "rank"), index);
+    }
+    // The engine still answers a maximum of the rank on the migrated weeks
+    HttpResponse<String> maximum = send("POST", "/" + OLDEST_INDEX + "," + OLD_INDEX + "/_search", """
+        {"size":0,"aggs":{"rank":{"max":{"field":"rank"}}}}
+        """);
+    assertEquals(200, maximum.statusCode(), maximum::body);
+    assertEquals(15, new JSONObject(maximum.body()).getJSONObject("aggregations").getJSONObject("rank").getInt("value"));
+  }
+
+  @Test
+  void theCopyKeepsTheLimitOnTheNumberOfFieldsOfItsOriginal() throws Exception {
+    HttpResponse<String> raised = send("PUT", "/" + OLD_INDEX + "/_settings", """
+        {"index.mapping.total_fields.limit":2000}
+        """);
+    assertEquals(200, raised.statusCode(), raised::body);
+
+    assertEquals(List.of(), migrationService.migrate());
+
+    assertEquals("keyword", fieldType(OLD_INDEX, "spaceId"));
+    assertEquals("2000",
+                 indexSettings(OLD_INDEX).getJSONObject("mapping").getJSONObject("total_fields").getString("limit"));
+    assertFalse(indexSettings(OLDEST_INDEX).has("mapping"));
+  }
+
+  @Test
+  void anIndexTheEngineDoesNotAnswerForAtItsTurnIsLeftAsItIsAndTheOthersAreMigrated() throws Exception {
+    String oldestIndexId = indexSettings(OLDEST_INDEX).getString("uuid");
+    // The connection breaks at the first read of the names behind the alias:
+    // the storage throws the client's exception as it is
+    AtomicBoolean failed = new AtomicBoolean();
+    doAnswer(invocation -> {
+      if (failed.compareAndSet(false, true)) {
+        throw new SocketTimeoutException("Read timed out");
+      }
+      return invocation.callRealMethod();
+    }).when(storage).sendGetRequest("_alias/" + ALIAS);
+
+    assertEquals(List.of(OLDEST_INDEX), migrationService.migrate());
+
+    refresh();
+    assertEquals(oldestIndexId, indexSettings(OLDEST_INDEX).getString("uuid"));
+    assertEquals("keyword", fieldType(OLD_INDEX, "spaceId"));
+    assertEquals(Set.of(), indices("/" + COPIES));
+    assertEquals(404, send("GET", "/" + LOCK + "/_doc/run", null).statusCode(), "the lock is released");
+    assertEquals(5, count(ALIAS));
+  }
+
+  @Test
+  void aCloneTheEngineDoesNotAnswerForIsDeletedAndTheCopyKeepsTheAlias() throws Exception {
+    // The second count of the older week is the one of its clone
+    AtomicInteger counts = new AtomicInteger();
+    doAnswer(invocation -> {
+      if (counts.incrementAndGet() == 2) {
+        throw new SocketTimeoutException("Read timed out");
+      }
+      return invocation.callRealMethod();
+    }).when(storage).sendGetRequest(OLD_INDEX + "/_count");
+
+    assertEquals(List.of(OLD_INDEX), migrationService.migrate());
+
+    refresh();
+    assertEquals(Set.of(OLDEST_INDEX, OLD_COPY, NEWEST_INDEX), indices("/_alias/" + ALIAS));
+    assertEquals(404, send("GET", "/" + OLD_INDEX, null).statusCode(), "the clone that cannot be used is deleted");
+    assertEquals(5, count(ALIAS));
+  }
+
+  @Test
+  void aCloneIsNotDeletedOnceItsCopyDoesNotCarryTheAliasAnyMore() throws Exception {
+    // Another run ends the migration of the older week while this one counts
+    // its clone: the clone has the alias and the copy is deleted
+    AtomicInteger counts = new AtomicInteger();
+    doAnswer(invocation -> {
+      if (counts.incrementAndGet() == 2) {
+        HttpResponse<String> swap = send("POST", "/_aliases", """
+            {"actions":[{"add":{"index":"%s","alias":"%s","is_write_index":false}},{"remove_index":{"index":"%s"}}]}
+            """.formatted(OLD_INDEX, ALIAS, OLD_COPY));
+        assertEquals(200, swap.statusCode(), swap::body);
+        throw new IllegalStateException("The count of the copy fails: it is deleted");
+      }
+      return invocation.callRealMethod();
+    }).when(storage).sendGetRequest(OLD_INDEX + "/_count");
+
+    assertEquals(List.of(OLD_INDEX), migrationService.migrate());
+
+    refresh();
+    assertEquals(Set.of(OLDEST_INDEX, OLD_INDEX, NEWEST_INDEX), indices("/_alias/" + ALIAS));
+    assertEquals(2, count(OLD_INDEX), "the index that holds the week is not deleted");
+    assertEquals(5, count(ALIAS));
+  }
+
+  @Test
+  void anIndexOfAWeeklyNameIsNotDeletedOnceItsCopyDoesNotCarryTheAliasAnyMore() throws Exception {
+    // A copy has the alias and an index has the name of the original: a clone
+    // to make again, unless another run ends the migration meanwhile
+    HttpResponse<String> copy = send("PUT", "/" + OLD_COPY, """
+        {"settings":{"number_of_shards":1,"number_of_replicas":0},
+         "mappings":{"properties":{"spaceId":{"type":"keyword"},"userId":{"type":"keyword"},"rank":{"type":"long"},
+           "timestamp":{"type":"date","format":"epoch_millis"}}}}
+        """);
+    assertEquals(200, copy.statusCode(), copy::body);
+    index(OLD_COPY, "2", event(2000, 2, 7, 15));
+    index(OLD_COPY, "3", event(3000, 1, 8, 15));
+    HttpResponse<String> swap = send("POST", "/_aliases", """
+        {"actions":[{"add":{"index":"%s","alias":"%s","is_write_index":false}},{"remove_index":{"index":"%s"}}]}
+        """.formatted(OLD_COPY, ALIAS, OLD_INDEX));
+    assertEquals(200, swap.statusCode(), swap::body);
+    createIndex(OLD_INDEX, "keyword", "long", false);
+    HttpResponse<String> noAlias = send("POST", "/_aliases", """
+        {"actions":[{"remove":{"index":"%s","alias":"%s"}}]}
+        """.formatted(OLD_INDEX, ALIAS));
+    assertEquals(200, noAlias.statusCode(), noAlias::body);
+    index(OLD_INDEX, "2", event(2000, 2, 7, 15));
+    index(OLD_INDEX, "3", event(3000, 1, 8, 15));
+    refresh();
+    String indexId = indexSettings(OLD_INDEX).getString("uuid");
+    // The other run's last exchange lands between the two reads of this one
+    AtomicBoolean exchanged = new AtomicBoolean();
+    doAnswer(invocation -> {
+      if (exchanged.compareAndSet(false, true)) {
+        HttpResponse<String> lastExchange = send("POST", "/_aliases", """
+            {"actions":[{"add":{"index":"%s","alias":"%s","is_write_index":false}},{"remove_index":{"index":"%s"}}]}
+            """.formatted(OLD_INDEX, ALIAS, OLD_COPY));
+        assertEquals(200, lastExchange.statusCode(), lastExchange::body);
+      }
+      return invocation.callRealMethod();
+    }).when(storage).sendGetRequest(OLD_COPY + "?allow_no_indices=true&ignore_unavailable=true");
+
+    assertEquals(List.of(OLD_INDEX), migrationService.migrate());
+
+    refresh();
+    assertEquals(indexId, indexSettings(OLD_INDEX).getString("uuid"), "the index that holds the week is not deleted");
+    assertEquals(2, count(OLD_INDEX));
+    assertEquals(Set.of(OLDEST_INDEX, OLD_INDEX, NEWEST_INDEX), indices("/_alias/" + ALIAS));
+  }
+
+  @Test
   void anIndexDeletedSinceTheListWasMadeIsSkipped() throws Exception {
     // The retention deletes the older week while the oldest one is copied
     AtomicBoolean deleted = new AtomicBoolean();
@@ -578,6 +762,13 @@ class AnalyticsIndexTypeMigrationServiceIT extends AbstractElasticsearchIT {
     return new JSONObject(response.body()).getLong("count");
   }
 
+  private void lock(long timestamp) throws Exception {
+    HttpResponse<String> response = send("PUT", "/" + LOCK + "/_create/run?refresh=true", """
+        {"timestamp":%s}
+        """.formatted(timestamp));
+    assertEquals(201, response.statusCode(), response::body);
+  }
+
   private void refresh() throws Exception {
     HttpResponse<String> response = send("POST", "/_refresh", null);
     assertEquals(200, response.statusCode(), response::body);
@@ -612,6 +803,7 @@ class AnalyticsIndexTypeMigrationServiceIT extends AbstractElasticsearchIT {
 
   private void cleanCluster() throws Exception {
     send("DELETE", "/_index_template/" + TEMPLATE, null);
+    send("DELETE", "/" + LOCK, null);
     for (String pattern : List.of(PREFIX + "_*", COPIES)) {
       for (String index : indices("/" + pattern)) {
         HttpResponse<String> deleted = send("DELETE", "/" + index, null);

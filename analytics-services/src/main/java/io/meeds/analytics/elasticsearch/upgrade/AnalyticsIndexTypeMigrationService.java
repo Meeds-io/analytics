@@ -39,14 +39,14 @@ import io.meeds.analytics.elasticsearch.storage.ElasticsearchConfiguration;
 
 /**
  * Gives the weekly indices behind the analytics alias the {@code keyword}
- * fields of the newest one. An index template types the indices created
- * after it only, so an index created while the template typed a field as a
- * number keeps that type once the template types it {@code keyword}, and the
- * engine then answers a grouping on the field from the indices of one type
- * only and counts a value once per type among its distinct values, with no
- * error. The type of a field cannot be changed in an index that holds
- * documents: the index is copied into one created with the expected types,
- * which takes its place behind the alias and then its name.
+ * type of the fields the index template types so. An index template types
+ * the indices created after it only, so an index created while the template
+ * typed a field as a number keeps that type once the template types it
+ * {@code keyword}, and the engine then answers a grouping on the field from
+ * the indices of one type only and counts a value once per type among its
+ * distinct values, with no error. The type of a field cannot be changed in an
+ * index that holds documents: the index is copied into one created with the
+ * expected types, which takes its place behind the alias and then its name.
  * <p>
  * One index at a time, in five steps: the copy is created under a name the
  * index template does not match, so that it stays out of the alias while it
@@ -66,19 +66,27 @@ import io.meeds.analytics.elasticsearch.storage.ElasticsearchConfiguration;
  * what a new run reads to resume. A copy without the alias is an unfinished
  * one, deleted and made again; a copy with the alias is cloned again.
  * <p>
- * Only a field the newest index types {@code keyword} is changed, since any
- * value can be held as a keyword. Any other difference is reported and left
- * as it is: a copy would refuse a text that is not a number, and would change
- * a number given a narrower type.
+ * One run at a time: a run holds a lock document the engine creates for one
+ * caller only, renews it while it works and releases it when it ends. A run
+ * that finds the lock held does nothing, unless the lock was not renewed for
+ * {@value #LOCK_EXPIRY_MS} ms, which a run that was stopped leaves behind.
+ * Each deletion of an index that is not part of an exchange first reads that
+ * the copy still carries the alias: the copy is then the one that holds the
+ * week.
+ * <p>
+ * Only a field the index template types {@code keyword}, and that the newest
+ * index holds as such, is changed: any value can be held as a keyword. A
+ * field the template does not name keeps its type, whatever the newest index
+ * gives it, and the difference is reported.
  * <p>
  * What stays open while an index is migrated: a field the storage maps on
  * the alias during the copy is not mapped on the migrated index, which holds
- * no document with it since only the newest index is written; and the
- * retention, which deletes the oldest weekly indices at each start and at
- * each new weekly index, can delete the clone before the last exchange, which
- * then fails and leaves the alias to the copy: the next run clones it again,
- * and the retention deletes that week at its next pass; and a last exchange
- * the engine refuses leaves the clone under the weekly name, where the next
+ * no document with it since only the newest index is written; the retention,
+ * which deletes the oldest weekly indices at each start and at each new
+ * weekly index, can delete the clone before the last exchange, which then
+ * fails and leaves the alias to the copy: the next run clones it again, and
+ * the retention deletes that week at its next pass; and a last exchange the
+ * engine refuses leaves the clone under the weekly name, where the next
  * weekly index gives it the alias beside the copy, until the next run, which
  * deletes it and clones the copy again.
  */
@@ -92,9 +100,18 @@ public class AnalyticsIndexTypeMigrationService {
    */
   public static final String            MIGRATION_INDEX_PREFIX = "migration-";
 
+  /** A lock that was not renewed for that long was left by a stopped run */
+  public static final long              LOCK_EXPIRY_MS         = 600000;
+
   private static final Log              LOG                    = ExoLogger.getLogger(AnalyticsIndexTypeMigrationService.class);
 
   private static final String           REINDEX_ACTION         = "indices:data/write/reindex";
+
+  private static final String           LOCK_DOCUMENT          = "/_doc/run";
+
+  private static final String           LOCK_CONFLICT          = "version_conflict_engine_exception";
+
+  private static final String           TIMESTAMP              = "timestamp";
 
   private static final String           PROPERTIES             = "properties";
 
@@ -126,102 +143,114 @@ public class AnalyticsIndexTypeMigrationService {
   private long                          taskPollPeriodMs       = 1000;
 
   /**
-   * Lists the weekly indices whose fields differ from the {@code keyword}
-   * ones of the newest index, then migrates them, oldest first. The mappings
-   * of an index and of the newest one are read again at its turn, which can
-   * come long after the list was made: an index the retention deleted
-   * meanwhile, or that has the expected types by then, is skipped. An index
-   * that cannot be migrated is left as it is, behind the alias, and the next
-   * ones are still handled.
+   * Lists the weekly indices that hold, as another type, a field the index
+   * template types {@code keyword} and the newest index holds as such, then
+   * migrates them, oldest first. The mappings of an index and of the newest
+   * one are read again at its turn, which can come long after the list was
+   * made: an index the retention deleted meanwhile, or that has the expected
+   * types by then, is skipped. An index that cannot be migrated, whether the
+   * engine refuses a request or does not answer it, is left as it is behind
+   * the alias, and the next ones are still handled.
    *
-   * @return the indices that could not be migrated, empty when none is left
-   *         to migrate
+   * @return                                    the indices that could not be
+   *                                            migrated, empty when none is
+   *                                            left to migrate
+   * @throws AnalyticsMigrationRunningException when another run holds the
+   *                                              lock: nothing was read nor
+   *                                              changed
    */
   public List<String> migrate() {
     String prefix = configuration.getIndexPrefix();
     String alias = configuration.getIndexAlias();
+    String lock = MIGRATION_INDEX_PREFIX + prefix + "-lock";
     long start = System.currentTimeMillis();
-    LOG.info("Start upgrade: migration of the analytics indices to the keyword fields of the newest one");
-    List<String> failedIndices = new ArrayList<>(resumeInterruptedMigrations(prefix, alias));
+    takeLock(lock);
+    try {
+      LOG.info("Start upgrade: migration of the analytics indices to the keyword fields of the index template");
+      List<String> failedIndices = new ArrayList<>(resumeInterruptedMigrations(prefix, alias));
 
-    JSONObject indices = readIndices(alias);
-    TreeSet<String> weeklyIndices = getWeeklyIndices(indices, prefix);
-    // Oldest first
-    List<String> indicesToMigrate = new ArrayList<>();
-    for (String index : weeklyIndices) {
-      List<String> retypedFields = new ArrayList<>();
-      List<String> keptFields = new ArrayList<>();
-      JSONObject mappings = getMappingsToMigrate(indices, prefix, index, retypedFields, keptFields);
-      if (!keptFields.isEmpty()) {
-        LOG.warn("Analytics index '{}' keeps fields that differ from the ones of the newest index and that are not migrated: {}",
-                 index,
-                 keptFields);
-      }
-      if (mappings != null && !failedIndices.contains(index)) {
-        LOG.info("Analytics index '{}' is to migrate: {}", index, retypedFields);
-        indicesToMigrate.add(index);
-      }
-    }
-    LOG.info("Total analytics indices: {}, to migrate: {}", weeklyIndices.size(), indicesToMigrate.size());
-
-    int migrated = 0;
-    int skipped = 0;
-    int position = 0;
-    for (String index : indicesToMigrate) {
-      position++;
-      long indexStart = System.currentTimeMillis();
-      try {
-        // Read again: the list can be hours old when the turn of an index
-        // comes, and its copy ends with the deletion of the original
-        JSONObject mappings = getMappingsToMigrate(readWithNewestIndex(index, prefix, alias),
-                                                   prefix,
-                                                   index,
-                                                   new ArrayList<>(),
-                                                   new ArrayList<>());
-        if (mappings == null) {
-          skipped++;
-          LOG.info("Analytics index '{}' ({}/{}) is not to migrate any more: deleted, or with the expected types",
+      JSONObject indices = readIndices(alias);
+      TreeSet<String> weeklyIndices = getWeeklyIndices(indices, prefix);
+      // Oldest first
+      List<String> indicesToMigrate = new ArrayList<>();
+      for (String index : weeklyIndices) {
+        List<String> retypedFields = new ArrayList<>();
+        List<String> keptFields = new ArrayList<>();
+        JSONObject mappings = getMappingsToMigrate(indices, prefix, index, retypedFields, keptFields);
+        if (!keptFields.isEmpty()) {
+          LOG.warn("Analytics index '{}' keeps fields that differ from the ones of the newest index and that are not migrated: {}",
                    index,
-                   position,
-                   indicesToMigrate.size());
-          continue;
+                   keptFields);
         }
-        LOG.info("Migrating analytics index '{}' ({}/{})", index, position, indicesToMigrate.size());
-        migrateIndex(index, mappings, alias);
-        migrated++;
-        LOG.info("PROGRESS:: analytics index '{}' migrated in {} ms: {}/{} processed, {} failed",
-                 index,
-                 System.currentTimeMillis() - indexStart,
-                 position,
-                 indicesToMigrate.size(),
-                 failedIndices.size());
-      } catch (RuntimeException e) {
-        LOG.warn("Error migrating analytics index '{}'. It is left as it is and handled again at the next start. Continue to migrate other indices",
-                 index,
-                 e);
-        failedIndices.add(index);
-        deleteUnfinishedCopy(index);
+        if (mappings != null && !failedIndices.contains(index)) {
+          LOG.info("Analytics index '{}' is to migrate: {}", index, retypedFields);
+          indicesToMigrate.add(index);
+        }
       }
+      LOG.info("Total analytics indices: {}, to migrate: {}", weeklyIndices.size(), indicesToMigrate.size());
+
+      int migrated = 0;
+      int skipped = 0;
+      int position = 0;
+      for (String index : indicesToMigrate) {
+        position++;
+        long indexStart = System.currentTimeMillis();
+        try {
+          renewLock(lock);
+          // Read again: the list can be hours old when the turn of an index
+          // comes, and its copy ends with the deletion of the original
+          JSONObject mappings = getMappingsToMigrate(readWithNewestIndex(index, prefix, alias),
+                                                     prefix,
+                                                     index,
+                                                     new ArrayList<>(),
+                                                     new ArrayList<>());
+          if (mappings == null) {
+            skipped++;
+            LOG.info("Analytics index '{}' ({}/{}) is not to migrate any more: deleted, or with the expected types",
+                     index,
+                     position,
+                     indicesToMigrate.size());
+            continue;
+          }
+          LOG.info("Migrating analytics index '{}' ({}/{})", index, position, indicesToMigrate.size());
+          migrateIndex(index, mappings, alias, lock);
+          migrated++;
+          LOG.info("PROGRESS:: analytics index '{}' migrated in {} ms: {}/{} processed, {} failed",
+                   index,
+                   System.currentTimeMillis() - indexStart,
+                   position,
+                   indicesToMigrate.size(),
+                   failedIndices.size());
+        } catch (Exception e) { // NOSONAR the storage throws the client's checked exceptions undeclared
+          LOG.warn("Error migrating analytics index '{}'. It is left as it is and handled again at the next start. Continue to migrate other indices",
+                   index,
+                   e);
+          failedIndices.add(index);
+          deleteUnfinishedCopy(index);
+        }
+      }
+      LOG.info("End migration of the analytics indices: total={} to migrate={} succeeded={} skipped={} error={} {}. It took {} ms",
+               weeklyIndices.size(),
+               indicesToMigrate.size(),
+               migrated,
+               skipped,
+               failedIndices.size(),
+               failedIndices,
+               System.currentTimeMillis() - start);
+      return failedIndices;
+    } finally {
+      releaseLock(lock);
     }
-    LOG.info("End migration of the analytics indices: total={} to migrate={} succeeded={} skipped={} error={} {}. It took {} ms",
-             weeklyIndices.size(),
-             indicesToMigrate.size(),
-             migrated,
-             skipped,
-             failedIndices.size(),
-             failedIndices,
-             System.currentTimeMillis() - start);
-    return failedIndices;
   }
 
   /**
-   * The newest index is the reference of a run. While it holds, as numbers,
-   * the fields the index template types {@code keyword}, every index agrees
-   * with it and nothing is migrated: this is the state of a platform at its
-   * first start on a version whose template changed these types, where the
-   * index of the current week was created by the former template. The
-   * migration is complete only once the newest index has the template's
-   * types, which the first index created by the new template brings.
+   * The newest index is the one written. While it holds, as numbers, the
+   * fields the index template types {@code keyword}, nothing is migrated:
+   * this is the state of a platform at its first start on a version whose
+   * template changed these types, where the index of the current week was
+   * created by the former template. The migration is complete only once the
+   * newest index has the template's types, which the first index created by
+   * the new template brings.
    *
    * @return true when the newest weekly index types {@code keyword} every
    *         field the index template types so, or when there is no weekly
@@ -237,13 +266,8 @@ public class AnalyticsIndexTypeMigrationService {
     JSONObject newestProperties = readIndices(newestIndex + "/_mapping").getJSONObject(newestIndex)
                                                                         .getJSONObject(MAPPINGS)
                                                                         .optJSONObject(PROPERTIES, new JSONObject());
-    JSONObject templateProperties = new JSONObject(configuration.getIndexTemplateMapping()).getJSONObject("template")
-                                                                                           .getJSONObject(MAPPINGS)
-                                                                                           .getJSONObject(PROPERTIES);
-    for (String field : templateProperties.keySet()) {
-      JSONObject newestDefinition = newestProperties.optJSONObject(field, new JSONObject());
-      if (KEYWORD_TYPE.equals(templateProperties.getJSONObject(field).optString(TYPE))
-          && !KEYWORD_TYPE.equals(newestDefinition.optString(TYPE))) {
+    for (String field : getTemplateKeywordFields()) {
+      if (!KEYWORD_TYPE.equals(newestProperties.optJSONObject(field, new JSONObject()).optString(TYPE))) {
         LOG.info("Analytics index '{}', the newest one, does not type '{}' as the index template does: the older indices are migrated once an index created by the template is the newest one",
                  newestIndex,
                  field);
@@ -251,6 +275,73 @@ public class AnalyticsIndexTypeMigrationService {
       }
     }
     return true;
+  }
+
+  /**
+   * @return the fields the index template types {@code keyword}: the only
+   *         ones a migration changes
+   */
+  private TreeSet<String> getTemplateKeywordFields() {
+    JSONObject templateProperties = new JSONObject(configuration.getIndexTemplateMapping()).getJSONObject("template")
+                                                                                           .getJSONObject(MAPPINGS)
+                                                                                           .getJSONObject(PROPERTIES);
+    TreeSet<String> fields = new TreeSet<>();
+    for (String field : templateProperties.keySet()) {
+      if (KEYWORD_TYPE.equals(templateProperties.getJSONObject(field).optString(TYPE))) {
+        fields.add(field);
+      }
+    }
+    return fields;
+  }
+
+  /**
+   * The engine creates a document for one caller only: the others get a
+   * conflict. A lock that was not renewed for {@value #LOCK_EXPIRY_MS} ms is
+   * taken over, by one caller only too.
+   */
+  private void takeLock(String lock) {
+    try {
+      storage.sendPutRequest(lock + "/_create/run?refresh=true", lockContent());
+      return;
+    } catch (IllegalStateException e) {
+      if (!StringUtils.contains(e.getMessage(), LOCK_CONFLICT)) {
+        throw e;
+      }
+    }
+    JSONObject held = new JSONObject(storage.sendGetRequest(lock + LOCK_DOCUMENT).getMessage());
+    long heldFor = System.currentTimeMillis() - held.getJSONObject("_source").getLong(TIMESTAMP);
+    if (heldFor < LOCK_EXPIRY_MS) {
+      throw new AnalyticsMigrationRunningException("The migration of the analytics indices is running: its lock was renewed "
+          + heldFor + " ms ago");
+    }
+    try {
+      storage.sendPutRequest(lock + LOCK_DOCUMENT + "?refresh=true&if_seq_no=" + held.getLong("_seq_no") + "&if_primary_term="
+          + held.getLong("_primary_term"), lockContent());
+      LOG.info("The lock of the migration of the analytics indices was not renewed for {} ms: it is taken over", heldFor);
+    } catch (IllegalStateException e) {
+      if (StringUtils.contains(e.getMessage(), LOCK_CONFLICT)) {
+        throw new AnalyticsMigrationRunningException("The migration of the analytics indices is running: its lock was just taken over");
+      }
+      throw e;
+    }
+  }
+
+  private void renewLock(String lock) {
+    storage.sendPutRequest(lock + LOCK_DOCUMENT, lockContent());
+  }
+
+  private void releaseLock(String lock) {
+    try {
+      storage.sendDeleteRequest(lock + LOCK_DOCUMENT + "?refresh=true");
+    } catch (Exception e) { // NOSONAR the storage throws the client's checked exceptions undeclared
+      LOG.warn("The lock of the migration of the analytics indices could not be released: the next run takes it over once it is {} ms old",
+               LOCK_EXPIRY_MS,
+               e);
+    }
+  }
+
+  private static String lockContent() {
+    return new JSONObject().put(TIMESTAMP, System.currentTimeMillis()).toString();
   }
 
   /**
@@ -295,7 +386,7 @@ public class AnalyticsIndexTypeMigrationService {
           cancelCopies(copy);
           storage.sendDeleteRequest(copy);
         }
-      } catch (RuntimeException e) {
+      } catch (Exception e) { // NOSONAR the storage throws the client's checked exceptions undeclared
         LOG.warn("Error resuming the migration of the analytics index '{}'. It is handled again at the next start", index, e);
         failedIndices.add(index);
       }
@@ -303,12 +394,17 @@ public class AnalyticsIndexTypeMigrationService {
     return failedIndices;
   }
 
-  private void migrateIndex(String index, JSONObject mappings, String alias) {
+  private void migrateIndex(String index, JSONObject mappings, String alias, String lock) {
     String copy = MIGRATION_INDEX_PREFIX + index;
     JSONObject indexSettings = readIndices(index + "/_settings").getJSONObject(index).getJSONObject(SETTINGS).getJSONObject(INDEX);
     JSONObject copySettings = new JSONObject();
     copySettings.put("number_of_shards", indexSettings.optString("number_of_shards", "1"));
     copySettings.put("number_of_replicas", indexSettings.optString("number_of_replicas", "0"));
+    if (indexSettings.has("mapping")) {
+      // A raised limit on the number of fields, without which the engine
+      // refuses the mappings of an index that passed the default one
+      copySettings.put("mapping", indexSettings.getJSONObject("mapping"));
+    }
     // Nothing reads the copy while it fills
     copySettings.put("refresh_interval", "-1");
     JSONObject copyDefinition = new JSONObject();
@@ -316,7 +412,7 @@ public class AnalyticsIndexTypeMigrationService {
     copyDefinition.put(MAPPINGS, mappings);
     storage.sendPutRequest(copy, copyDefinition.toString());
 
-    copyDocuments(index, copy);
+    copyDocuments(index, copy, lock);
     storage.sendPostRequest(copy + "/_refresh", null);
     checkSameCount(index, copy);
 
@@ -332,8 +428,13 @@ public class AnalyticsIndexTypeMigrationService {
    */
   private void takeOriginalName(String index, String copy, String alias) {
     if (exists(index)) {
-      // The copy carries the alias, so the original is deleted: an index of
-      // that name is a clone a previous run did not finish
+      // While the copy carries the alias, the original is deleted and an
+      // index of that name is a clone a previous run did not finish. Read
+      // now: a copy without the alias, or gone, would mean that this index
+      // is the one that holds the week.
+      if (!carriesAlias(copy, alias)) {
+        throw new IllegalStateException("The copy " + copy + " does not carry the alias any more: " + index + " is left as it is");
+      }
       storage.sendDeleteRequest(index);
     }
     // The engine clones an index only once its writes are blocked
@@ -348,10 +449,10 @@ public class AnalyticsIndexTypeMigrationService {
       // The clone has the settings of the copy: it is written and refreshed
       // again as any weekly index
       storage.sendPutRequest(index + "/_settings", "{\"index.blocks.write\":null,\"index.refresh_interval\":null}");
-    } catch (RuntimeException e) {
-      // The copy carries the alias and holds the week: a clone left under a
-      // weekly name would receive the alias with the next weekly index
-      deleteUnusableClone(index, copy);
+    } catch (Exception e) { // NOSONAR the storage throws the client's checked exceptions undeclared
+      // A clone left under a weekly name would receive the alias with the
+      // next weekly index
+      deleteUnusableClone(index, copy, alias);
       throw e;
     }
     storage.sendPostRequest("_aliases", aliasSwap(index, copy, alias));
@@ -362,7 +463,7 @@ public class AnalyticsIndexTypeMigrationService {
    * for it: the request of a long copy would otherwise stay open for its
    * whole duration.
    */
-  private void copyDocuments(String index, String copy) {
+  private void copyDocuments(String index, String copy, String lock) {
     JSONObject reindex = new JSONObject();
     reindex.put("source", new JSONObject().put(INDEX, index));
     reindex.put("dest", new JSONObject().put(INDEX, copy));
@@ -374,6 +475,7 @@ public class AnalyticsIndexTypeMigrationService {
       pause();
       state = new JSONObject(storage.sendGetRequest("_tasks/" + task).getMessage());
       if (++polls % PROGRESS_POLLS == 0 && !state.optBoolean("completed")) {
+        renewLock(lock);
         JSONObject status = state.optJSONObject("task", new JSONObject()).optJSONObject("status", new JSONObject());
         LOG.info("PROGRESS:: analytics index '{}': {}/{} documents copied", index, status.optLong("created"), status.optLong("total"));
       }
@@ -415,21 +517,28 @@ public class AnalyticsIndexTypeMigrationService {
   private void deleteUnfinishedCopy(String index) {
     String copy = MIGRATION_INDEX_PREFIX + index;
     try {
-      JSONObject copies = readIndices(copy);
-      if (copies.has(copy)
-          && !copies.getJSONObject(copy).optJSONObject(ALIASES, new JSONObject()).has(configuration.getIndexAlias())) {
+      if (exists(copy) && !carriesAlias(copy, configuration.getIndexAlias())) {
         cancelCopies(copy);
         storage.sendDeleteRequest(copy);
       }
-    } catch (RuntimeException e) {
+    } catch (Exception e) { // NOSONAR the storage throws the client's checked exceptions undeclared
       LOG.warn("Analytics index '{}': its unfinished copy '{}' could not be deleted, the next run deletes it", index, copy, e);
     }
   }
 
-  private void deleteUnusableClone(String index, String copy) {
+  /**
+   * Deletes a clone that cannot take the place of its copy, only while the
+   * copy still carries the alias: the copy then holds the week. Otherwise the
+   * clone may be the one that holds it, and is left as it is.
+   */
+  private void deleteUnusableClone(String index, String copy, String alias) {
     try {
-      storage.sendDeleteRequest(index);
-    } catch (RuntimeException e) {
+      if (carriesAlias(copy, alias)) {
+        storage.sendDeleteRequest(index);
+      } else {
+        LOG.warn("Analytics index '{}': its copy '{}' does not carry the alias any more, the index is left as it is", index, copy);
+      }
+    } catch (Exception e) { // NOSONAR the storage throws the client's checked exceptions undeclared
       LOG.warn("Analytics index '{}': the clone of its copy '{}' could not be deleted, the next run deletes it", index, copy, e);
     }
   }
@@ -449,6 +558,11 @@ public class AnalyticsIndexTypeMigrationService {
 
   private boolean exists(String index) {
     return readIndices(index).has(index);
+  }
+
+  private boolean carriesAlias(String index, String alias) {
+    JSONObject indices = readIndices(index);
+    return indices.has(index) && indices.getJSONObject(index).optJSONObject(ALIASES, new JSONObject()).has(alias);
   }
 
   /**
@@ -485,8 +599,16 @@ public class AnalyticsIndexTypeMigrationService {
   }
 
   /**
-   * @param  indices       the indices behind the alias, with their mappings,
-   *                         as just read
+   * Gives the mappings of an index the definition the newest index has of
+   * each field the index template types {@code keyword}, when the newest
+   * index holds it as such and the index holds it as another type than
+   * {@code text}. Every other field keeps its type: one the template does not
+   * name can be a {@code keyword} in the newest index only because its first
+   * value there was written as a text, and a sum or a maximum on it would
+   * then fail on every week. Such differences are reported.
+   *
+   * @param  indices       the indices behind the alias, or the index and the
+   *                         newest one, with their mappings as just read
    * @param  prefix        the weekly index name prefix
    * @param  index         a weekly index
    * @param  retypedFields receives the fields changed
@@ -496,72 +618,43 @@ public class AnalyticsIndexTypeMigrationService {
    *                       is the newest one, is not behind the alias any
    *                       more, or has no field to change
    */
-  private static JSONObject getMappingsToMigrate(JSONObject indices,
-                                                 String prefix,
-                                                 String index,
-                                                 List<String> retypedFields,
-                                                 List<String> keptFields) {
+  private JSONObject getMappingsToMigrate(JSONObject indices,
+                                          String prefix,
+                                          String index,
+                                          List<String> retypedFields,
+                                          List<String> keptFields) {
     TreeSet<String> weeklyIndices = getWeeklyIndices(indices, prefix);
     if (!weeklyIndices.contains(index) || index.equals(weeklyIndices.last())) {
       return null;
     }
     JSONObject mappings = indices.getJSONObject(index).optJSONObject(MAPPINGS);
     JSONObject newestMappings = indices.getJSONObject(weeklyIndices.last()).optJSONObject(MAPPINGS);
-    if (mappings == null || newestMappings == null) {
+    JSONObject properties = mappings == null ? null : mappings.optJSONObject(PROPERTIES);
+    JSONObject newestProperties = newestMappings == null ? null : newestMappings.optJSONObject(PROPERTIES);
+    if (properties == null || newestProperties == null) {
       return null;
     }
-    retypeProperties(mappings, newestMappings.optJSONObject(PROPERTIES), "", retypedFields, keptFields);
-    return retypedFields.isEmpty() ? null : mappings;
-  }
-
-  /**
-   * Gives each field of the mappings the definition the newest index has of
-   * it, when the newest index types it {@code keyword} and the index types it
-   * otherwise. Every other difference is reported and left as it is: a
-   * {@code text} field on either side, which no grouping reads and which the
-   * mapping view does not count as a conflict either; a field that is an
-   * object on one side and a value on the other; a field the newest index
-   * gives another type than {@code keyword}, which a copy could refuse or
-   * change.
-   *
-   * @param mappings           the mappings of an index, or of an object field
-   * @param expectedProperties the fields of the newest index at the same
-   *                             level
-   * @param path               the name of the object field, empty for the
-   *                             index
-   * @param retypedFields      receives the fields changed
-   * @param keptFields         receives the fields that differ and are left
-   *                             as they are
-   */
-  private static void retypeProperties(JSONObject mappings,
-                                       JSONObject expectedProperties,
-                                       String path,
-                                       List<String> retypedFields,
-                                       List<String> keptFields) {
-    JSONObject properties = mappings.optJSONObject(PROPERTIES);
-    if (properties == null || expectedProperties == null) {
-      return;
-    }
+    TreeSet<String> templateKeywordFields = getTemplateKeywordFields();
     for (String field : new TreeSet<>(properties.keySet())) {
       JSONObject definition = properties.optJSONObject(field);
-      JSONObject expectedDefinition = expectedProperties.optJSONObject(field);
-      if (definition == null || expectedDefinition == null) {
+      JSONObject newestDefinition = newestProperties.optJSONObject(field);
+      if (definition == null || newestDefinition == null) {
         continue;
       }
-      String type = definition.optString(TYPE, null);
-      String expectedType = expectedDefinition.optString(TYPE, null);
-      if (type == null && expectedType == null) {
-        retypeProperties(definition, expectedDefinition.optJSONObject(PROPERTIES), path + field + ".", retypedFields, keptFields);
-      } else if (StringUtils.equals(type, expectedType)) {
+      String type = definition.optString(TYPE, "object");
+      String newestType = newestDefinition.optString(TYPE, "object");
+      if (type.equals(newestType)) {
         continue;
-      } else if (type != null && !TEXT_TYPE.equals(type) && KEYWORD_TYPE.equals(expectedType)) {
-        properties.put(field, new JSONObject(expectedDefinition.toString()));
-        retypedFields.add(path + field + ": " + type + " -> " + expectedType);
+      }
+      if (templateKeywordFields.contains(field) && KEYWORD_TYPE.equals(newestType) && !TEXT_TYPE.equals(type)
+          && definition.has(TYPE)) {
+        properties.put(field, new JSONObject(newestDefinition.toString()));
+        retypedFields.add(field + ": " + type + " -> " + newestType);
       } else {
-        keptFields.add(path + field + ": " + StringUtils.defaultString(type, "object") + " / "
-            + StringUtils.defaultString(expectedType, "object"));
+        keptFields.add(field + ": " + type + " / " + newestType);
       }
     }
+    return retypedFields.isEmpty() ? null : mappings;
   }
 
   private void pause() {
@@ -571,6 +664,17 @@ public class AnalyticsIndexTypeMigrationService {
       Thread.currentThread().interrupt();
       throw new IllegalStateException("The migration of the analytics indices was interrupted", e);
     }
+  }
+
+  /** Another run of the migration holds its lock */
+  public static class AnalyticsMigrationRunningException extends IllegalStateException {
+
+    private static final long serialVersionUID = -3175610884361921712L;
+
+    public AnalyticsMigrationRunningException(String message) {
+      super(message);
+    }
+
   }
 
 }
