@@ -95,6 +95,8 @@ public class AnalyticsUtils {
 
   private static final Log              LOG                              = ExoLogger.getLogger(AnalyticsUtils.class);
 
+  private static final Pattern JSON_NUMBER = Pattern.compile("-?(0|[1-9]\\d*)(\\.\\d+)?([eE][+-]?\\d+)?");
+
   private static ProfilePropertyService profilePropertyService;
 
   public static final short             MAX_BULK_DOCUMENTS               = 100;
@@ -393,11 +395,42 @@ public class AnalyticsUtils {
     return jsonString;
   }
 
+  /**
+   * The text of a JSON string holding a value, without its quotes: a value
+   * written into a query template this way stays one string, whatever it
+   * holds. A '$' is written as its JSON escape, so that the value can never
+   * hold the name of another placeholder of the template.
+   *
+   * @param value a value a request supplies, null written as "null"
+   * @return the escaped text to put between the quotes of a JSON string
+   */
+  public static String toJsonStringContent(String value) {
+    String quoted = JSONObject.quote(String.valueOf(value));
+    return quoted.substring(1, quoted.length() - 1).replace("$", "\\u0024");
+  }
+
+  /**
+   * @param value a value a request supplies
+   * @return the value as a JSON number when it is one, else as a JSON string
+   */
+  public static String toJsonValue(String value) {
+    return isJsonNumber(value) ? value : "\"" + toJsonStringContent(value) + "\"";
+  }
+
+  /**
+   * @param value a value a request supplies
+   * @return true when the value is a number in the JSON grammar
+   */
+  public static boolean isJsonNumber(String value) {
+    return value != null && JSON_NUMBER.matcher(value).matches();
+  }
+
   public static final String collectionToJSONString(String value) {
     String[] valuesString = value.split(VALUES_SEPARATOR);
     List<String> valuesList = new ArrayList<>();
     Collections.addAll(valuesList, valuesString);
-    return new JSONArray(valuesList.stream().map(String::trim).toList()).toString();
+    // Within the array's strings only: no value can name a template placeholder
+    return new JSONArray(valuesList.stream().map(String::trim).toList()).toString().replace("$", "\\u0024");
   }
 
   public static JsonNode getJsonNode(JsonNode jsonNode, int i, String... keys) { // NOSONAR
