@@ -73,12 +73,23 @@ import io.meeds.analytics.elasticsearch.storage.ElasticsearchConfiguration;
  * time for the version of the document it last wrote. A run that finds the
  * lock held does nothing, unless the lock was not renewed for
  * {@value #LOCK_EXPIRY_MS} ms, which a run that was stopped leaves behind; a
- * run whose lock was taken over learns it at its next renewal and stops. A
- * second run in the same server is refused before it reads the lock, whose
- * state this service keeps for one run.
+ * run whose lock was taken over learns it at its next renewal and stops. The
+ * lock is renewed right before each request that deletes an index, so a run
+ * that lost it stops before that request and leaves the week in progress to
+ * the other run. A second run in the same server is refused before it reads
+ * the lock, whose state this service keeps for one run.
  * Each deletion of an index that is not part of an exchange first reads
  * whether the copy carries the alias: the copy is then the one that holds
  * the week.
+ * <p>
+ * The lock relies on two things. Its age is the time of the node that reads
+ * it minus the time of the node that wrote it: the nodes of a cluster keep
+ * their clocks synchronised, as the clustered job store already requires, to
+ * well within the expiry. And a run that is paused for longer than the
+ * expiry between a renewal and the request that follows it still sends that
+ * request after another run took the lock over: the two then work on the
+ * same week, and the reading of the alias before a deletion narrows that
+ * case without closing it.
  * <p>
  * Only a field the index template types {@code keyword}, and that the newest
  * index holds as such, is changed: any value can be held as a keyword. A
@@ -519,6 +530,8 @@ public class AnalyticsIndexTypeMigrationService {
     storage.sendPostRequest(copy + "/_refresh", null);
     checkSameCount(index, copy);
 
+    // The original is deleted by this run only while it holds the lock
+    renewLock();
     // One request: no search sees the week twice, nor misses it
     storage.sendPostRequest("_aliases", aliasSwap(copy, index, alias));
     takeOriginalName(index, copy, alias);
@@ -538,6 +551,7 @@ public class AnalyticsIndexTypeMigrationService {
       if (!carriesAlias(copy, alias)) {
         throw new IllegalStateException("The copy " + copy + " does not carry the alias any more: " + index + " is left as it is");
       }
+      renewLock();
       storage.sendDeleteRequest(index);
     }
     // The engine clones an index only once its writes are blocked
@@ -558,6 +572,8 @@ public class AnalyticsIndexTypeMigrationService {
       deleteUnusableClone(index, copy, alias);
       throw e;
     }
+    // The copy is deleted by this run only while it holds the lock
+    renewLock();
     storage.sendPostRequest("_aliases", aliasSwap(index, copy, alias));
   }
 
@@ -637,15 +653,19 @@ public class AnalyticsIndexTypeMigrationService {
   /**
    * Deletes a clone that cannot take the place of its copy, only while the
    * copy still carries the alias: the copy then holds the week. Otherwise the
-   * clone may be the one that holds it, and is left as it is.
+   * clone may be the one that holds it, and is left as it is. A run that lost
+   * the lock leaves the clone too, and stops.
    */
   private void deleteUnusableClone(String index, String copy, String alias) {
     try {
       if (carriesAlias(copy, alias)) {
+        renewLock();
         storage.sendDeleteRequest(index);
       } else {
         LOG.warn("Analytics index '{}': its copy '{}' does not carry the alias any more, the index is left as it is", index, copy);
       }
+    } catch (AnalyticsMigrationRunningException e) {
+      throw e;
     } catch (Exception e) { // NOSONAR the storage throws the client's checked exceptions undeclared
       LOG.warn("Analytics index '{}': the clone of its copy '{}' could not be deleted, the next run deletes it", index, copy, e);
     }

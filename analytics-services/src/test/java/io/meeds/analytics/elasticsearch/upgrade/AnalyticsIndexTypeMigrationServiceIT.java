@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mockingDetails;
@@ -101,6 +102,8 @@ class AnalyticsIndexTypeMigrationServiceIT extends AbstractElasticsearchIT {
   private static final String                COPIES       = AnalyticsIndexTypeMigrationService.MIGRATION_INDEX_PREFIX + PREFIX + "_*";
 
   private static final String                OLD_COPY     = AnalyticsIndexTypeMigrationService.MIGRATION_INDEX_PREFIX + OLD_INDEX;
+
+  private static final String                OLDEST_COPY  = AnalyticsIndexTypeMigrationService.MIGRATION_INDEX_PREFIX + OLDEST_INDEX;
 
   private final HttpClient                   client       = HttpClient.newBuilder()
                                                                       .connectTimeout(Duration.ofSeconds(5))
@@ -527,6 +530,7 @@ class AnalyticsIndexTypeMigrationServiceIT extends AbstractElasticsearchIT {
 
   @Test
   void aRunWhoseLockIsTakenOverStopsAtItsNextRenewalAndLeavesTheLockToTheOtherRun() throws Exception {
+    String oldestIndexId = indexSettings(OLDEST_INDEX).getString("uuid");
     String oldIndexId = indexSettings(OLD_INDEX).getString("uuid");
     // Another run takes the lock over while the oldest week is copied
     AtomicBoolean takenOver = new AtomicBoolean();
@@ -543,7 +547,10 @@ class AnalyticsIndexTypeMigrationServiceIT extends AbstractElasticsearchIT {
     assertThrows(AnalyticsMigrationRunningException.class, () -> migrationService.migrate());
 
     refresh();
-    assertEquals("keyword", fieldType(OLDEST_INDEX, "spaceId"), "the week in progress was ended");
+    assertEquals(oldestIndexId, indexSettings(OLDEST_INDEX).getString("uuid"), "the week in progress is not deleted");
+    assertEquals("long", fieldType(OLDEST_INDEX, "spaceId"));
+    assertEquals(Set.of(OLDEST_INDEX, OLD_INDEX, NEWEST_INDEX), indices("/_alias/" + ALIAS));
+    assertEquals(Set.of(OLDEST_COPY), indices("/" + COPIES), "its copy is left to the other run");
     assertEquals(oldIndexId, indexSettings(OLD_INDEX).getString("uuid"), "the next week was not started");
     assertEquals("long", fieldType(OLD_INDEX, "spaceId"));
     assertEquals(200, send("GET", "/" + LOCK + "/_doc/run", null).statusCode(), "the lock of the other run is left");
@@ -632,6 +639,91 @@ class AnalyticsIndexTypeMigrationServiceIT extends AbstractElasticsearchIT {
     assertEquals(200, send("GET", "/" + OLD_COPY, null).statusCode(), "the copy is not deleted");
     assertEquals("long", fieldType(OLD_INDEX, "spaceId"));
     assertEquals(200, send("GET", "/" + LOCK + "/_doc/run", null).statusCode(), "the lock of the other run is left");
+  }
+
+  @Test
+  void aRunWhoseLockIsTakenOverWhileACloneIsMadeLeavesTheAliasToTheCopy() throws Exception {
+    // Another run takes the lock over while the oldest week is cloned
+    AtomicBoolean takenOver = new AtomicBoolean();
+    doAnswer(invocation -> {
+      if (takenOver.compareAndSet(false, true)) {
+        takeLockOver();
+      }
+      return invocation.callRealMethod();
+    }).when(storage).sendPostRequest(contains("/_clone/"), any());
+
+    assertThrows(AnalyticsMigrationRunningException.class, () -> migrationService.migrate());
+
+    refresh();
+    assertEquals(Set.of(OLDEST_COPY, OLD_INDEX, NEWEST_INDEX),
+                 indices("/_alias/" + ALIAS),
+                 "the copy is not deleted: the last exchange is left to the other run");
+    assertEquals(200, send("GET", "/" + LOCK + "/_doc/run", null).statusCode(), "the lock of the other run is left");
+    assertEquals(5, count(ALIAS));
+  }
+
+  @Test
+  void aRunWhoseLockIsTakenOverBeforeItDeletesAnUnfinishedCloneLeavesThatClone() throws Exception {
+    // A copy has the alias and an index has the name of the original: a clone
+    // to make again
+    HttpResponse<String> copy = send("PUT", "/" + OLD_COPY, """
+        {"settings":{"number_of_shards":1,"number_of_replicas":0},
+         "mappings":{"properties":{"spaceId":{"type":"keyword"},"userId":{"type":"keyword"},"rank":{"type":"long"},
+           "timestamp":{"type":"date","format":"epoch_millis"}}}}
+        """);
+    assertEquals(200, copy.statusCode(), copy::body);
+    index(OLD_COPY, "2", event(2000, 2, 7, 15));
+    index(OLD_COPY, "3", event(3000, 1, 8, 15));
+    HttpResponse<String> swap = send("POST", "/_aliases", """
+        {"actions":[{"add":{"index":"%s","alias":"%s","is_write_index":false}},{"remove_index":{"index":"%s"}}]}
+        """.formatted(OLD_COPY, ALIAS, OLD_INDEX));
+    assertEquals(200, swap.statusCode(), swap::body);
+    createIndex(OLD_INDEX, "keyword", "long", false);
+    HttpResponse<String> noAlias = send("POST", "/_aliases", """
+        {"actions":[{"remove":{"index":"%s","alias":"%s"}}]}
+        """.formatted(OLD_INDEX, ALIAS));
+    assertEquals(200, noAlias.statusCode(), noAlias::body);
+    refresh();
+    String cloneId = indexSettings(OLD_INDEX).getString("uuid");
+    // Another run takes the lock over once this one has read that an index
+    // has the name of the original
+    AtomicBoolean takenOver = new AtomicBoolean();
+    doAnswer(invocation -> {
+      Object read = invocation.callRealMethod();
+      if (takenOver.compareAndSet(false, true)) {
+        takeLockOver();
+      }
+      return read;
+    }).when(storage).sendGetRequest(OLD_INDEX + "?allow_no_indices=true&ignore_unavailable=true");
+
+    assertThrows(AnalyticsMigrationRunningException.class, () -> migrationService.migrate());
+
+    assertTrue(takenOver.get());
+    assertEquals(cloneId, indexSettings(OLD_INDEX).getString("uuid"), "the clone is not deleted");
+    assertEquals(Set.of(OLDEST_INDEX, OLD_COPY, NEWEST_INDEX), indices("/_alias/" + ALIAS));
+    assertEquals(200, send("GET", "/" + LOCK + "/_doc/run", null).statusCode(), "the lock of the other run is left");
+  }
+
+  @Test
+  void aRunWhoseLockIsTakenOverBeforeItDeletesAnUnusableCloneLeavesThatClone() throws Exception {
+    // The second count of the oldest week is the one of its clone: another
+    // run takes the lock over, then the count fails
+    AtomicInteger counts = new AtomicInteger();
+    doAnswer(invocation -> {
+      if (counts.incrementAndGet() == 2) {
+        takeLockOver();
+        throw new IllegalStateException("The count of the clone fails");
+      }
+      return invocation.callRealMethod();
+    }).when(storage).sendGetRequest(OLDEST_INDEX + "/_count");
+
+    assertThrows(AnalyticsMigrationRunningException.class, () -> migrationService.migrate());
+
+    refresh();
+    assertEquals(200, send("GET", "/" + OLDEST_INDEX, null).statusCode(), "the clone is not deleted");
+    assertEquals(Set.of(OLDEST_COPY, OLD_INDEX, NEWEST_INDEX), indices("/_alias/" + ALIAS));
+    assertEquals(200, send("GET", "/" + LOCK + "/_doc/run", null).statusCode(), "the lock of the other run is left");
+    assertEquals(5, count(ALIAS));
   }
 
   @Test
@@ -969,6 +1061,14 @@ class AnalyticsIndexTypeMigrationServiceIT extends AbstractElasticsearchIT {
     HttpResponse<String> response = send("GET", "/" + index + "/_count", null);
     assertEquals(200, response.statusCode(), response::body);
     return new JSONObject(response.body()).getLong("count");
+  }
+
+  /** What another run does to a lock it finds expired, or thinks so */
+  private void takeLockOver() throws Exception {
+    HttpResponse<String> written = send("PUT", "/" + LOCK + "/_doc/run?refresh=true", """
+        {"timestamp":%s}
+        """.formatted(System.currentTimeMillis()));
+    assertEquals(200, written.statusCode(), written::body);
   }
 
   private void lock(long timestamp) throws Exception {
