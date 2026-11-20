@@ -19,6 +19,7 @@
  */
 package io.meeds.analytics.elasticsearch.upgrade;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -26,9 +27,11 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -60,6 +63,11 @@ class AnalyticsIndexTypeMigrationUpgradePluginTest {
 
   private AnalyticsIndexTypeMigrationUpgradePlugin plugin;
 
+  /** The second tries the plugin asked for, by their delay */
+  private final List<Long>                         retryDelays = new ArrayList<>();
+
+  private final List<Runnable>                     retries     = new ArrayList<>();
+
   @BeforeEach
   void setUp() {
     InitParams initParams = new InitParams();
@@ -71,6 +79,12 @@ class AnalyticsIndexTypeMigrationUpgradePluginTest {
       @Override
       protected AnalyticsIndexTypeMigrationService getMigrationService() {
         return migrationService;
+      }
+
+      @Override
+      protected void scheduleRetry(long delayMs, Runnable retry) {
+        retryDelays.add(delayMs);
+        retries.add(retry);
       }
     };
     // A setting service that returns what the plugin stored
@@ -113,6 +127,50 @@ class AnalyticsIndexTypeMigrationUpgradePluginTest {
     when(migrationService.migrate()).thenThrow(new AnalyticsMigrationRunningException("The migration is running."));
 
     plugin.processUpgrade("7.2.0", "7.3.0");
+
+    verify(settingService, never()).set(any(), any(), any(), any());
+    assertTrue(plugin.shouldProceedToUpgrade("7.3.0", "7.3.0", new UpgradePluginExecutionContext("7.3.0", 1)));
+    assertEquals(List.of(), retryDelays, "a lock that tells no time to wait is not tried again in this start");
+  }
+
+  @Test
+  void aLockLeftByAStoppedRunIsTriedAgainInTheSameStartOnceItCanBeTakenOver() {
+    when(migrationService.migrate()).thenThrow(new AnalyticsMigrationRunningException("The lock was renewed 1000 ms ago.", 599000))
+                                    .thenReturn(List.of());
+    when(migrationService.isNewestIndexTypedAsTheTemplate()).thenReturn(true);
+
+    plugin.processUpgrade("7.2.0", "7.3.0");
+
+    assertEquals(1, retryDelays.size());
+    assertTrue(retryDelays.get(0) > 599000, "the try waits for the lock to be old enough: " + retryDelays);
+    verify(settingService, never()).set(any(), any(), any(), any());
+
+    retries.get(0).run();
+
+    verify(migrationService, times(2)).migrate();
+    assertFalse(plugin.shouldProceedToUpgrade("7.3.0", "7.3.0", new UpgradePluginExecutionContext("7.3.0", 1)),
+                "the second try migrated and recorded it");
+  }
+
+  @Test
+  void aLockStillHeldAtTheSecondTryLeavesTheMigrationToTheNextStart() {
+    when(migrationService.migrate()).thenThrow(new AnalyticsMigrationRunningException("The lock was renewed 1000 ms ago.", 599000));
+
+    plugin.processUpgrade("7.2.0", "7.3.0");
+    retries.get(0).run();
+
+    assertEquals(1, retryDelays.size(), "one second try per start, never a third");
+    verify(settingService, never()).set(any(), any(), any(), any());
+    assertTrue(plugin.shouldProceedToUpgrade("7.3.0", "7.3.0", new UpgradePluginExecutionContext("7.3.0", 1)));
+  }
+
+  @Test
+  void aSecondTryThatLeavesAnIndexBehindRecordsNothingAndDoesNotThrow() {
+    when(migrationService.migrate()).thenThrow(new AnalyticsMigrationRunningException("The lock was renewed 1000 ms ago.", 599000))
+                                    .thenReturn(List.of("analytics_2026-07-30"));
+
+    plugin.processUpgrade("7.2.0", "7.3.0");
+    retries.get(0).run();
 
     verify(settingService, never()).set(any(), any(), any(), any());
     assertTrue(plugin.shouldProceedToUpgrade("7.3.0", "7.3.0", new UpgradePluginExecutionContext("7.3.0", 1)));

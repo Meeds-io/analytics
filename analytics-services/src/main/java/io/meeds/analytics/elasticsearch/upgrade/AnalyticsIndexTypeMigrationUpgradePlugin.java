@@ -25,6 +25,9 @@ import org.exoplatform.commons.api.settings.SettingService;
 import org.exoplatform.commons.upgrade.UpgradePluginExecutionContext;
 import org.exoplatform.commons.upgrade.UpgradeProductPlugin;
 import org.exoplatform.commons.utils.CommonsUtils;
+import org.exoplatform.container.ExoContainer;
+import org.exoplatform.container.ExoContainerContext;
+import org.exoplatform.container.component.RequestLifeCycle;
 import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
@@ -43,12 +46,22 @@ import io.meeds.analytics.elasticsearch.model.AnalyticsMigrationRunningException
  * complete migration is never asked again, at a later upgrade either. A run
  * that follows an incomplete one finds the indices already migrated with the
  * expected types and skips them.
+ * <p>
+ * A server stopped while it migrated leaves its lock, which looks held for
+ * {@value AnalyticsIndexTypeMigrationService#LOCK_EXPIRY_MS} ms: a start that
+ * finds the lock held tries once more in the same start, once that lock can
+ * be taken over, so that an interrupted migration does not wait for the
+ * start after. When another node does hold the lock, that second try is
+ * refused as the first one.
  */
 public class AnalyticsIndexTypeMigrationUpgradePlugin extends UpgradeProductPlugin {
 
-  private static final Log    LOG            = ExoLogger.getLogger(AnalyticsIndexTypeMigrationUpgradePlugin.class);
+  private static final Log    LOG             = ExoLogger.getLogger(AnalyticsIndexTypeMigrationUpgradePlugin.class);
 
-  private static final String MIGRATION_DONE = "analyticsIndicesMigrated";
+  private static final String MIGRATION_DONE  = "analyticsIndicesMigrated";
+
+  /** Added to the age a lock must reach, so that the try finds it expired */
+  private static final long   RETRY_MARGIN_MS = 5000;
 
   public AnalyticsIndexTypeMigrationUpgradePlugin(SettingService settingService, InitParams initParams) {
     super(settingService, initParams);
@@ -63,22 +76,74 @@ public class AnalyticsIndexTypeMigrationUpgradePlugin extends UpgradeProductPlug
 
   @Override
   public void processUpgrade(String oldVersion, String newVersion) {
-    AnalyticsIndexTypeMigrationService migrationService = getMigrationService();
-    List<String> failedIndices;
     try {
-      failedIndices = migrationService.migrate();
+      migrate();
     } catch (AnalyticsMigrationRunningException e) {
-      // Another run holds it, in this server or on another node: this one
-      // neither fails nor records anything
-      LOG.info("{} The upgrade is asked again at the next start if it is not complete by then", e.getMessage());
-      return;
+      // Another run holds the lock, in this server or on another node, or a
+      // stopped run left it: this one neither fails nor records anything
+      if (e.getRetryAfterMs() > 0) {
+        long delayMs = e.getRetryAfterMs() + RETRY_MARGIN_MS;
+        LOG.warn("{} The migration of the analytics indices is NOT done: it is tried again in {} ms, once its lock can be taken over",
+                 e.getMessage(),
+                 delayMs);
+        scheduleRetry(delayMs, this::retry);
+      } else {
+        LOG.warn("{} The migration of the analytics indices is NOT done by this server: it is asked again at the next start if it is not complete by then",
+                 e.getMessage());
+      }
     }
+  }
+
+  private void migrate() {
+    AnalyticsIndexTypeMigrationService migrationService = getMigrationService();
+    List<String> failedIndices = migrationService.migrate();
     if (!failedIndices.isEmpty()) {
       throw new IllegalStateException("The analytics indices " + failedIndices + " are not migrated");
     }
     if (migrationService.isNewestIndexTypedAsTheTemplate()) {
       storeValueForPlugin(MIGRATION_DONE, String.valueOf(true));
     }
+  }
+
+  /** The second and last try of a start, out of the upgrade service's run */
+  private void retry() {
+    try {
+      migrate();
+    } catch (AnalyticsMigrationRunningException e) {
+      LOG.warn("{} The migration of the analytics indices is NOT done by this server: it is asked again at the next start if it is not complete by then",
+               e.getMessage());
+    } catch (Exception e) { // NOSONAR nothing reads the failure of this thread but the log
+      LOG.error("The migration of the analytics indices failed: it is asked again at the next start", e);
+    }
+  }
+
+  /**
+   * Runs the second try on a thread of its own, which does not keep the
+   * server from stopping, with the container and the request life cycle the
+   * upgrade service gives to the first one: its thread is given back at once.
+   *
+   * @param delayMs the time to wait before the try
+   * @param retry   the try
+   */
+  protected void scheduleRetry(long delayMs, Runnable retry) {
+    ExoContainer container = ExoContainerContext.getCurrentContainer();
+    Thread thread = new Thread(() -> {
+      try {
+        Thread.sleep(delayMs);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        return;
+      }
+      ExoContainerContext.setCurrentContainer(container);
+      RequestLifeCycle.begin(container);
+      try {
+        retry.run();
+      } finally {
+        RequestLifeCycle.end();
+      }
+    }, "analytics-indices-migration-retry");
+    thread.setDaemon(true);
+    thread.start();
   }
 
   /**

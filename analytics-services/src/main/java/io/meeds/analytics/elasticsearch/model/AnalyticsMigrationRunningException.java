@@ -27,8 +27,23 @@ public class AnalyticsMigrationRunningException extends IllegalStateException {
 
   private static final long serialVersionUID = -3175610884361921712L;
 
+  /**
+   * The time after which the lock found held can be taken over if the run
+   * that holds it was stopped, 0 when a later try has no reason to pass
+   */
+  private final long        retryAfterMs;
+
   public AnalyticsMigrationRunningException(String message) {
+    this(message, 0);
+  }
+
+  public AnalyticsMigrationRunningException(String message, long retryAfterMs) {
     super(message);
+    this.retryAfterMs = retryAfterMs;
+  }
+
+  public long getRetryAfterMs() {
+    return retryAfterMs;
   }
 
 }

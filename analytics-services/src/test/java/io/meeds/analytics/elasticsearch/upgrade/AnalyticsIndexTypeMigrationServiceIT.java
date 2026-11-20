@@ -470,8 +470,13 @@ class AnalyticsIndexTypeMigrationServiceIT extends AbstractElasticsearchIT {
     String oldestIndexId = indexSettings(OLDEST_INDEX).getString("uuid");
     String oldIndexId = indexSettings(OLD_INDEX).getString("uuid");
 
-    assertThrows(AnalyticsMigrationRunningException.class, () -> migrationService.migrate());
+    AnalyticsMigrationRunningException refusal = assertThrows(AnalyticsMigrationRunningException.class,
+                                                              () -> migrationService.migrate());
 
+    long retryAfterMs = refusal.getRetryAfterMs();
+    assertTrue(retryAfterMs > AnalyticsIndexTypeMigrationService.LOCK_EXPIRY_MS - 60000
+        && retryAfterMs <= AnalyticsIndexTypeMigrationService.LOCK_EXPIRY_MS,
+               "the refusal tells after how long a lock left by a stopped run can be taken over: " + retryAfterMs);
     assertEquals(oldestIndexId, indexSettings(OLDEST_INDEX).getString("uuid"));
     assertEquals(oldIndexId, indexSettings(OLD_INDEX).getString("uuid"));
     assertEquals(Set.of(), indices("/" + COPIES));

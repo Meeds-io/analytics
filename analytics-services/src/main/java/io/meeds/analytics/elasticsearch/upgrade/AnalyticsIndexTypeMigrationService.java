@@ -72,7 +72,8 @@ import io.meeds.analytics.elasticsearch.storage.ElasticsearchConfiguration;
  * caller only, renews it while it works and releases it when it ends, each
  * time for the version of the document it last wrote. A run that finds the
  * lock held does nothing, unless the lock was not renewed for
- * {@value #LOCK_EXPIRY_MS} ms, which a run that was stopped leaves behind; a
+ * {@value #LOCK_EXPIRY_MS} ms, which a run that was stopped leaves behind, and
+ * is told after how long such a lock can be taken over; a
  * run whose lock was taken over learns it at its next renewal and stops. The
  * lock is renewed right before each request that deletes an index, so a run
  * that lost it stops before that request and leaves the week in progress to
@@ -188,7 +189,11 @@ public class AnalyticsIndexTypeMigrationService {
    * @throws AnalyticsMigrationRunningException when another run is in
    *                                              progress in this server or
    *                                              holds the lock, and nothing
-   *                                              was read nor changed, or
+   *                                              was read nor changed (the
+   *                                              exception then tells after
+   *                                              how long a lock left by a
+   *                                              stopped run can be taken
+   *                                              over), or
    *                                              took the lock over, and this
    *                                              run stopped at its next
    *                                              renewal
@@ -365,8 +370,10 @@ public class AnalyticsIndexTypeMigrationService {
     JSONObject held = new JSONObject(read.getMessage());
     long heldFor = System.currentTimeMillis() - held.getJSONObject("_source").getLong(TIMESTAMP);
     if (heldFor < LOCK_EXPIRY_MS) {
-      throw new AnalyticsMigrationRunningException("The migration of the analytics indices is running: its lock was renewed "
-          + heldFor + " ms ago");
+      // A run that was stopped leaves such a lock too: it can be taken over
+      // once it is old enough
+      throw new AnalyticsMigrationRunningException("The migration of the analytics indices is running, or was stopped: its lock was renewed "
+          + heldFor + " ms ago", LOCK_EXPIRY_MS - Math.max(heldFor, 0));
     }
     lockSeqNo = held.getLong("_seq_no");
     lockPrimaryTerm = held.getLong("_primary_term");
