@@ -1,0 +1,243 @@
+/**
+ * This file is part of the Meeds project (https://meeds.io/).
+ *
+ * Copyright (C) 2020 - 2026 Meeds Association contact@meeds.io
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
+package io.meeds.analytics.elasticsearch.upgrade;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockingDetails;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+
+import org.exoplatform.commons.api.settings.SettingService;
+import org.exoplatform.commons.api.settings.SettingValue;
+import org.exoplatform.commons.api.settings.data.Context;
+import org.exoplatform.commons.upgrade.UpgradePluginExecutionContext;
+import org.exoplatform.container.ExoContainer;
+import org.exoplatform.container.ExoContainerContext;
+import org.exoplatform.container.component.ComponentRequestLifecycle;
+import org.exoplatform.container.xml.InitParams;
+import org.exoplatform.container.xml.ValueParam;
+
+import io.meeds.analytics.elasticsearch.model.AnalyticsMigrationRunningException;
+
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
+class AnalyticsIndexTypeMigrationUpgradePluginTest {
+
+  @Mock
+  private AnalyticsIndexTypeMigrationService       migrationService;
+
+  @Mock
+  private SettingService                           settingService;
+
+  private AnalyticsIndexTypeMigrationUpgradePlugin plugin;
+
+  private InitParams                               initParams;
+
+  /** The second tries the plugin asked for, by their delay */
+  private final List<Long>                         retryDelays = new ArrayList<>();
+
+  private final List<Runnable>                     retries     = new ArrayList<>();
+
+  @BeforeEach
+  void setUp() {
+    initParams = new InitParams();
+    ValueParam productGroupId = new ValueParam();
+    productGroupId.setName("product.group.id");
+    productGroupId.setValue("org.exoplatform.social");
+    initParams.addParameter(productGroupId);
+    plugin = new AnalyticsIndexTypeMigrationUpgradePlugin(settingService, initParams) {
+      @Override
+      protected AnalyticsIndexTypeMigrationService getMigrationService() {
+        return migrationService;
+      }
+
+      @Override
+      protected void scheduleRetry(long delayMs, Runnable retry) {
+        retryDelays.add(delayMs);
+        retries.add(retry);
+      }
+    };
+    // A setting service that returns what the plugin stored
+    doAnswer(invocation -> {
+      SettingValue<?> stored = invocation.getArgument(3);
+      doAnswer(read -> stored).when(settingService).get(eq(Context.GLOBAL), any(), eq(invocation.getArgument(2)));
+      return null;
+    }).when(settingService).set(eq(Context.GLOBAL), any(), any(), any());
+  }
+
+  @Test
+  void theMigrationIsAskedAgainAtEachStartUntilARunLeavesNoIndexBehind() {
+    // What the upgrade service records for a first run with no change of
+    // version, which its own check would not ask again
+    UpgradePluginExecutionContext sameVersion = new UpgradePluginExecutionContext("7.3.0", 0);
+    when(migrationService.migrate()).thenReturn(List.of("analytics_2026-07-30"));
+
+    assertTrue(plugin.shouldProceedToUpgrade("7.3.0", "7.3.0", sameVersion));
+    IllegalStateException failure = assertThrows(IllegalStateException.class, () -> plugin.processUpgrade("7.3.0", "7.3.0"));
+
+    assertTrue(failure.getMessage().contains("analytics_2026-07-30"), failure::getMessage);
+    verify(settingService, never()).set(any(), any(), any(), any());
+    assertTrue(plugin.shouldProceedToUpgrade("7.3.0", "7.3.0", sameVersion),
+               "a run that left an index behind is asked again, on the same version too");
+  }
+
+  @Test
+  void theMigrationIsAskedAgainWhileTheNewestIndexDoesNotHaveTheTypesOfTheTemplate() {
+    when(migrationService.migrate()).thenReturn(List.of());
+    when(migrationService.isNewestIndexTypedAsTheTemplate()).thenReturn(false);
+
+    plugin.processUpgrade("7.2.0", "7.3.0");
+
+    verify(settingService, never()).set(any(), any(), any(), any());
+    assertTrue(plugin.shouldProceedToUpgrade("7.3.0", "7.3.0", new UpgradePluginExecutionContext("7.3.0", 1)));
+  }
+
+  @Test
+  void theMigrationIsAskedAgainWhenAnotherRunHoldsItsLock() {
+    when(migrationService.migrate()).thenThrow(new AnalyticsMigrationRunningException("The migration is running"));
+
+    plugin.processUpgrade("7.2.0", "7.3.0");
+
+    verify(settingService, never()).set(any(), any(), any(), any());
+    assertTrue(plugin.shouldProceedToUpgrade("7.3.0", "7.3.0", new UpgradePluginExecutionContext("7.3.0", 1)));
+    assertEquals(List.of(), retryDelays, "a lock that tells no time to wait is not tried again in this start");
+  }
+
+  @Test
+  void aLockLeftByAStoppedRunIsTriedAgainInTheSameStartOnceItCanBeTakenOver() {
+    when(migrationService.migrate()).thenThrow(new AnalyticsMigrationRunningException("The lock was renewed 1000 ms ago", 599000))
+                                    .thenReturn(List.of());
+    when(migrationService.isNewestIndexTypedAsTheTemplate()).thenReturn(true);
+
+    plugin.processUpgrade("7.2.0", "7.3.0");
+
+    assertEquals(1, retryDelays.size());
+    assertTrue(retryDelays.get(0) > 599000, "the try waits for the lock to be old enough: " + retryDelays);
+    verify(settingService, never()).set(any(), any(), any(), any());
+
+    retries.get(0).run();
+
+    verify(migrationService, times(2)).migrate();
+    assertFalse(plugin.shouldProceedToUpgrade("7.3.0", "7.3.0", new UpgradePluginExecutionContext("7.3.0", 1)),
+                "the second try migrated and recorded it");
+  }
+
+  @Test
+  void aLockStillHeldAtTheSecondTryLeavesTheMigrationToTheNextStart() {
+    when(migrationService.migrate()).thenThrow(new AnalyticsMigrationRunningException("The lock was renewed 1000 ms ago", 599000));
+
+    plugin.processUpgrade("7.2.0", "7.3.0");
+    retries.get(0).run();
+
+    assertEquals(1, retryDelays.size(), "one second try per start, never a third");
+    verify(settingService, never()).set(any(), any(), any(), any());
+    assertTrue(plugin.shouldProceedToUpgrade("7.3.0", "7.3.0", new UpgradePluginExecutionContext("7.3.0", 1)));
+  }
+
+  @Test
+  void aSecondTryThatLeavesAnIndexBehindRecordsNothingAndDoesNotThrow() {
+    when(migrationService.migrate()).thenThrow(new AnalyticsMigrationRunningException("The lock was renewed 1000 ms ago", 599000))
+                                    .thenReturn(List.of("analytics_2026-07-30"));
+
+    plugin.processUpgrade("7.2.0", "7.3.0");
+    retries.get(0).run();
+
+    verify(settingService, never()).set(any(), any(), any(), any());
+    assertTrue(plugin.shouldProceedToUpgrade("7.3.0", "7.3.0", new UpgradePluginExecutionContext("7.3.0", 1)));
+  }
+
+  @Test
+  void theSecondTryRunsOnADaemonThreadWithTheContainerAndTheRequestLifeCycleOfTheFirstOne() throws Exception {
+    ExoContainer container = mock(ExoContainer.class);
+    ComponentRequestLifecycle lifeCycle = mock(ComponentRequestLifecycle.class);
+    when(container.getComponentInstancesOfType(ComponentRequestLifecycle.class)).thenReturn(List.of(lifeCycle));
+    // The plugin as the platform builds it, with its own scheduling
+    AnalyticsIndexTypeMigrationUpgradePlugin platformPlugin = new AnalyticsIndexTypeMigrationUpgradePlugin(settingService,
+                                                                                                         initParams);
+    AtomicReference<ExoContainer> containerOfTheTry = new AtomicReference<>();
+    AtomicBoolean daemon = new AtomicBoolean();
+    AtomicBoolean requestStarted = new AtomicBoolean();
+    AtomicLong startedAfterMs = new AtomicLong();
+    CountDownLatch done = new CountDownLatch(1);
+    long asked = System.currentTimeMillis();
+
+    // The upgrade service sets the container on the thread of the first try
+    ExoContainerContext.setCurrentContainer(container);
+    try {
+      platformPlugin.scheduleRetry(300, () -> {
+        startedAfterMs.set(System.currentTimeMillis() - asked);
+        containerOfTheTry.set(ExoContainerContext.getCurrentContainer());
+        daemon.set(Thread.currentThread().isDaemon());
+        requestStarted.set(!mockingDetails(lifeCycle).getInvocations().isEmpty());
+        done.countDown();
+      });
+    } finally {
+      ExoContainerContext.setCurrentContainer(null);
+    }
+
+    assertTrue(done.await(10, TimeUnit.SECONDS), "the second try runs");
+    assertTrue(startedAfterMs.get() >= 300, "after the time asked: " + startedAfterMs);
+    assertSame(container, containerOfTheTry.get());
+    assertTrue(daemon.get(), "on a thread that does not keep the server from stopping");
+    assertTrue(requestStarted.get(), "inside a request life cycle");
+    verify(lifeCycle).startRequest(container);
+    verify(lifeCycle, timeout(5000)).endRequest(container);
+  }
+
+  @Test
+  void theMigrationIsNotAskedAgainOnceARunLeftNoIndexBehind() {
+    when(migrationService.migrate()).thenReturn(List.of());
+    when(migrationService.isNewestIndexTypedAsTheTemplate()).thenReturn(true);
+    assertTrue(plugin.shouldProceedToUpgrade("7.3.0", "7.2.0", null));
+
+    plugin.processUpgrade("7.2.0", "7.3.0");
+
+    assertFalse(plugin.shouldProceedToUpgrade("7.3.0", "7.2.0", null));
+    assertFalse(plugin.shouldProceedToUpgrade("7.4.0", "7.3.0", new UpgradePluginExecutionContext("7.3.0", 1)));
+  }
+
+}
