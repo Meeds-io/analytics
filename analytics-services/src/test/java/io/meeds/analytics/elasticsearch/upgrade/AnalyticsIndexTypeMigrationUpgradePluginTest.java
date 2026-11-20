@@ -124,7 +124,7 @@ class AnalyticsIndexTypeMigrationUpgradePluginTest {
 
   @Test
   void theMigrationIsAskedAgainWhenAnotherRunHoldsItsLock() {
-    when(migrationService.migrate()).thenThrow(new AnalyticsMigrationRunningException("The migration is running."));
+    when(migrationService.migrate()).thenThrow(new AnalyticsMigrationRunningException("The migration is running"));
 
     plugin.processUpgrade("7.2.0", "7.3.0");
 
@@ -135,7 +135,7 @@ class AnalyticsIndexTypeMigrationUpgradePluginTest {
 
   @Test
   void aLockLeftByAStoppedRunIsTriedAgainInTheSameStartOnceItCanBeTakenOver() {
-    when(migrationService.migrate()).thenThrow(new AnalyticsMigrationRunningException("The lock was renewed 1000 ms ago.", 599000))
+    when(migrationService.migrate()).thenThrow(new AnalyticsMigrationRunningException("The lock was renewed 1000 ms ago", 599000))
                                     .thenReturn(List.of());
     when(migrationService.isNewestIndexTypedAsTheTemplate()).thenReturn(true);
 
@@ -154,7 +154,7 @@ class AnalyticsIndexTypeMigrationUpgradePluginTest {
 
   @Test
   void aLockStillHeldAtTheSecondTryLeavesTheMigrationToTheNextStart() {
-    when(migrationService.migrate()).thenThrow(new AnalyticsMigrationRunningException("The lock was renewed 1000 ms ago.", 599000));
+    when(migrationService.migrate()).thenThrow(new AnalyticsMigrationRunningException("The lock was renewed 1000 ms ago", 599000));
 
     plugin.processUpgrade("7.2.0", "7.3.0");
     retries.get(0).run();
@@ -166,7 +166,7 @@ class AnalyticsIndexTypeMigrationUpgradePluginTest {
 
   @Test
   void aSecondTryThatLeavesAnIndexBehindRecordsNothingAndDoesNotThrow() {
-    when(migrationService.migrate()).thenThrow(new AnalyticsMigrationRunningException("The lock was renewed 1000 ms ago.", 599000))
+    when(migrationService.migrate()).thenThrow(new AnalyticsMigrationRunningException("The lock was renewed 1000 ms ago", 599000))
                                     .thenReturn(List.of("analytics_2026-07-30"));
 
     plugin.processUpgrade("7.2.0", "7.3.0");

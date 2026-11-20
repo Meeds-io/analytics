@@ -83,12 +83,12 @@ public class AnalyticsIndexTypeMigrationUpgradePlugin extends UpgradeProductPlug
       // stopped run left it: this one neither fails nor records anything
       if (e.getRetryAfterMs() > 0) {
         long delayMs = e.getRetryAfterMs() + RETRY_MARGIN_MS;
-        LOG.warn("{} The migration of the analytics indices is NOT done: it is tried again in {} ms, once its lock can be taken over",
+        LOG.warn("{}. The migration of the analytics indices is NOT done: it is tried again in {} ms, once its lock can be taken over",
                  e.getMessage(),
                  delayMs);
         scheduleRetry(delayMs, this::retry);
       } else {
-        LOG.warn("{} The migration of the analytics indices is NOT done by this server: it is asked again at the next start if it is not complete by then",
+        LOG.warn("{}. The migration of the analytics indices is NOT done by this server: it is asked again at the next start if it is not complete by then",
                  e.getMessage());
       }
     }
@@ -110,7 +110,7 @@ public class AnalyticsIndexTypeMigrationUpgradePlugin extends UpgradeProductPlug
     try {
       migrate();
     } catch (AnalyticsMigrationRunningException e) {
-      LOG.warn("{} The migration of the analytics indices is NOT done by this server: it is asked again at the next start if it is not complete by then",
+      LOG.warn("{}. The migration of the analytics indices is NOT done by this server: it is asked again at the next start if it is not complete by then",
                e.getMessage());
     } catch (Exception e) { // NOSONAR nothing reads the failure of this thread but the log
       LOG.error("The migration of the analytics indices failed: it is asked again at the next start", e);
