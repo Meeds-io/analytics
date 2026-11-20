@@ -622,18 +622,18 @@ public class AnalyticsIndexTypeMigrationService {
     while (true) {
       JSONObject nodes = new JSONObject(storage.sendGetRequest("_tasks?actions=" + REINDEX_ACTION + "&detailed=true")
                                                .getMessage()).optJSONObject("nodes", new JSONObject());
-      boolean running = false;
+      boolean cancelling = false;
       for (String node : nodes.keySet()) {
         JSONObject tasks = nodes.getJSONObject(node).optJSONObject("tasks", new JSONObject());
         for (String task : tasks.keySet()) {
           // The engine describes it as: reindex from [<source>] to [<copy>]
           if (StringUtils.contains(tasks.getJSONObject(task).optString("description"), "[" + copy + "]")) {
             storage.sendPostRequest("_tasks/" + task + "/_cancel", null);
-            running = true;
+            cancelling = true;
           }
         }
       }
-      if (!running) {
+      if (!cancelling) {
         return;
       }
       renewLock();
