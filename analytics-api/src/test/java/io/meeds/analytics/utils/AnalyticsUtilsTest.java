@@ -234,4 +234,27 @@ class AnalyticsUtilsTest {
     mapping.setTypeConflict(typeConflict);
     return mapping;
   }
+
+  /**
+   * A value a request supplies is written into a query template as one JSON
+   * string, or as a number only when it is one, and never holds a placeholder.
+   */
+  @Test
+  void testRequestValuesAreWrittenAsJson() {
+    assertEquals("a\\\"b\\\\c\\n\\u0024value", AnalyticsUtils.toJsonStringContent("a\"b\\c\n$value"));
+    assertEquals("null", AnalyticsUtils.toJsonStringContent(null));
+    assertEquals("12", AnalyticsUtils.toJsonValue("12"));
+    assertEquals("-1.5e3", AnalyticsUtils.toJsonValue("-1.5e3"));
+    assertEquals("\"1\\\"2\"", AnalyticsUtils.toJsonValue("1\"2"));
+    assertEquals("\"012\"", AnalyticsUtils.toJsonValue("012"));
+    assertEquals("[\"\\u0024name\",\"a\\\"b\"]", AnalyticsUtils.collectionToJSONString("$name,a\"b"));
+    assertEquals("\"a\\\"b\"", StatisticFieldMapping.computeESQueryValue("a\"b"));
+    assertEquals("42", StatisticFieldMapping.computeESQueryValue("42"));
+    assertEquals("\"012\"", StatisticFieldMapping.computeESQueryValue("012"));
+    StatisticFieldMapping numeric = new StatisticFieldMapping("duration", "long", false);
+    assertEquals("42", numeric.getESQueryValue("42"));
+    assertEquals("\"4\\\\2\"", numeric.getESQueryValue("4\\2"));
+    StatisticFieldMapping keyword = new StatisticFieldMapping("userId", "keyword", false);
+    assertEquals("\"42\"", keyword.getESQueryValue("42"));
+  }
 }
