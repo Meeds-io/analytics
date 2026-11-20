@@ -21,18 +21,27 @@ package io.meeds.analytics.elasticsearch.upgrade;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockingDetails;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,6 +55,9 @@ import org.exoplatform.commons.api.settings.SettingService;
 import org.exoplatform.commons.api.settings.SettingValue;
 import org.exoplatform.commons.api.settings.data.Context;
 import org.exoplatform.commons.upgrade.UpgradePluginExecutionContext;
+import org.exoplatform.container.ExoContainer;
+import org.exoplatform.container.ExoContainerContext;
+import org.exoplatform.container.component.ComponentRequestLifecycle;
 import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.container.xml.ValueParam;
 
@@ -63,6 +75,8 @@ class AnalyticsIndexTypeMigrationUpgradePluginTest {
 
   private AnalyticsIndexTypeMigrationUpgradePlugin plugin;
 
+  private InitParams                               initParams;
+
   /** The second tries the plugin asked for, by their delay */
   private final List<Long>                         retryDelays = new ArrayList<>();
 
@@ -70,7 +84,7 @@ class AnalyticsIndexTypeMigrationUpgradePluginTest {
 
   @BeforeEach
   void setUp() {
-    InitParams initParams = new InitParams();
+    initParams = new InitParams();
     ValueParam productGroupId = new ValueParam();
     productGroupId.setName("product.group.id");
     productGroupId.setValue("org.exoplatform.social");
@@ -174,6 +188,44 @@ class AnalyticsIndexTypeMigrationUpgradePluginTest {
 
     verify(settingService, never()).set(any(), any(), any(), any());
     assertTrue(plugin.shouldProceedToUpgrade("7.3.0", "7.3.0", new UpgradePluginExecutionContext("7.3.0", 1)));
+  }
+
+  @Test
+  void theSecondTryRunsOnADaemonThreadWithTheContainerAndTheRequestLifeCycleOfTheFirstOne() throws Exception {
+    ExoContainer container = mock(ExoContainer.class);
+    ComponentRequestLifecycle lifeCycle = mock(ComponentRequestLifecycle.class);
+    when(container.getComponentInstancesOfType(ComponentRequestLifecycle.class)).thenReturn(List.of(lifeCycle));
+    // The plugin as the platform builds it, with its own scheduling
+    AnalyticsIndexTypeMigrationUpgradePlugin platformPlugin = new AnalyticsIndexTypeMigrationUpgradePlugin(settingService,
+                                                                                                         initParams);
+    AtomicReference<ExoContainer> containerOfTheTry = new AtomicReference<>();
+    AtomicBoolean daemon = new AtomicBoolean();
+    AtomicBoolean requestStarted = new AtomicBoolean();
+    AtomicLong startedAfterMs = new AtomicLong();
+    CountDownLatch done = new CountDownLatch(1);
+    long asked = System.currentTimeMillis();
+
+    // The upgrade service sets the container on the thread of the first try
+    ExoContainerContext.setCurrentContainer(container);
+    try {
+      platformPlugin.scheduleRetry(300, () -> {
+        startedAfterMs.set(System.currentTimeMillis() - asked);
+        containerOfTheTry.set(ExoContainerContext.getCurrentContainer());
+        daemon.set(Thread.currentThread().isDaemon());
+        requestStarted.set(!mockingDetails(lifeCycle).getInvocations().isEmpty());
+        done.countDown();
+      });
+    } finally {
+      ExoContainerContext.setCurrentContainer(null);
+    }
+
+    assertTrue(done.await(10, TimeUnit.SECONDS), "the second try runs");
+    assertTrue(startedAfterMs.get() >= 300, "after the time asked: " + startedAfterMs);
+    assertSame(container, containerOfTheTry.get());
+    assertTrue(daemon.get(), "on a thread that does not keep the server from stopping");
+    assertTrue(requestStarted.get(), "inside a request life cycle");
+    verify(lifeCycle).startRequest(container);
+    verify(lifeCycle, timeout(5000)).endRequest(container);
   }
 
   @Test
