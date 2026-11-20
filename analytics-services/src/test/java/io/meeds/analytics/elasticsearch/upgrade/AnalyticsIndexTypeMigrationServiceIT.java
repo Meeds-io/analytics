@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mockingDetails;
@@ -728,6 +729,59 @@ class AnalyticsIndexTypeMigrationServiceIT extends AbstractElasticsearchIT {
     assertEquals(200, send("GET", "/" + OLDEST_INDEX, null).statusCode(), "the clone is not deleted");
     assertEquals(Set.of(OLDEST_COPY, OLD_INDEX, NEWEST_INDEX), indices("/_alias/" + ALIAS));
     assertEquals(200, send("GET", "/" + LOCK + "/_doc/run", null).statusCode(), "the lock of the other run is left");
+    assertEquals(5, count(ALIAS));
+  }
+
+  @Test
+  void aRunWhoseLockIsTakenOverAfterItsLastRenewalDoesNotReleaseTheLockOfTheOtherRun() throws Exception {
+    // Another run takes the lock over during the last request of the last
+    // week: nothing renews the lock after it, and the release is the first
+    // write that meets the other run's version
+    AtomicInteger exchanges = new AtomicInteger();
+    doAnswer(invocation -> {
+      Object exchanged = invocation.callRealMethod();
+      if (exchanges.incrementAndGet() == 4) {
+        takeLockOver();
+      }
+      return exchanged;
+    }).when(storage).sendPostRequest(eq("_aliases"), any());
+
+    assertEquals(List.of(), migrationService.migrate());
+
+    assertEquals(4, exchanges.get());
+    assertEquals("keyword", fieldType(OLD_INDEX, "spaceId"));
+    assertEquals(200, send("GET", "/" + LOCK + "/_doc/run", null).statusCode(), "the lock of the other run is not released");
+  }
+
+  @Test
+  void aCopyTheEngineDoesNotAnswerForWhenItIsResumedIsKeptAndTheOthersAreMigrated() throws Exception {
+    HttpResponse<String> copy = send("PUT", "/" + OLD_COPY, """
+        {"settings":{"number_of_shards":1,"number_of_replicas":0},
+         "mappings":{"properties":{"spaceId":{"type":"keyword"},"userId":{"type":"keyword"}}}}
+        """);
+    assertEquals(200, copy.statusCode(), copy::body);
+    index(OLD_COPY, "2", event(2000, 2, 7, 15));
+    refresh();
+    String copyId = indexSettings(OLD_COPY).getString("uuid");
+    String oldIndexId = indexSettings(OLD_INDEX).getString("uuid");
+    // The connection breaks when the resume reads whether the copy carries
+    // the alias: nothing says then that the copy can be deleted
+    AtomicBoolean failed = new AtomicBoolean();
+    doAnswer(invocation -> {
+      if (failed.compareAndSet(false, true)) {
+        throw new SocketTimeoutException("Read timed out");
+      }
+      return invocation.callRealMethod();
+    }).when(storage).sendGetRequest(OLD_COPY + "?allow_no_indices=true&ignore_unavailable=true");
+
+    assertEquals(List.of(OLD_INDEX), migrationService.migrate());
+
+    refresh();
+    assertTrue(failed.get());
+    assertEquals(copyId, indexSettings(OLD_COPY).getString("uuid"), "the copy is kept");
+    assertEquals(oldIndexId, indexSettings(OLD_INDEX).getString("uuid"), "its index is left to the next start");
+    assertEquals("keyword", fieldType(OLDEST_INDEX, "spaceId"));
+    assertEquals(404, send("GET", "/" + LOCK + "/_doc/run", null).statusCode(), "the lock is released");
     assertEquals(5, count(ALIAS));
   }
 
