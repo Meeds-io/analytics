@@ -710,20 +710,16 @@ public class ElasticsearchAnalyticsStorage {
     }
   }
 
+  static String getFieldMappingRequestContent(String fieldName, String type) {
+    return new JSONObject().put("properties", new JSONObject().put(fieldName, new JSONObject().put("type", type))).toString();
+  }
+
   private String createFieldMapping(String f, Object value) {
     String type = getFieldMappingType(value);
     String existingType = mappedFieldNames.putIfAbsent(f, type);
     if (existingType == null) {
       try {
-        sendPutRequest(elasticsearchConfiguration.getIndexAlias() + "/_mapping", String.format("""
-            {
-              "properties": {
-                "%s" : {
-                  "type" : "%s"
-                }
-              }
-            }
-            """, f, type));
+        sendPutRequest(elasticsearchConfiguration.getIndexAlias() + "/_mapping", getFieldMappingRequestContent(f, type));
         LOG.info("Create ES Mapping for field '{}' with type '{}'", f, type);
         sendRefreshIndex();
         listenerService.broadcast(FIELD_MAPPING_CREATED_EVENT, f, type);

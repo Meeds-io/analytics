@@ -90,6 +90,8 @@ class ElasticsearchAnalyticsStorageTest {
 
   private final List<String>            templateBodies    = new ArrayList<>();
 
+  private final List<String>            mappingBodies     = new ArrayList<>();
+
   private boolean                       indexExists;
 
   private boolean                       templateExists    = true;
@@ -302,6 +304,24 @@ class ElasticsearchAnalyticsStorageTest {
     assertFalse(thrown instanceof ElasticsearchMappingConflictException, "only a type conflict asks for a mapping refresh");
   }
 
+  @Test
+  void aNewFieldIsMappedWithItsNameAsTheOnlyKeyOfTheMappingRequest() {
+    String fieldName = "a\"b\\c{d}";
+    StatisticData data = statisticData();
+    data.addKeyword(fieldName, "value");
+
+    storage.sendCreateBulkDocumentsRequest(List.of(new StatisticDataQueueEntry(data)), knownMappings());
+
+    assertEquals(1, mappingBodies.size());
+    JSONObject body = new JSONObject(mappingBodies.get(0));
+    assertEquals(Set.of("properties"), body.keySet());
+    JSONObject properties = body.getJSONObject("properties");
+    assertEquals(Set.of(fieldName), properties.keySet());
+    JSONObject property = properties.getJSONObject(fieldName);
+    assertEquals(Set.of("type"), property.keySet());
+    assertEquals("keyword", property.getString("type"));
+  }
+
   private ElasticsearchResponse answer(ClassicHttpRequest request) throws Exception {
     String path = request.getUri().getPath();
     String method = request.getMethod();
@@ -313,6 +333,9 @@ class ElasticsearchAnalyticsStorageTest {
       }
       templateBodies.add(EntityUtils.toString(request.getEntity()));
       templateExists = true;
+      return ok("{\"acknowledged\":true}");
+    } else if ("PUT".equals(method) && path.equals("/" + INDEX_ALIAS + "/_mapping")) {
+      mappingBodies.add(EntityUtils.toString(request.getEntity()));
       return ok("{\"acknowledged\":true}");
     } else if (path.equals("/_bulk")) {
       return ok(bulkResponse);
