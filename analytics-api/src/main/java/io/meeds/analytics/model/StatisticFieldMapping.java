@@ -25,6 +25,8 @@ import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 
+import io.meeds.analytics.utils.AnalyticsUtils;
+
 import lombok.*;
 import lombok.EqualsAndHashCode.Exclude;
 
@@ -61,10 +63,10 @@ public class StatisticFieldMapping {
   }
 
   public static final String computeESQueryValue(String value) {
-    if (NumberUtils.isDigits(value)) {
+    if (NumberUtils.isDigits(value) && AnalyticsUtils.isJsonNumber(value)) {
       return value;
     } else {
-      return "\"" + value + "\"";
+      return "\"" + AnalyticsUtils.toJsonStringContent(value) + "\"";
     }
   }
 
@@ -100,10 +102,10 @@ public class StatisticFieldMapping {
   }
 
   public String getESQueryValue(String value) {
-    if (isNumeric()) {
+    if (isNumeric() && AnalyticsUtils.isJsonNumber(value)) {
       return value;
     } else {
-      return "\"" + value + "\"";
+      return "\"" + AnalyticsUtils.toJsonStringContent(value) + "\"";
     }
   }
 

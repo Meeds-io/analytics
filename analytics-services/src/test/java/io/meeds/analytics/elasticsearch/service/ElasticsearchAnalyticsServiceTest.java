@@ -117,6 +117,129 @@ class ElasticsearchAnalyticsServiceTest {
     return generatedQuery;
   }
 
+  /**
+   * Builds the query of a chart and returns it parsed, whatever the canned
+   * response makes of the chart: only the query sent matters here.
+   */
+  private JSONObject parsedQueryOf(AnalyticsFilter filter) {
+    when(elasticsearchStorage.search(anyString())).thenReturn(cannedResponse(1));
+    try {
+      elasticsearchAnalyticsService.computeChartData(filter);
+    } catch (RuntimeException e) { // NOSONAR the response is not what is checked
+    }
+    String query = captureGeneratedQuery();
+    // Strict, as the engine's parser is: no unquoted text, leading zero or trailing comma
+    assertDoesNotThrow(() -> new tools.jackson.databind.ObjectMapper().readTree(query), () -> "Not strict JSON: " + query);
+    return new JSONObject(query);
+  }
+
+  private static void collect(Object json, Set<String> keys, List<Object> values) {
+    if (json instanceof JSONObject object) {
+      for (String key : object.keySet()) {
+        keys.add(key);
+        collect(object.get(key), keys, values);
+      }
+    } else if (json instanceof org.json.JSONArray array) {
+      array.forEach(item -> collect(item, keys, values));
+    } else {
+      values.add(json);
+    }
+  }
+
+  private static JSONObject findObjectWithKey(Object json, String key) {
+    if (json instanceof JSONObject object) {
+      if (object.has(key)) {
+        return object;
+      }
+      for (String child : object.keySet()) {
+        JSONObject found = findObjectWithKey(object.get(child), key);
+        if (found != null) {
+          return found;
+        }
+      }
+    } else if (json instanceof org.json.JSONArray array) {
+      for (Object item : array) {
+        JSONObject found = findObjectWithKey(item, key);
+        if (found != null) {
+          return found;
+        }
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Field names and values come from the request: each one stays a single
+   * JSON string (or number) of the query, never query text, and never names
+   * another placeholder of the template it is written into.
+   */
+  @Test
+  void testRequestFieldNamesAndValuesStayJsonValues() {
+    String hourField = "time'stamp\"\\ $value";
+    String equalField = "a\"b\\c";
+    String equalValue = "v\"w\\";
+    String rangeMin = "1\"2";
+    AnalyticsFilter filter = new AnalyticsFilter();
+    filter.setFilters(new ArrayList<>());
+    filter.addXAxisAggregation(new AnalyticsAggregation(AnalyticsAggregationType.DATE, hourField, "asc", AnalyticsAggregation.HOUR_INTERVAL, 0));
+    filter.addEqualFilter(equalField, equalValue);
+    filter.addRangeFilter("duration", rangeMin, "5");
+    filter.addInSetFilter("$value", "$name", "x\"y");
+    filter.addEqualFilter("unmappedNumber", "012");
+
+    JSONObject query = parsedQueryOf(filter);
+
+    Set<String> keys = new java.util.HashSet<>();
+    List<Object> values = new ArrayList<>();
+    collect(query, keys, values);
+    assertTrue(keys.contains(equalField));
+    assertTrue(values.contains(equalValue));
+    assertTrue(values.contains(rangeMin));
+    assertTrue(values.contains(5));
+    assertTrue(keys.contains("$value"));
+    assertTrue(values.contains("$name"));
+    assertTrue(values.contains("x\"y"));
+    assertTrue(values.contains("012"));
+    JSONObject script = findObjectWithKey(query, "source");
+    assertNotNull(script);
+    assertEquals("return doc[params.field].value.withZoneSameInstant(ZoneId.of(params.zone)).getHour();", script.getString("source"));
+    assertEquals(hourField, script.getJSONObject("params").getString("field"));
+  }
+
+  @Test
+  void testRequestIntervalOffsetAndAggregationFieldStayJsonStrings() {
+    String field = "user\"Id\\";
+    String interval = "1d\"x\\";
+    String offset = "+1h\"x\\";
+    AnalyticsFilter filter = new AnalyticsFilter();
+    filter.setFilters(new ArrayList<>());
+    AnalyticsAggregation dateAggregation = new AnalyticsAggregation(AnalyticsAggregationType.DATE, field, "asc", interval, 0);
+    dateAggregation.setOffset(offset);
+    filter.addXAxisAggregation(dateAggregation);
+
+    JSONObject query = parsedQueryOf(filter);
+
+    Set<String> keys = new java.util.HashSet<>();
+    List<Object> values = new ArrayList<>();
+    collect(query, keys, values);
+    assertTrue(values.contains(field));
+    assertTrue(values.contains(interval));
+    assertTrue(values.contains(offset));
+  }
+
+  @Test
+  void testRequestSortDirectionStaysAJsonString() {
+    String sortDirection = "desc\"x\\";
+    AnalyticsFilter filter = new AnalyticsFilter();
+    filter.setFilters(new ArrayList<>());
+    filter.addXAxisAggregation(new AnalyticsAggregation(AnalyticsAggregationType.TERMS, "userId", sortDirection, null, 10));
+
+    JSONObject query = parsedQueryOf(filter);
+
+    JSONObject order = findObjectWithKey(query, "order").getJSONObject("order");
+    assertEquals(sortDirection, order.getString("_count"));
+  }
+
   private String cannedResponse(int groupByCount) {
     return """
         {
