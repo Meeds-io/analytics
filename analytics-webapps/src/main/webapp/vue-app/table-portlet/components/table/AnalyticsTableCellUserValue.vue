@@ -32,15 +32,6 @@
     </template>
     <span>{{ $t('analytics.errorRetrievingDataForValue', {0: value}) }}</span>
   </v-tooltip>
-  <v-tooltip v-else-if="unknown" bottom>
-    <template #activator="{ on, attrs }">
-      <i
-        class="uiIconColorInfo"
-        v-bind="attrs"
-        v-on="on"></i>
-    </template>
-    <span>{{ $t('analytics.unknownIdentityWithId', {0: value}) }}</span>
-  </v-tooltip>
   <exo-user-avatar
     v-else-if="user"
     :identity="user"
@@ -90,7 +81,6 @@ export default {
   data: () => ({
     loading: true,
     error: false,
-    unknown: false,
     user: null,
   }),
   created() {
@@ -100,34 +90,16 @@ export default {
     } else if (this.value && Number(this.value)) {
       this.loading = true;
       this.error = false;
-      this.unknown = false;
       this.$identityService.getIdentityById(this.value)
         .then(identity => {
           this.item.identity = this.user = identity && identity.profile;
           this.$forceUpdate();
         })
-        .catch(() => this.checkUnknownIdentity())
+        .catch(() => this.error = true)
         .finally(() => this.loading = false);
     } else {
       this.loading = false;
     }
-  },
-  methods: {
-    // The identity service throws without the response status: an identity
-    // the REST endpoint answers 401 or 404 for is shown as unknown (a 401 also
-    // comes from an expired session, which the status cannot tell apart); any other failure
-    // is a retrieval error.
-    checkUnknownIdentity() {
-      return fetch(`${eXo.env.portal.context}/${eXo.env.portal.rest}/v1/social/identities/${this.value}`, {
-        method: 'GET',
-        credentials: 'include',
-      })
-        .then(resp => {
-          this.unknown = resp?.status === 401 || resp?.status === 404;
-          this.error = !this.unknown;
-        })
-        .catch(() => this.error = true);
-    },
   },
 };
 </script>
