@@ -109,6 +109,21 @@ class AnalyticsTableUserRowsTest {
   }
 
   @Test
+  void testThePageIsTrimmedToTheLimitWhenTheWidenedFetchFindsMoreUserRows() throws Exception {
+    // the first fetch (2 buckets) finds one user, the widened one (4 buckets)
+    // finds three: the page keeps the first two so that its length still
+    // equals the limit and the table offers "Load more"
+    List<String> fetchedLimits = new ArrayList<>();
+    AnalyticsTablePortlet.ColumnFetcher fetcher = limit -> {
+      fetchedLimits.add(String.valueOf(limit));
+      return rows(java.util.Arrays.copyOf(new String[] {"2", "1", "3", "5"}, Math.min(limit, 4)));
+    };
+    TableColumnResult result = AnalyticsTablePortlet.fetchUserRows(2, fetcher, RESOLVER);
+    assertEquals(List.of("2", "4"), fetchedLimits);
+    assertEquals(List.of("1", "3"), keys(result));
+  }
+
+  @Test
   void testNoMoreFetchWhenTheBucketsAreExhausted() throws Exception {
     AtomicInteger calls = new AtomicInteger();
     AnalyticsTablePortlet.ColumnFetcher fetcher = limit -> {
