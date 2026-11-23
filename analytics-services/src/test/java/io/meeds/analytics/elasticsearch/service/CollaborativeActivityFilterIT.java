@@ -266,8 +266,12 @@ class CollaborativeActivityFilterIT extends AbstractElasticsearchIT {
 
   /**
    * The hour-of-day grouping reads its field from a script parameter, and a
-   * filter value holding quotes and a placeholder name is one plain string:
-   * the engine runs both requests.
+   * filter value holding quotes and a placeholder name stays one JSON string
+   * of the query: the engine runs both requests. The query's whitespace and
+   * comma cleaner (AnalyticsUtils#fixJSONStringFormat) also runs inside its
+   * strings, so a value holding spaces before a comma or a closing bracket,
+   * repeated commas, or a comma between closing brackets reaches the engine
+   * changed; this value holds none of them.
    */
   @Test
   void anHourOfDayChartAndAQuotedFilterValueGoThroughTheEngine() {
@@ -294,7 +298,7 @@ class CollaborativeActivityFilterIT extends AbstractElasticsearchIT {
                                                       0,
                                                       100,
                                                       null);
-    assertTrue(quoted.isEmpty(), "the value is matched as written, by no event");
+    assertTrue(quoted.isEmpty(), "the value stays one JSON string, matched by no event");
   }
 
   @Test
