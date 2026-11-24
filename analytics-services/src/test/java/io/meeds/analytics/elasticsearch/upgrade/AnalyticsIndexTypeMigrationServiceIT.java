@@ -884,6 +884,27 @@ class AnalyticsIndexTypeMigrationServiceIT extends AbstractElasticsearchIT {
   }
 
   @Test
+  void aMigratedIndexKeepsTheReplicasOfItsOriginalAndLeavesNoShardUnassigned() throws Exception {
+    // The engine adjusts the replicas of this one to the nodes
+    HttpResponse<String> ranged = send("PUT", "/" + OLD_INDEX + "/_settings", """
+        {"index.auto_expand_replicas":"0-1"}
+        """);
+    assertEquals(200, ranged.statusCode(), ranged::body);
+
+    assertEquals(List.of(), migrationService.migrate());
+
+    assertEquals("keyword", fieldType(OLDEST_INDEX, "spaceId"));
+    assertEquals("keyword", fieldType(OLD_INDEX, "spaceId"));
+    assertEquals("0", indexSettings(OLDEST_INDEX).getString("number_of_replicas"));
+    assertFalse(indexSettings(OLDEST_INDEX).has("auto_expand_replicas"));
+    assertEquals("0-1", indexSettings(OLD_INDEX).getString("auto_expand_replicas"));
+    // A single node never assigns a replica: one would leave the index yellow
+    HttpResponse<String> health = send("GET", "/_cluster/health/" + OLDEST_INDEX + "," + OLD_INDEX, null);
+    assertEquals(200, health.statusCode(), health::body);
+    assertEquals(0, new JSONObject(health.body()).getInt("unassigned_shards"), health::body);
+  }
+
+  @Test
   void anIndexTheEngineDoesNotAnswerForAtItsTurnIsLeftAsItIsAndTheOthersAreMigrated() throws Exception {
     String oldestIndexId = indexSettings(OLDEST_INDEX).getString("uuid");
     // The connection breaks at the first read of the names behind the alias:
