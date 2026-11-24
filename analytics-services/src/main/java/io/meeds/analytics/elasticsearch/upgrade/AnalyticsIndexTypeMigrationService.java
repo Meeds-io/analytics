@@ -567,8 +567,9 @@ public class AnalyticsIndexTypeMigrationService {
     }
     // The engine clones an index only once its writes are blocked
     storage.sendPutRequest(copy + "/_settings", "{\"index.blocks.write\":true}");
-    // The engine does not give a clone the replicas of its source: left to
-    // its default, the clone takes one, which a single node never assigns
+    // The engine gives a clone the settings of its source but its number of
+    // replicas, which it sets to its default, one: a single node never
+    // assigns it
     JSONObject copySettings = readIndices(copy + "/_settings").getJSONObject(copy).getJSONObject(SETTINGS).getJSONObject(INDEX);
     JSONObject cloneSettings = new JSONObject();
     putReplicas(cloneSettings, copySettings);
@@ -580,7 +581,7 @@ public class AnalyticsIndexTypeMigrationService {
         throw new IllegalStateException("The clone " + index + " of " + copy + " is not available");
       }
       checkSameCount(copy, index);
-      // The clone has the settings of the copy: it is written and refreshed
+      // The clone has the other settings of the copy: it is written and refreshed
       // again as any weekly index
       storage.sendPutRequest(index + "/_settings", "{\"index.blocks.write\":null,\"index.refresh_interval\":null}");
     } catch (Exception e) { // NOSONAR the storage throws the client's checked exceptions undeclared
