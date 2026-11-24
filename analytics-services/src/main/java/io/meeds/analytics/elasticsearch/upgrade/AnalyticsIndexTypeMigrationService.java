@@ -137,6 +137,10 @@ public class AnalyticsIndexTypeMigrationService {
 
   private static final String           SETTINGS               = "settings";
 
+  private static final String           NUMBER_OF_REPLICAS     = "number_of_replicas";
+
+  private static final String           AUTO_EXPAND_REPLICAS   = "auto_expand_replicas";
+
   private static final String           ALIASES                = "aliases";
 
   private static final String           TYPE                   = "type";
@@ -520,7 +524,7 @@ public class AnalyticsIndexTypeMigrationService {
     JSONObject indexSettings = readIndices(index + "/_settings").getJSONObject(index).getJSONObject(SETTINGS).getJSONObject(INDEX);
     JSONObject copySettings = new JSONObject();
     copySettings.put("number_of_shards", indexSettings.optString("number_of_shards", "1"));
-    copySettings.put("number_of_replicas", indexSettings.optString("number_of_replicas", "0"));
+    putReplicas(copySettings, indexSettings);
     if (indexSettings.has("mapping")) {
       // A raised limit on the number of fields, without which the engine
       // refuses the mappings of an index that passed the default one
@@ -563,7 +567,13 @@ public class AnalyticsIndexTypeMigrationService {
     }
     // The engine clones an index only once its writes are blocked
     storage.sendPutRequest(copy + "/_settings", "{\"index.blocks.write\":true}");
-    storage.sendPostRequest(copy + "/_clone/" + index, null);
+    // The engine does not give a clone the replicas of its source: left to
+    // its default, the clone takes one, which a single node never assigns
+    JSONObject copySettings = readIndices(copy + "/_settings").getJSONObject(copy).getJSONObject(SETTINGS).getJSONObject(INDEX);
+    JSONObject cloneSettings = new JSONObject();
+    putReplicas(cloneSettings, copySettings);
+    storage.sendPostRequest(copy + "/_clone/" + index,
+                            new JSONObject().put(SETTINGS, new JSONObject().put(INDEX, cloneSettings)).toString());
     try {
       ElasticsearchResponse health = storage.sendGetRequest("_cluster/health/" + index + "?wait_for_status=yellow&timeout=120s");
       if (new JSONObject(health.getMessage()).optBoolean("timed_out", true)) {
@@ -582,6 +592,19 @@ public class AnalyticsIndexTypeMigrationService {
     // The copy is deleted by this run only while it holds the lock
     renewLock();
     storage.sendPostRequest("_aliases", aliasSwap(index, copy, alias));
+  }
+
+  /**
+   * Gives an index the replicas of another one: its range of replicas when
+   * the engine adjusts their number to the nodes, else their number.
+   */
+  private void putReplicas(JSONObject settings, JSONObject sourceSettings) {
+    String replicasRange = sourceSettings.optString(AUTO_EXPAND_REPLICAS, "false");
+    if (StringUtils.equals(replicasRange, "false")) {
+      settings.put(NUMBER_OF_REPLICAS, sourceSettings.optString(NUMBER_OF_REPLICAS, "0"));
+    } else {
+      settings.put(AUTO_EXPAND_REPLICAS, replicasRange);
+    }
   }
 
   /**
