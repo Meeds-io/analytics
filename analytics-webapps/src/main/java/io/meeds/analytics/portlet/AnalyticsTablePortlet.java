@@ -33,6 +33,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.portlet.PortletException;
@@ -52,6 +53,7 @@ import org.json.JSONObject;
 
 import org.exoplatform.social.core.identity.model.Identity;
 import org.exoplatform.social.core.identity.model.Profile;
+import org.exoplatform.social.core.identity.provider.SpaceIdentityProvider;
 import org.exoplatform.social.core.space.model.Space;
 
 import io.meeds.analytics.model.StatisticFieldMapping;
@@ -153,17 +155,61 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
       limit = 0;
     }
     String sort = request.getParameter("sort");
+    // Only the first request of a page (sorted, limited, not keyed on the
+    // rows already listed) decides which rows exist: the keyed requests of the
+    // other columns only receive keys that survived it.
+    TableColumnResult result;
+    if (isUserIdentityColumn(tableFilter.getMainColumn()) && fieldFilter == null && limit > 0) {
+      result = computeUserRows(request, tableFilter, period, periodType, limit, sort, columnIndex);
+    } else {
+      result = computeDataColumn(request, tableFilter, period, periodType, fieldFilter, limit, sort, columnIndex);
+    }
+    response.setContentType(MediaType.APPLICATION_JSON);
+    response.getWriter().write(AnalyticsUtils.toJsonString(result));
+  }
 
-    AnalyticsFilter filter = tableFilter.buildColumnFilter(period,
-                                                           periodType,
-                                                           fieldFilter,
-                                                           limit,
-                                                           sort,
-                                                           columnIndex,
-                                                           true);
+  /**
+   * Computes a column for a given limit; throws the scope refusal as itself.
+   */
+  @FunctionalInterface
+  interface ColumnFetcher {
+    TableColumnResult fetch(int limit) throws PortletException;
+  }
+
+  /**
+   * Resolves the identity of a row key, null when it is unknown. Overridable
+   * so that a test does not need the social services.
+   *
+   * @param identityId the identity id, as stored in the statistics
+   * @return the identity, or null
+   */
+  protected Identity getRowIdentity(String identityId) {
+    return AnalyticsUtils.getIdentity(identityId);
+  }
+
+  private TableColumnResult computeUserRows(ResourceRequest request,
+                                            AnalyticsTableFilter tableFilter,
+                                            AnalyticsPeriod period,
+                                            AnalyticsPeriodType periodType,
+                                            int limit,
+                                            String sort,
+                                            int columnIndex) throws PortletException {
+    return fetchUserRows(limit,
+                         fetchLimit -> computeDataColumn(request, tableFilter, period, periodType, null, fetchLimit, sort, columnIndex),
+                         this::getRowIdentity);
+  }
+
+  private TableColumnResult computeDataColumn(ResourceRequest request,
+                                              AnalyticsTableFilter tableFilter,
+                                              AnalyticsPeriod period,
+                                              AnalyticsPeriodType periodType,
+                                              AnalyticsFieldFilter fieldFilter,
+                                              int limit,
+                                              String sort,
+                                              int columnIndex) throws PortletException {
+    AnalyticsFilter filter = tableFilter.buildColumnFilter(period, periodType, fieldFilter, limit, sort, columnIndex, true);
     addScopeFilter(request, filter);
     addLanguageFilter(request, filter);
-
     TableColumnResult result = getAnalyticsService().computeTableColumnData(null,
                                                                             tableFilter,
                                                                             filter,
@@ -176,27 +222,84 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
         && columnFilter.getThresholdAggregation().getAggregation() != null
         && columnFilter.getThresholdAggregation().getAggregation().getType() != null
         && columnFilter.getThresholdAggregation().getAggregation().getField() != null) {
-      filter = tableFilter.buildColumnFilter(period,
-                                             periodType,
-                                             fieldFilter,
-                                             limit,
-                                             sort,
-                                             columnIndex,
-                                             false);
+      filter = tableFilter.buildColumnFilter(period, periodType, fieldFilter, limit, sort, columnIndex, false);
       addScopeFilter(request, filter);
       addLanguageFilter(request, filter);
-
-      getAnalyticsService().computeTableColumnData(result,
-                                                   tableFilter,
-                                                   filter,
-                                                   period,
-                                                   periodType,
-                                                   columnIndex,
-                                                   false);
+      getAnalyticsService().computeTableColumnData(result, tableFilter, filter, period, periodType, columnIndex, false);
     }
+    return result;
+  }
 
-    response.setContentType(MediaType.APPLICATION_JSON);
-    response.getWriter().write(AnalyticsUtils.toJsonString(result));
+  /**
+   * Whether the table lists user identities: its main column aggregates the
+   * {@code userId} terms. Such a column also receives space identities, since
+   * a statistic may be recorded with a space identity as its beneficiary
+   * (gamification realizations are), and a space is not a user. Not
+   * {@link #isIdentityAggregation}, which also accepts {@code spaceId}, whose
+   * table lists spaces and must keep them.
+   *
+   * @param mainColumn the table's main column
+   * @return true when the rows are user identities
+   */
+  static boolean isUserIdentityColumn(AnalyticsTableColumnFilter mainColumn) {
+    AnalyticsAggregation aggregation = mainColumn == null || mainColumn.getValueAggregation() == null ? null
+                                                                                                      : mainColumn.getValueAggregation()
+                                                                                                                  .getAggregation();
+    return aggregation != null
+           && aggregation.getType() == AnalyticsAggregationType.TERMS
+           && StringUtils.equals(aggregation.getField(), "userId");
+  }
+
+  /**
+   * Removes the rows whose key is a space identity. An identity that cannot be
+   * resolved is kept: its cell then tells the identity is unknown.
+   *
+   * @param result the column result, filtered in place
+   * @param identityResolver resolves an identity from its id, null when unknown
+   * @return the number of rows kept
+   */
+  static int removeSpaceRows(TableColumnResult result, Function<String, Identity> identityResolver) {
+    if (result == null || result.getItems() == null) {
+      return 0;
+    }
+    result.getItems().removeIf(item -> {
+      Identity identity = identityResolver.apply(item.getKey());
+      return identity != null && StringUtils.equals(identity.getProviderId(), SpaceIdentityProvider.NAME);
+    });
+    return result.getItems().size();
+  }
+
+  /**
+   * Fetches the rows of a user table without its space identities.
+   * Elasticsearch counts the space buckets in the requested limit, so the
+   * limit is widened (doubled, up to {@link #EXPORT_MAX_ROWS} buckets) until
+   * enough user rows are found or the buckets run out, then trimmed to the
+   * requested limit: the page stays full and "Load more" stays available up
+   * to that bound; past it a page can come back short.
+   *
+   * @param limit the requested number of rows
+   * @param fetcher computes the column for a given limit
+   * @param identityResolver resolves an identity from its id
+   * @return the column, without its space identities
+   * @throws PortletException when the fetcher refuses the access
+   */
+  static TableColumnResult fetchUserRows(int limit,
+                                         ColumnFetcher fetcher,
+                                         Function<String, Identity> identityResolver) throws PortletException {
+    int fetchLimit = limit;
+    TableColumnResult result = fetcher.fetch(fetchLimit);
+    int fetched = result == null || result.getItems() == null ? 0 : result.getItems().size();
+    int kept = removeSpaceRows(result, identityResolver);
+    while (kept < limit && fetched >= fetchLimit && fetchLimit < EXPORT_MAX_ROWS) {
+      fetchLimit = Math.min(fetchLimit * 2, EXPORT_MAX_ROWS);
+      result = fetcher.fetch(fetchLimit);
+      fetched = result == null || result.getItems() == null ? 0 : result.getItems().size();
+      kept = removeSpaceRows(result, identityResolver);
+    }
+    if (kept > limit) {
+      result.getItems().subList(limit, kept).clear();
+    }
+    return result;
   }
 
   private AnalyticsTableFilter getFilter(ResourceRequest request) {
@@ -305,6 +408,9 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
                                                              EXPORT_MAX_ROWS,
                                                              sortDirection,
                                                              null);
+    if (isUserIdentityColumn(tableFilter.getMainColumn())) {
+      removeSpaceRows(sortColumnResult, this::getRowIdentity);
+    }
     List<String> rowKeys = sortColumnResult.getItems().stream().map(TableColumnItemValue::getKey).toList();
 
     // Every other aggregation-backed column is then fetched filtered down to
@@ -341,7 +447,7 @@ public class AnalyticsTablePortlet extends AbstractAnalyticsPortlet<AnalyticsTab
         if (space) {
           spaceByKey.computeIfAbsent(key, AnalyticsUtils::getSpaceById);
         } else {
-          identityByKey.computeIfAbsent(key, AnalyticsUtils::getIdentity);
+          identityByKey.computeIfAbsent(key, this::getRowIdentity);
         }
       }
     }
