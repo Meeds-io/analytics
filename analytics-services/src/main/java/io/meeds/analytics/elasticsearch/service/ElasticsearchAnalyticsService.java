@@ -32,6 +32,8 @@ import static io.meeds.analytics.utils.AnalyticsUtils.getAlternativeFieldName;
 import static io.meeds.analytics.utils.AnalyticsUtils.getBaseFieldName;
 import static io.meeds.analytics.utils.AnalyticsUtils.getJsonNode;
 import static io.meeds.analytics.utils.AnalyticsUtils.sortByAnalyticsDate;
+import static io.meeds.analytics.utils.AnalyticsUtils.toJsonStringContent;
+import static io.meeds.analytics.utils.AnalyticsUtils.toJsonValue;
 import static io.meeds.analytics.utils.AnalyticsUtils.toJsonString;
 
 import java.math.BigDecimal;
@@ -764,7 +766,8 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
                                     AnalyticsFieldFilter fieldFilter,
                                     StatisticFieldMapping fieldMapping,
                                     String fieldName) {
-    String esFieldName = fieldMapping == null ? fieldName : fieldMapping.getAggregationFieldName();
+    // Every name and value a request supplies is written as JSON, never as query text
+    String esFieldName = toJsonStringContent(fieldMapping == null ? fieldName : fieldMapping.getAggregationFieldName());
     String esQueryValue = fieldMapping == null ? StatisticFieldMapping.computeESQueryValue(fieldFilter.getValueString()) :
                                                fieldMapping.getESQueryValue(fieldFilter.getValueString());
     switch (fieldFilter.getType()) {
@@ -812,8 +815,8 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
             }
           }},
           """.replace(NAME_REQUEST_BODY_PARAM, esFieldName)
-             .replace(MIN_REQUEST_BODY_PARAM, range.getMin())
-             .replace(MAX_REQUEST_BODY_PARAM, range.getMax()));
+             .replace(MIN_REQUEST_BODY_PARAM, toJsonValue(range.getMin()))
+             .replace(MAX_REQUEST_BODY_PARAM, toJsonValue(range.getMax())));
       break;
     case IN_SET:
       esQuery.append("""
@@ -1000,8 +1003,9 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
     esQuery.append("""
                   "script": {
                     "lang": "painless",
-                    "source": "return doc['$aggFieldName'].value.withZoneSameInstant(ZoneId.of(params.zone)).getHour();",
+                    "source": "return doc[params.field].value.withZoneSameInstant(ZoneId.of(params.zone)).getHour();",
                     "params": {
+                      "field": "$aggFieldName",
                       "zone": "$timeZoneId"
                     }
                   },
@@ -1009,7 +1013,7 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
                   "order": {
                     "_key": "asc"
                   }
-        """.replace(AGG_FIELD_NAME_REQUEST_BODY_PARAM, aggregationFieldName)
+        """.replace(AGG_FIELD_NAME_REQUEST_BODY_PARAM, toJsonStringContent(aggregationFieldName))
            .replace(TIME_ZONE_ID_REQUEST_BODY_PARAM, timeZone == null ? "UTC" : timeZone.getId()));
   }
 
@@ -1023,14 +1027,14 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
     if (aggregationField == null || !aggregationField.isScriptedField()) {
       esQuery.append("""
                     "field": "$aggFieldName"
-          """.replace(AGG_FIELD_NAME_REQUEST_BODY_PARAM, aggregationFieldName));
+          """.replace(AGG_FIELD_NAME_REQUEST_BODY_PARAM, toJsonStringContent(aggregationFieldName)));
     } else {
       esQuery.append("""
                    "script": {
                      "lang": "painless",
                      "source": "$aggFieldName"
                    }
-          """.replace(AGG_FIELD_NAME_REQUEST_BODY_PARAM, aggregationFieldName));
+          """.replace(AGG_FIELD_NAME_REQUEST_BODY_PARAM, toJsonStringContent(aggregationFieldName)));
     }
   }
 
@@ -1052,12 +1056,12 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
       esQuery.append("""
                   ,
                   "calendar_interval": "$interval"
-          """.replace(INTERVAL_REQUEST_BODY_PARAM, aggregation.getInterval()));
+          """.replace(INTERVAL_REQUEST_BODY_PARAM, toJsonStringContent(aggregation.getInterval())));
     } else {
       esQuery.append("""
                   ,
                   "fixed_interval": "$interval"
-          """.replace(INTERVAL_REQUEST_BODY_PARAM, aggregation.getInterval()));
+          """.replace(INTERVAL_REQUEST_BODY_PARAM, toJsonStringContent(aggregation.getInterval())));
     }
   }
 
@@ -1066,7 +1070,7 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
       esQuery.append("""
                  ,
                   "offset": "$intervalOffset"
-          """.replace(INTERVAL_OFFSET_REQUEST_BODY_PARAM, aggregation.getOffset()));
+          """.replace(INTERVAL_OFFSET_REQUEST_BODY_PARAM, toJsonStringContent(aggregation.getOffset())));
     }
   }
 
@@ -1130,8 +1134,8 @@ public class ElasticsearchAnalyticsService implements AnalyticsService {
         esQuery.append("""
                      ,
                       "order": {"$sortField": "$sortDirection"}
-            """.replace(SORT_FIELD_REQUEST_BODY_PARAM, sortField)
-               .replace(SORT_DIRECTION_REQUEST_BODY_PARAM, sortDirection));
+            """.replace(SORT_FIELD_REQUEST_BODY_PARAM, toJsonStringContent(sortField))
+               .replace(SORT_DIRECTION_REQUEST_BODY_PARAM, toJsonStringContent(sortDirection)));
       }
     }
   }
