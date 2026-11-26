@@ -103,6 +103,15 @@ public class ElasticsearchAnalyticsStorage {
 
   private static final String           KEYWORD_MAPPING_TYPE        = "keyword";
 
+  /**
+   * The longest keyword value, in characters, that a field created by this
+   * storage indexes: Lucene refuses a term past 32,766 bytes, and a character
+   * takes up to 4 bytes in UTF-8. A longer value stays in the document's
+   * {@code _source} without being indexed, instead of keeping the whole
+   * statistic out of the index.
+   */
+  static final int                      KEYWORD_IGNORE_ABOVE        = 8191;
+
   private static final String           BOOLEAN_MAPPING_TYPE        = "boolean";
 
   private static final String           FLOAT_MAPPING_TYPE          = "float";
@@ -318,7 +327,7 @@ public class ElasticsearchAnalyticsStorage {
                  .filter(mapping -> !templateFieldNames.contains(mapping.getName()))
                  .filter(mapping -> mapping.getType() != null && EXPLICIT_MAPPING_TYPES.contains(mapping.getType()))
                  .forEach(mapping -> {
-                   JSONObject property = new JSONObject().put("type", mapping.getType());
+                   JSONObject property = getFieldMappingProperty(mapping.getType());
                    if (TEXT_MAPPING_TYPE.equals(mapping.getType()) && mapping.isHasKeywordSubField()) {
                      property.put("fields",
                                   new JSONObject().put(KEYWORD_MAPPING_TYPE,
@@ -711,7 +720,22 @@ public class ElasticsearchAnalyticsStorage {
   }
 
   static String getFieldMappingRequestContent(String fieldName, String type) {
-    return new JSONObject().put("properties", new JSONObject().put(fieldName, new JSONObject().put("type", type))).toString();
+    return new JSONObject().put("properties", new JSONObject().put(fieldName, getFieldMappingProperty(type))).toString();
+  }
+
+  /**
+   * Builds the mapping of a field this storage creates: its type, and for a
+   * keyword {@code ignore_above} {@value #KEYWORD_IGNORE_ABOVE}.
+   *
+   * @param type the field's mapping type
+   * @return the field's mapping property
+   */
+  static JSONObject getFieldMappingProperty(String type) {
+    JSONObject property = new JSONObject().put("type", type);
+    if (KEYWORD_MAPPING_TYPE.equals(type)) {
+      property.put("ignore_above", KEYWORD_IGNORE_ABOVE);
+    }
+    return property;
   }
 
   private String createFieldMapping(String f, Object value) {

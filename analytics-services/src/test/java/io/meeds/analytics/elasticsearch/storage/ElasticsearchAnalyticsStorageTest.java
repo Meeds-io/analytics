@@ -124,6 +124,10 @@ class ElasticsearchAnalyticsStorageTest {
     assertTrue(body.getJSONObject("aliases").getJSONObject(INDEX_ALIAS).getBoolean("is_write_index"));
     JSONObject properties = body.getJSONObject("mappings").getJSONObject("properties");
     assertEquals("keyword", properties.getJSONObject("contentId").getString("type"));
+    assertEquals(ElasticsearchAnalyticsStorage.KEYWORD_IGNORE_ABOVE,
+                 properties.getJSONObject("contentId").getInt("ignore_above"),
+                 "a keyword value too long to index keeps its statistic in the new weekly index");
+    assertFalse(properties.getJSONObject("contentUpdatedDate").has("ignore_above"), "only a keyword is bounded");
     assertEquals("long", properties.getJSONObject("contentUpdatedDate").getString("type"));
     assertEquals("long", properties.getJSONObject("contentId_alt2").getString("type"));
     assertEquals("float", properties.getJSONObject("score").getString("type"));
@@ -137,6 +141,26 @@ class ElasticsearchAnalyticsStorageTest {
     assertFalse(properties.has("someDate"), "a date needs its format, left to dynamic mapping");
     assertFalse(properties.has("count"), "types the storage never pushes are not copied from ES");
     assertTrue(indexExists);
+  }
+
+  /**
+   * A keyword field the storage creates at runtime is bounded, so a value past
+   * Lucene's term limit leaves the field unindexed instead of refusing the
+   * whole statistic (EXO-94748); a numeric field is not.
+   */
+  @Test
+  void aKeywordFieldCreatedAtRuntimeIgnoresAValueTooLongToIndex() {
+    StatisticData data = statisticData();
+    data.addKeyword("longText", "x".repeat(40_000));
+    data.addLong("textLength", 40_000L);
+    storage.sendCreateBulkDocumentsRequest(List.of(new StatisticDataQueueEntry(data)), knownMappings());
+
+    JSONObject longText = mappedField("longText");
+    assertEquals("keyword", longText.getString("type"));
+    assertEquals(ElasticsearchAnalyticsStorage.KEYWORD_IGNORE_ABOVE, longText.getInt("ignore_above"));
+    JSONObject textLength = mappedField("textLength");
+    assertEquals("long", textLength.getString("type"));
+    assertFalse(textLength.has("ignore_above"), "only a keyword is bounded");
   }
 
   @Test
@@ -318,7 +342,7 @@ class ElasticsearchAnalyticsStorageTest {
     JSONObject properties = body.getJSONObject("properties");
     assertEquals(Set.of(fieldName), properties.keySet());
     JSONObject property = properties.getJSONObject(fieldName);
-    assertEquals(Set.of("type"), property.keySet());
+    assertEquals(Set.of("type", "ignore_above"), property.keySet());
     assertEquals("keyword", property.getString("type"));
   }
 
@@ -352,6 +376,15 @@ class ElasticsearchAnalyticsStorageTest {
       return ok("{\"acknowledged\":true}");
     }
     return ok("{}");
+  }
+
+  private JSONObject mappedField(String name) {
+    return mappingBodies.stream()
+                        .map(body -> new JSONObject(body).getJSONObject("properties"))
+                        .filter(properties -> properties.has(name))
+                        .map(properties -> properties.getJSONObject(name))
+                        .findFirst()
+                        .orElseThrow(() -> new AssertionError("no runtime mapping created for " + name));
   }
 
   private static ElasticsearchResponse ok(String body) {
