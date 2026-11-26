@@ -33,6 +33,7 @@ import java.net.http.HttpResponse.BodyHandlers;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -261,6 +262,43 @@ class CollaborativeActivityFilterIT extends AbstractElasticsearchIT {
                                                         100,
                                                         null);
     assertEquals(allIds, ids(negative), "no condition at all: every event");
+  }
+
+  /**
+   * The hour-of-day grouping reads its field from a script parameter, and a
+   * filter value holding quotes and a placeholder name stays one JSON string
+   * of the query: the engine runs both requests. The query's whitespace and
+   * comma cleaner (AnalyticsUtils#fixJSONStringFormat) also runs inside its
+   * strings, so a value holding spaces before a comma or a closing bracket,
+   * repeated commas, or a comma between closing brackets reaches the engine
+   * changed; this value holds none of them.
+   */
+  @Test
+  void anHourOfDayChartAndAQuotedFilterValueGoThroughTheEngine() {
+    AnalyticsFilter hours = new AnalyticsFilter();
+    hours.setFilters(new ArrayList<>());
+    hours.addXAxisAggregation(new AnalyticsAggregation(AnalyticsAggregationType.DATE,
+                                                       "timestamp",
+                                                       "asc",
+                                                       AnalyticsAggregation.HOUR_INTERVAL,
+                                                       0));
+    ChartDataList chart = service.computeChartData(hours);
+    assertEquals(0, chart.getFailedShards(), "every shard ran the hour-of-day script");
+    assertEquals(allIds.size(),
+                 chart.getCharts()
+                      .stream()
+                      .flatMap(data -> data.getValues().stream())
+                      .mapToLong(Long::parseLong)
+                      .sum(),
+                 "every event falls in one hour bucket: " + chart.getCharts());
+
+    List<StatisticData> quoted = service.retrieveData(List.of(new AnalyticsFieldFilter("module",
+                                                                                       AnalyticsFieldFilterType.EQUAL,
+                                                                                       "a\"b $name")),
+                                                      0,
+                                                      100,
+                                                      null);
+    assertTrue(quoted.isEmpty(), "the value stays one JSON string, matched by no event");
   }
 
   @Test
