@@ -218,7 +218,7 @@ class ElasticsearchAnalyticsMappingConflictIT extends AbstractElasticsearchIT {
   /**
    * A keyword value past Lucene's 32,766-byte term limit keeps its statistic
    * in the index, on a field the storage maps at runtime and on a known field
-   * mapped in a new weekly index; the value stays in {@code _source}
+   * mapped in a new weekly index; on both the value stays in {@code _source}
    * (EXO-94748).
    */
   @Test
@@ -228,6 +228,7 @@ class ElasticsearchAnalyticsMappingConflictIT extends AbstractElasticsearchIT {
     storage.sendCreateBulkDocumentsRequest(List.of(entryWith("longText", longValue)), new HashSet<>());
     assertEquals("keyword", fieldType(currentIndex(), "longText"), "the storage maps the new field at runtime");
     assertEquals(1, countDocuments(), "the statistic is indexed, not refused");
+    assertEquals(longValue, sourceValue("longText"));
 
     cleanCluster();
     Set<StatisticFieldMapping> knownView = Set.of(new StatisticFieldMapping("knownText", "keyword", false));
@@ -235,14 +236,17 @@ class ElasticsearchAnalyticsMappingConflictIT extends AbstractElasticsearchIT {
     assertEquals("keyword", fieldType(currentIndex(), "knownText"), "the new weekly index maps the known field");
 
     assertEquals(1, countDocuments(), "the statistic is indexed, not refused");
+    assertEquals(longValue, sourceValue("knownText"));
+  }
+
+  private String sourceValue(String field) throws Exception {
     HttpResponse<String> response = send("GET", "/" + ALIAS + "/_search", null);
     assertEquals(200, response.statusCode(), response::body);
-    assertEquals(longValue,
-                 new JSONObject(response.body()).getJSONObject("hits")
-                                                .getJSONArray("hits")
-                                                .getJSONObject(0)
-                                                .getJSONObject("_source")
-                                                .getString("knownText"));
+    return new JSONObject(response.body()).getJSONObject("hits")
+                                          .getJSONArray("hits")
+                                          .getJSONObject(0)
+                                          .getJSONObject("_source")
+                                          .getString(field);
   }
 
   /**
